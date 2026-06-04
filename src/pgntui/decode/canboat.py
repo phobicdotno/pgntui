@@ -13,6 +13,7 @@ from dataclasses import dataclass, field
 from importlib import resources
 from typing import Any
 
+from pgntui.decode.fastpacket import FastPacketReassembler, load_fast_packet_pgns
 from pgntui.drivers.base import Frame
 
 
@@ -57,6 +58,12 @@ class CanboatDecoder:
             pgn = int(entry.get("PGN") or entry.get("pgn") or 0)
             if pgn:
                 self._by_pgn.setdefault(pgn, []).append(entry)
+        # Fast-packet reassembly: PGNs whose declared payload exceeds 8 bytes
+        # arrive as a sequence of CAN frames. The reassembler buffers them and
+        # yields the complete payload only when all frames have been received.
+        # For single-frame PGNs (the common case) the reassembler is a no-op
+        # passthrough, so this is backwards compatible with the previous API.
+        self._reassembler = FastPacketReassembler(load_fast_packet_pgns(db))
 
     @classmethod
     def load_bundled(cls) -> CanboatDecoder:
@@ -69,11 +76,25 @@ class CanboatDecoder:
         return pgn in self._by_pgn
 
     def decode(self, frame: Frame) -> DecodedFrame | None:
+        """Decode a single CAN frame.
+
+        For single-frame PGNs this behaves as before: parse fields out of the
+        frame's data and return a :class:`DecodedFrame`.
+
+        For fast-packet PGNs the frame is fed through the internal
+        :class:`FastPacketReassembler`. The first N-1 frames of a fast-packet
+        message return ``None`` (waiting for more frames); the final frame
+        returns the fully assembled :class:`DecodedFrame`.
+        """
         entries = self._by_pgn.get(frame.pgn)
         if not entries:
             return None
+        payloads = list(self._reassembler.push(frame.pgn, frame.source_addr, frame.data))
+        if not payloads:
+            return None
         entry = entries[0]
-        fields = self._decode_fields(entry, frame.data, frame.pgn)
+        payload = payloads[0]
+        fields = self._decode_fields(entry, payload, frame.pgn)
         return DecodedFrame(
             timestamp=frame.timestamp,
             source_addr=frame.source_addr,
