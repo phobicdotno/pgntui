@@ -24,9 +24,8 @@ def test_to_textual_css_contains_colors_and_classes() -> None:
 
 
 def test_load_theme_from_path(tmp_path: Path) -> None:
-    payload = json.loads(
-        (Path(__file__).resolve().parent.parent / "src/pgntui/themes/builtin/dark.json").read_text(encoding="utf-8")
-    )
+    dark = Path(__file__).resolve().parent.parent / "src/pgntui/themes/builtin/dark.json"
+    payload = json.loads(dark.read_text(encoding="utf-8"))
     payload["id"] = "custom"
     payload["title"] = "Custom"
     p = tmp_path / "custom.json"
