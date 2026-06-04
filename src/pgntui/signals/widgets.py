@@ -55,3 +55,34 @@ class AnalogInWidget(Widget):
 
     def render(self):
         return self.render_text()
+
+
+class AnalogOutWidget(Widget):
+    def __init__(self, signal: AnalogOut, write_enabled: bool = False) -> None:
+        super().__init__()
+        self.signal = signal
+        self.write_enabled = write_enabled
+        self.value: float = signal.min
+        self.on_write = None  # type: ignore[assignment]
+
+    @property
+    def is_disabled(self) -> bool:
+        return not self.write_enabled
+
+    def submit_set(self, value: float) -> None:
+        if not self.write_enabled:
+            return
+        self.value = float(value)
+        if callable(self.on_write):
+            self.on_write(self.value)
+        self.refresh()
+
+    def render_text(self) -> str:
+        s = self.signal
+        unit = f" {s.unit}" if s.unit else ""
+        val = f"{self.value:.{s.decimals}f}"
+        tail = "[set]" if self.write_enabled else "[disabled]"
+        return f"{s.title:20s} {val}{unit} {tail}"
+
+    def render(self):
+        return self.render_text()
