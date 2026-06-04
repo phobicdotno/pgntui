@@ -1,3 +1,3 @@
 """pgntui — NMEA 2000 TUI."""
 
-__version__ = "0.1.2"
+__version__ = "0.1.3"
