@@ -1,0 +1,47 @@
+"""Actisense .log writer."""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pathlib import Path
+
+from pgntui.drivers.base import Frame
+
+
+class ActisenseLogWriter:
+    def __init__(self, path: Path) -> None:
+        self.path = Path(path)
+        self._fh = None
+        self.frame_count = 0
+        self.bytes_written = 0
+
+    def open(self) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = self.path.open("w", encoding="utf-8")
+
+    def close(self) -> None:
+        if self._fh is not None:
+            self._fh.close()
+            self._fh = None
+
+    def write(self, frame: Frame) -> None:
+        assert self._fh is not None
+        ts = datetime.fromtimestamp(frame.timestamp, tz=timezone.utc).strftime(
+            "%Y-%m-%d-%H:%M:%S.%f"
+        )[:-3]
+        fields = [
+            ts,
+            "3",
+            str(frame.pgn),
+            str(frame.source_addr),
+            "255",
+            str(len(frame.data)),
+            *[f"{b:02x}" for b in frame.data],
+        ]
+        line = ",".join(fields) + "\n"
+        self._fh.write(line)
+        self.bytes_written += len(line.encode("utf-8"))
+        self.frame_count += 1
+
+
+__all__ = ["ActisenseLogWriter"]
