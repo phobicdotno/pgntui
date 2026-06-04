@@ -1,4 +1,6 @@
 # -*- mode: python ; coding: utf-8 -*-
+from PyInstaller.utils.hooks import copy_metadata
+
 a = Analysis(
     ["src/pgntui/__main__.py"],
     pathex=["src"],
@@ -6,8 +8,9 @@ a = Analysis(
     datas=[
         ("src/pgntui/decode/pgns.json", "pgntui/decode"),
         ("src/pgntui/themes/builtin", "pgntui/themes/builtin"),
-    ],
-    hiddenimports=["pgntui.drivers.actisense", "pgntui.drivers.replay"],
+        ("src/pgntui/examples", "pgntui/examples"),
+    ] + copy_metadata("pgntui"),
+    hiddenimports=["pgntui.drivers.actisense", "pgntui.drivers.replay", "pgntui.examples"],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
