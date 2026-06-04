@@ -1,4 +1,10 @@
-"""Thin wrapper around the bundled canboat pgns.json database."""
+"""Thin wrapper around the bundled canboat pgns.json database.
+
+To find the raw canboat field names for a given PGN, grep the bundled DB:
+    grep -A5 '"PGN":127488' src/pgntui/decode/pgns.json | grep '"Name"'
+The decoded dict carries the canonical canboat ``Name`` plus any alias from
+``_FIELD_ALIASES`` (see below), so router bindings can use either.
+"""
 
 from __future__ import annotations
 
@@ -19,8 +25,22 @@ class DecodedFrame:
     fields: dict[str, Any] = field(default_factory=dict)
 
 
-# Aliases for field names that conventional tools (signalk etc.) expose
-# differently from the bare canboat `Name`. Keyed by (pgn, canboat field name).
+# Bridge between canboat's raw ``Name`` and the more common downstream name used
+# by tools such as SignalK and most N2K reference docs. Keyed by
+# ``(pgn, canboat field name)``.
+#
+# How to extend:
+#     Add a row ``(pgn, "Raw Name"): "Common Name"`` when the canboat name is
+#     confusing or differs from the stable name users see elsewhere.
+#
+# When to use:
+#     Only when the raw name is genuinely ambiguous AND a widely-accepted
+#     alternative exists. Don't add aliases just to mirror personal preference.
+#
+# Caveat:
+#     The decoder emits BOTH the raw and the aliased name in the decoded dict,
+#     so router bindings can match on either. Aliases are additive, never
+#     destructive.
 _FIELD_ALIASES: dict[tuple[int, str], str] = {
     (127488, "Speed"): "Engine Speed",
     (127488, "Boost Pressure"): "Engine Boost Pressure",
@@ -82,10 +102,23 @@ class CanboatDecoder:
                 resolution = 1.0
             if resolution == 0:
                 resolution = 1.0
+            offset_raw = f.get("Offset")
+            if offset_raw is None:
+                offset_raw = f.get("offset")
+            try:
+                offset = float(offset_raw) if offset_raw is not None else 0.0
+            except (TypeError, ValueError):
+                offset = 0.0
             signed = bool(f.get("Signed") or f.get("signed"))
             if signed and raw >= (1 << (size - 1)):
                 raw -= 1 << size
-            value: Any = raw * resolution if resolution != 1.0 else raw
+            # Canboat formula: value = raw * resolution + offset.
+            # Keep the int fast-path when both transforms are no-ops so callers
+            # that expect integer enum/lookup values aren't surprised.
+            if resolution == 1.0 and offset == 0.0:
+                value: Any = raw
+            else:
+                value = raw * resolution + offset
             out[name] = value
             alias = _FIELD_ALIASES.get((pgn, name))
             if alias:

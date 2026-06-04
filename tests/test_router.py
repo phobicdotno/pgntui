@@ -44,3 +44,22 @@ def test_router_source_none_is_wildcard() -> None:
     router.bind("rpm_any", SignalKey(pgn=127488, field="Engine Speed", source=None, instance=None))
     df = DecodedFrame(1.0, 99, 127488, "Engine", {"Engine Speed": 2100.0, "Instance": 7})
     assert [u.signal_id for u in router.route(df)] == ["rpm_any"]
+
+
+def test_router_explicit_instance_skips_missing_instance_frame() -> None:
+    """A binding that pins ``instance=0`` must NOT consume frames whose
+    decoded payload lacks an ``Instance`` field.
+
+    Previously the router silently allowed this — a Real Power frame with no
+    Instance would be routed to a binding intended for engine 0, etc.
+    """
+    router = SignalRouter()
+    router.bind("port_rpm", SignalKey(pgn=127488, field="Engine Speed", instance=0))
+    decoded = DecodedFrame(
+        timestamp=1.0,
+        source_addr=10,
+        pgn=127488,
+        name="Engine",
+        fields={"Engine Speed": 1500.0},  # no "Instance" key
+    )
+    assert list(router.route(decoded)) == []

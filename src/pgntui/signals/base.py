@@ -26,6 +26,19 @@ class Signal:
 
 @dataclass(frozen=True, slots=True)
 class AnalogIn(Signal):
+    """Inbound analog signal binding.
+
+    Note on ``smoothing``: this field weights the **previous** sample, not the
+    new one. The display blends as::
+
+        shown = smoothing * prev_raw + (1.0 - smoothing) * new
+
+    So ``smoothing=0.0`` means no smoothing (raw passthrough) and
+    ``smoothing=1.0`` freezes the value at the first sample. This is the
+    opposite convention of textbook EMA ``alpha``, which weights the NEW
+    sample. Express your value accordingly when porting from references.
+    """
+
     unit: str | None = None
     min: float = 0.0
     max: float = 1.0
@@ -98,10 +111,10 @@ def load_signal(path: Path) -> Signal:
             min=float(payload.get("min", 0.0)),
             max=float(payload.get("max", 1.0)),
             decimals=int(payload.get("decimals", 0)),
-            warn_above=payload.get("warn_above"),
-            alarm_above=payload.get("alarm_above"),
-            warn_below=payload.get("warn_below"),
-            alarm_below=payload.get("alarm_below"),
+            warn_above=float(payload["warn_above"]) if "warn_above" in payload else None,
+            alarm_above=float(payload["alarm_above"]) if "alarm_above" in payload else None,
+            warn_below=float(payload["warn_below"]) if "warn_below" in payload else None,
+            alarm_below=float(payload["alarm_below"]) if "alarm_below" in payload else None,
             smoothing=float(payload.get("smoothing", 0.0)),
         )
     if t == "analog_out":
@@ -113,10 +126,10 @@ def load_signal(path: Path) -> Signal:
             min=float(payload.get("min", 0.0)),
             max=float(payload.get("max", 1.0)),
             decimals=int(payload.get("decimals", 0)),
-            warn_above=payload.get("warn_above"),
-            alarm_above=payload.get("alarm_above"),
-            warn_below=payload.get("warn_below"),
-            alarm_below=payload.get("alarm_below"),
+            warn_above=float(payload["warn_above"]) if "warn_above" in payload else None,
+            alarm_above=float(payload["alarm_above"]) if "alarm_above" in payload else None,
+            warn_below=float(payload["warn_below"]) if "warn_below" in payload else None,
+            alarm_below=float(payload["alarm_below"]) if "alarm_below" in payload else None,
             write_pgn=int(payload["write_pgn"]),
             write_field=payload["write_field"],
         )

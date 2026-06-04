@@ -38,7 +38,10 @@ class SignalRouter:
         for signal_id, key in bindings:
             if key.source is not None and key.source != df.source_addr:
                 continue
-            if key.instance is not None and instance is not None and key.instance != instance:
+            # A binding that pins an instance must NOT consume frames that lack
+            # an Instance field. ``None != 2`` correctly skips when the frame
+            # has no instance but the binding expects one.
+            if key.instance is not None and key.instance != instance:
                 continue
             if key.field not in df.fields:
                 continue
