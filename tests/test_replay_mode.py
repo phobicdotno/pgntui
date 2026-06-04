@@ -91,9 +91,7 @@ def test_iter_frames_honors_pause_with_sliding_resume(tmp_path: Path) -> None:
     # ~400ms. Sleep through that window and confirm neither arrives.
     s.toggle_pause()
     time.sleep(0.6)
-    assert len(emitted) == 1, (
-        f"no frames should be emitted while paused; got {len(emitted)}"
-    )
+    assert len(emitted) == 1, f"no frames should be emitted while paused; got {len(emitted)}"
 
     # Resume — frame 2 should arrive after the leftover inter-frame delay
     # (sliding semantics), not instantly (which would mean catching up the
@@ -115,7 +113,7 @@ def test_iter_frames_honors_pause_with_sliding_resume(tmp_path: Path) -> None:
     # delay; an instant fire would be < 5ms.
     delay_after_resume = emitted[1] - resume_at
     assert delay_after_resume >= 0.025, (
-        f"frame 2 fired {delay_after_resume*1000:.1f}ms after resume — "
+        f"frame 2 fired {delay_after_resume * 1000:.1f}ms after resume — "
         "looks like catching up, not sliding"
     )
 

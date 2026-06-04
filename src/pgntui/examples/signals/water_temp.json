@@ -1,0 +1,13 @@
+{
+  "id": "water_temp",
+  "type": "analog_in",
+  "title": "Water Temp",
+  "unit": "C",
+  "pgn": 130310,
+  "field": "Water Temperature",
+  "min": -5,
+  "max": 40,
+  "decimals": 1,
+  "smoothing": 0.5,
+  "log": false
+}

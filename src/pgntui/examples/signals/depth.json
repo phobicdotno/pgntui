@@ -1,0 +1,15 @@
+{
+  "id": "depth",
+  "type": "analog_in",
+  "title": "Depth",
+  "unit": "m",
+  "pgn": 128267,
+  "field": "Depth",
+  "min": 0,
+  "max": 100,
+  "decimals": 1,
+  "warn_below": 3,
+  "alarm_below": 1.5,
+  "smoothing": 0.4,
+  "log": true
+}

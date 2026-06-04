@@ -1,0 +1,30 @@
+# pgntui workspace configuration.
+#
+# This is the default scaffold created by `pgntui --example`. Edit it to point
+# at your real NMEA 2000 source. The shipped workspace expects to be driven by
+# the file-replay driver — pass a .pgnlog file via:
+#
+#     pgntui replay path/to/recording.pgnlog
+#
+# To talk to an Actisense NGT-1 USB gateway instead, uncomment the [driver]
+# block below and adjust the serial port for your platform.
+
+[app]
+theme = "dark"
+write_enabled = false
+
+[logging]
+csv_dir = "logs"
+record_dir = "recordings"
+
+# Default driver. Replaced when you run `pgntui replay ...`.
+[driver]
+name = "file-replay"
+
+# Example Actisense NGT-1 configuration:
+# [driver]
+# name = "actisense-ngt1"
+# port = "/dev/tty.usbserial-XXXX"   # macOS
+# # port = "/dev/ttyUSB0"            # Linux
+# # port = "COM3"                    # Windows
+# baud = 115200

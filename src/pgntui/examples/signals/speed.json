@@ -1,0 +1,13 @@
+{
+  "id": "speed",
+  "type": "analog_in",
+  "title": "Speed",
+  "unit": "kn",
+  "pgn": 128259,
+  "field": "Speed Water Referenced",
+  "min": 0,
+  "max": 30,
+  "decimals": 1,
+  "smoothing": 0.3,
+  "log": true
+}

@@ -1,0 +1,11 @@
+{
+  "id": "main",
+  "title": "Main",
+  "cols": 12,
+  "signals": [
+    {"ref": "engine_rpm", "row": 0, "col": 0, "w": 6},
+    {"ref": "speed",      "row": 0, "col": 6, "w": 6},
+    {"ref": "depth",      "row": 1, "col": 0, "w": 6},
+    {"ref": "water_temp", "row": 1, "col": 6, "w": 6}
+  ]
+}
