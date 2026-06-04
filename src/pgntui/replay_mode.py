@@ -28,6 +28,7 @@ class ReplaySession:
 
     def toggle_pause(self) -> None:
         self.paused = not self.paused
+        self.driver.set_paused(self.paused)
 
     def open(self) -> None:
         self.driver.open({"path": str(self.path), "speed": self.speed})
