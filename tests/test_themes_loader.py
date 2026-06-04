@@ -73,3 +73,56 @@ def test_gradients_block_round_trips(tmp_path: Path) -> None:
     assert theme.animate_fps == 6
     assert theme.gradients[0].target == "bar_fill"
     assert theme.gradients[0].stops == ("#ff0000", "#00ff00", "#0000ff")
+
+
+def _base_theme_payload(gradients: list[dict]) -> dict:
+    return {
+        "id": "t",
+        "title": "T",
+        "colors": {
+            k: "#000000"
+            for k in (
+                "bg fg fg_dim accent ok warn alarm border title_bg title_fg "
+                "bar_track bar_fill bar_warn bar_alarm"
+            ).split()
+        },
+        "glyphs": {},
+        "styles": {},
+        "gradients": gradients,
+    }
+
+
+def test_gradient_with_no_stops_rejected(tmp_path: Path) -> None:
+    payload = _base_theme_payload([{"target": "bar_fill", "stops": []}])
+    p = tmp_path / "t.json"
+    p.write_text(json.dumps(payload))
+    with pytest.raises(ThemeLoadError) as ei:
+        load_theme(p)
+    assert "at least 2 stops" in str(ei.value)
+
+
+def test_gradient_with_one_stop_rejected(tmp_path: Path) -> None:
+    payload = _base_theme_payload([{"target": "bar_fill", "stops": ["#ff0000"]}])
+    p = tmp_path / "t.json"
+    p.write_text(json.dumps(payload))
+    with pytest.raises(ThemeLoadError) as ei:
+        load_theme(p)
+    assert "at least 2 stops" in str(ei.value)
+
+
+def test_gradient_with_invalid_hex_rejected(tmp_path: Path) -> None:
+    payload = _base_theme_payload([{"target": "bar_fill", "stops": ["#ff0000", "#zzzzzz"]}])
+    p = tmp_path / "t.json"
+    p.write_text(json.dumps(payload))
+    with pytest.raises(ThemeLoadError) as ei:
+        load_theme(p)
+    assert "invalid hex color" in str(ei.value)
+
+
+def test_gradient_with_short_hex_rejected(tmp_path: Path) -> None:
+    payload = _base_theme_payload([{"target": "bar_fill", "stops": ["#fff", "#000000"]}])
+    p = tmp_path / "t.json"
+    p.write_text(json.dumps(payload))
+    with pytest.raises(ThemeLoadError) as ei:
+        load_theme(p)
+    assert "invalid hex color" in str(ei.value)

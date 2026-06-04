@@ -6,8 +6,23 @@ on:
     tags: ["v*"]
 
 jobs:
-  pypi:
+  test:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev,dist]"
+      - run: python -m ruff check src/ tests/
+      - run: python -m ruff format --check src/ tests/
+      - run: python -m mypy src/pgntui
+      - run: python -m pytest tests/ -v
+
+  pypi:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       id-token: write
       contents: read
@@ -21,6 +36,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
 
   binaries:
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -38,6 +54,7 @@ jobs:
             arch: x86_64
             asset: pgntui-windows-x86_64.exe
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
@@ -54,6 +71,7 @@ jobs:
   homebrew_winget:
     needs: [pypi, binaries]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
       - name: Update homebrew tap stub (manual follow-up to phobicdotno/homebrew-tap)

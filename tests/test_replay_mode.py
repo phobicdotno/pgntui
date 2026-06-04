@@ -59,9 +59,9 @@ def _write_three_frame_fixture(path: Path, spacing_ms: int = 100) -> None:
 def test_iter_frames_honors_pause_with_sliding_resume(tmp_path: Path) -> None:
     """Pausing must halt frame emission; resuming continues without catching up."""
     fixture = tmp_path / "paused.pgnlog"
-    # 200ms spacing leaves a meaningful inter-frame window even after the
-    # ~50ms pause-poll quantum eats into the first half of the dt sleep.
-    spacing_ms = 200
+    # 500ms spacing leaves plenty of room for the ~50ms pause-poll quantum and
+    # GitHub-runner jitter so the pause command lands before frame 2 emits.
+    spacing_ms = 500
     _write_three_frame_fixture(fixture, spacing_ms=spacing_ms)
 
     s = ReplaySession(path=fixture, speed="1x")
@@ -87,10 +87,12 @@ def test_iter_frames_honors_pause_with_sliding_resume(tmp_path: Path) -> None:
     assert len(emitted) == 1, "first frame should arrive immediately"
 
     # Pause immediately; the inter-frame sleep before frame 2 is in progress.
-    # Frames 2 (+200ms) and 3 (+400ms) would normally land within the next
-    # ~400ms. Sleep through that window and confirm neither arrives.
+    # Frames 2 (+500ms) and 3 (+1000ms) would normally land within the next
+    # ~1000ms. Sleep through a longer 1.5s window — well past when both
+    # frames would have emitted under nominal timing — and confirm neither
+    # arrives. The wider window absorbs CI runner jitter and scheduler stalls.
     s.toggle_pause()
-    time.sleep(0.6)
+    time.sleep(1.5)
     assert len(emitted) == 1, f"no frames should be emitted while paused; got {len(emitted)}"
 
     # Resume — frame 2 should arrive after the leftover inter-frame delay
@@ -109,8 +111,8 @@ def test_iter_frames_honors_pause_with_sliding_resume(tmp_path: Path) -> None:
 
     # Sliding check: frame 2 must not have fired immediately on resume — if
     # the driver were catching up, the dt sleep would already be satisfied.
-    # We require at least 25ms (one poll quantum minus jitter) of post-resume
-    # delay; an instant fire would be < 5ms.
+    # 25ms is one poll quantum minus jitter; on loaded CI this is intentionally
+    # close to the floor — an instant catch-up fire would be < 5ms.
     delay_after_resume = emitted[1] - resume_at
     assert delay_after_resume >= 0.025, (
         f"frame 2 fired {delay_after_resume * 1000:.1f}ms after resume — "

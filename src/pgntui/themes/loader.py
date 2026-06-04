@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
@@ -24,6 +25,8 @@ REQUIRED_COLORS = (
     "bar_warn",
     "bar_alarm",
 )
+
+_HEX_COLOR = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 class ThemeLoadError(ValueError):
@@ -48,6 +51,16 @@ class Theme:
     animate_fps: int = 4
 
 
+def _validate_stops(source: str, target: str, stops: list[str]) -> None:
+    if len(stops) < 2:
+        raise ThemeLoadError(
+            f"{source}: gradient {target!r}: must have at least 2 stops, got {len(stops)}"
+        )
+    for s in stops:
+        if not isinstance(s, str) or not _HEX_COLOR.match(s):
+            raise ThemeLoadError(f"{source}: gradient {target!r}: invalid hex color {s!r}")
+
+
 def _parse(payload: dict[str, Any], source: str) -> Theme:
     try:
         tid = payload["id"]
@@ -58,9 +71,13 @@ def _parse(payload: dict[str, Any], source: str) -> Theme:
     for c in REQUIRED_COLORS:
         if c not in colors:
             raise ThemeLoadError(f"{source}: missing color {c!r}")
-    gradients = tuple(
-        Gradient(target=g["target"], stops=tuple(g["stops"])) for g in payload.get("gradients", [])
-    )
+    gradient_list: list[Gradient] = []
+    for g in payload.get("gradients", []):
+        target = g["target"]
+        stops = list(g["stops"])
+        _validate_stops(source, target, stops)
+        gradient_list.append(Gradient(target=target, stops=tuple(stops)))
+    gradients = tuple(gradient_list)
     return Theme(
         id=tid,
         title=title,
