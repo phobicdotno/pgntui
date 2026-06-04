@@ -106,3 +106,33 @@ class DigitalInWidget(Widget):
 
     def render(self):
         return self.render_text()
+
+
+class DigitalOutWidget(Widget):
+    def __init__(self, signal: DigitalOut, write_enabled: bool = False) -> None:
+        super().__init__()
+        self.signal = signal
+        self.write_enabled = write_enabled
+        self.value: bool = False
+        self.on_write = None  # type: ignore[assignment]
+
+    @property
+    def is_disabled(self) -> bool:
+        return not self.write_enabled
+
+    def toggle(self) -> None:
+        if not self.write_enabled:
+            return
+        self.value = not self.value
+        if callable(self.on_write):
+            self.on_write(self.value)
+        self.refresh()
+
+    def render_text(self) -> str:
+        s = self.signal
+        glyph = "●" if self.value else "○"
+        label = s.on_label if self.value else s.off_label
+        return f"{s.title:20s} [{glyph} {label}]"
+
+    def render(self):
+        return self.render_text()
