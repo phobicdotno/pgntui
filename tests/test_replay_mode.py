@@ -88,12 +88,15 @@ def test_iter_frames_honors_pause_with_sliding_resume(tmp_path: Path) -> None:
 
     # Pause immediately; the inter-frame sleep before frame 2 is in progress.
     # Frames 2 (+500ms) and 3 (+1000ms) would normally land within the next
-    # ~1000ms. Sleep through a longer 1.5s window — well past when both
-    # frames would have emitted under nominal timing — and confirm neither
-    # arrives. The wider window absorbs CI runner jitter and scheduler stalls.
+    # ~1000ms. Poll across a 1.5s budget and fail-fast the moment a frame
+    # leaks through — keeps the suite snappy while still absorbing CI jitter.
     s.toggle_pause()
-    time.sleep(1.5)
-    assert len(emitted) == 1, f"no frames should be emitted while paused; got {len(emitted)}"
+    budget_end = time.monotonic() + 1.5
+    while time.monotonic() < budget_end:
+        if len(emitted) > 1:
+            break  # leak detected, will assert below
+        time.sleep(0.05)
+    assert len(emitted) == 1, f"pause leaked: emitted={len(emitted)}"
 
     # Resume — frame 2 should arrive after the leftover inter-frame delay
     # (sliding semantics), not instantly (which would mean catching up the

@@ -49,14 +49,10 @@ def test_write_read_roundtrip_preserves_all_fields(tmp_path: Path) -> None:
         assert restored.data == written.data
         assert restored.priority == written.priority
         assert restored.destination == written.destination
-        # NOTE: timestamp roundtrip has a pre-existing timezone mismatch
-        # (writer formats as UTC, reader parses naively as local time). That's
-        # out of scope for the B-6/C-4 fix and is left for a separate audit.
-        # We still assert sub-second precision is preserved (ms via the writer's
-        # "%Y-%m-%d-%H:%M:%S.%f"[:-3] truncation), modulo whole-second TZ offsets.
-        sub_second_written = written.timestamp - int(written.timestamp)
-        sub_second_restored = restored.timestamp - int(restored.timestamp)
-        assert abs(sub_second_restored - sub_second_written) < 1e-3
+        # Reader now parses as UTC (NF-1), so the absolute timestamp survives
+        # the roundtrip modulo the writer's millisecond truncation
+        # ("%Y-%m-%d-%H:%M:%S.%f"[:-3] drops microsecond precision).
+        assert abs(restored.timestamp - written.timestamp) < 1e-3
 
 
 def test_writer_uses_lf_only(tmp_path: Path) -> None:

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from pgntui.drivers.base import Frame
@@ -14,7 +14,10 @@ def parse_line(line: str) -> Frame | None:
     if len(parts) < 7:
         return None
     try:
-        ts = datetime.strptime(parts[0], "%Y-%m-%d-%H:%M:%S.%f").timestamp()
+        # Writer emits UTC timestamps via datetime.utcfromtimestamp; parse
+        # them back as UTC so .timestamp() returns the original epoch value
+        # rather than shifting by the local UTC offset.
+        ts = datetime.strptime(parts[0], "%Y-%m-%d-%H:%M:%S.%f").replace(tzinfo=UTC).timestamp()
         priority = int(parts[1])
         pgn = int(parts[2])
         src = int(parts[3])
