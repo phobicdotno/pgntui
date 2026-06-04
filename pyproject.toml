@@ -24,8 +24,9 @@ classifiers = [
   "Topic :: Terminals",
 ]
 dependencies = [
-  "textual>=0.80",
+  "textual>=8.0",
   "pyserial>=3.5",
+  "platformdirs>=4.0",
 ]
 
 [project.optional-dependencies]
@@ -42,6 +43,12 @@ dist = [
 
 [project.scripts]
 pgntui = "pgntui.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/phobicdotno/pgntui"
+Source = "https://github.com/phobicdotno/pgntui"
+"Bug Tracker" = "https://github.com/phobicdotno/pgntui/issues"
+Changelog = "https://github.com/phobicdotno/pgntui/releases"
 
 [project.entry-points."pgntui.drivers"]
 actisense-ngt1 = "pgntui.drivers.actisense:NGT1Driver"

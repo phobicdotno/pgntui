@@ -326,7 +326,7 @@ class PgntuiApp(App[None]):
 _WELCOME_TEXT = """[b]pgntui[/b] — no workspace configured
 
 To get started:
-  [b]pgntui --example[/b]            scaffold an example workspace at ~/.config/pgntui/
+  [b]pgntui --example[/b]            scaffold an example workspace at the OS default location
   [b]pgntui replay <file.pgnlog>[/b]  play a recording into the TUI
   [b]pgntui --help[/b]               full options
 

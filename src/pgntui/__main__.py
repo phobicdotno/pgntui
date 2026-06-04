@@ -10,7 +10,7 @@ from importlib.metadata import entry_points
 from pathlib import Path
 
 from pgntui.app import PgntuiApp
-from pgntui.config import Config, load_config
+from pgntui.config import Config, _default_workspace, load_config
 from pgntui.containers.loader import Container, load_container
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder
@@ -19,8 +19,6 @@ from pgntui.drivers.base import Driver
 from pgntui.drivers.replay import FileReplayDriver
 from pgntui.signals.base import Signal, load_signals_dir
 from pgntui.themes.loader import ThemeLoadError, load_builtin
-
-DEFAULT_WORKSPACE = Path("~/.config/pgntui")
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -31,7 +29,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument(
         "--example",
         action="store_true",
-        help="scaffold an example workspace at --workspace (or ~/.config/pgntui) and exit",
+        help="scaffold an example workspace at --workspace (or the OS default location) and exit",
     )
     sub = p.add_subparsers(dest="command")
     replay = sub.add_parser("replay", help="replay a .pgnlog file")
@@ -49,7 +47,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 
 def resolve_workspace(arg: str | None) -> Path:
-    return (Path(arg).expanduser() if arg else DEFAULT_WORKSPACE.expanduser()).resolve()
+    return (Path(arg).expanduser() if arg else _default_workspace()).resolve()
 
 
 def scaffold_example(workspace: Path) -> int:
@@ -215,7 +213,14 @@ def main(argv: list[str] | None = None) -> int:
         return scaffold_example(workspace)
 
     cfg_path = workspace / "config.toml"
-    cfg = load_config(cfg_path)
+    try:
+        cfg = load_config(cfg_path)
+    except ValueError as e:
+        # ``load_config`` wraps TOML decode errors in ValueError carrying the
+        # file path + line/column. Print friendly and exit non-zero rather than
+        # dumping a raw traceback on the user.
+        print(f"error: {e}", file=sys.stderr)
+        return 1
     if args.enable_write:
         cfg = _apply_enable_write(cfg, workspace)
 
