@@ -1,0 +1,13 @@
+{
+  "id": "green-phosphor", "title": "Green Phosphor",
+  "colors": {
+    "bg": "#001a00", "fg": "#33ff33", "fg_dim": "#1a7a1a",
+    "accent": "#a0ffa0", "ok": "#33ff33", "warn": "#ffff33", "alarm": "#ff5050",
+    "border": "#1a7a1a", "title_bg": "#003300", "title_fg": "#a0ffa0",
+    "bar_track": "#003300", "bar_fill": "#33ff33",
+    "bar_warn": "#ffff33", "bar_alarm": "#ff5050"
+  },
+  "glyphs": {"bar_left": "├", "bar_right": "┤", "bar_track": "─",
+             "bar_marker": "●", "on": "●", "off": "○", "box": "single"},
+  "styles": {"title": "bold", "value": "bold", "unit": "dim"}
+}

@@ -1,0 +1,13 @@
+{
+  "id": "amber-crt", "title": "Amber CRT",
+  "colors": {
+    "bg": "#1a0f00", "fg": "#ffb000", "fg_dim": "#7a5400",
+    "accent": "#ffe07a", "ok": "#5cff5c", "warn": "#ffcc33", "alarm": "#ff3030",
+    "border": "#7a5400", "title_bg": "#3a2200", "title_fg": "#ffe07a",
+    "bar_track": "#3a2200", "bar_fill": "#ffb000",
+    "bar_warn": "#ffcc33", "bar_alarm": "#ff3030"
+  },
+  "glyphs": {"bar_left": "├", "bar_right": "┤", "bar_track": "─",
+             "bar_marker": "●", "on": "●", "off": "○", "box": "single"},
+  "styles": {"title": "bold", "value": "bold", "unit": "dim"}
+}

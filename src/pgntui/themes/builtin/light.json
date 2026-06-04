@@ -1,0 +1,13 @@
+{
+  "id": "light", "title": "Light",
+  "colors": {
+    "bg": "#f5f5f5", "fg": "#202020", "fg_dim": "#808080",
+    "accent": "#0a66c2", "ok": "#1f7a1f", "warn": "#a06400", "alarm": "#a01a1a",
+    "border": "#c0c0c0", "title_bg": "#e0e0e0", "title_fg": "#202020",
+    "bar_track": "#d0d0d0", "bar_fill": "#0a66c2",
+    "bar_warn": "#a06400", "bar_alarm": "#a01a1a"
+  },
+  "glyphs": {"bar_left": "├", "bar_right": "┤", "bar_track": "─",
+             "bar_marker": "●", "on": "●", "off": "○", "box": "single"},
+  "styles": {"title": "bold", "value": "bold", "unit": "dim"}
+}

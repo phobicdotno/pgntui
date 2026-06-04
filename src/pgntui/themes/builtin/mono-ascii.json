@@ -1,0 +1,13 @@
+{
+  "id": "mono-ascii", "title": "Mono ASCII",
+  "colors": {
+    "bg": "#000000", "fg": "#ffffff", "fg_dim": "#808080",
+    "accent": "#ffffff", "ok": "#ffffff", "warn": "#ffffff", "alarm": "#ffffff",
+    "border": "#808080", "title_bg": "#000000", "title_fg": "#ffffff",
+    "bar_track": "#404040", "bar_fill": "#ffffff",
+    "bar_warn": "#ffffff", "bar_alarm": "#ffffff"
+  },
+  "glyphs": {"bar_left": "|", "bar_right": "|", "bar_track": "-",
+             "bar_marker": "*", "on": "*", "off": "o", "box": "ascii"},
+  "styles": {"title": "bold", "value": "", "unit": ""}
+}

@@ -1,0 +1,20 @@
+{
+  "id": "rainbow-disco", "title": "Rainbow Disco",
+  "colors": {
+    "bg": "#0a0014", "fg": "#ffffff", "fg_dim": "#9070a0",
+    "accent": "#ff00ff", "ok": "#00ff80", "warn": "#ffd000", "alarm": "#ff0040",
+    "border": "#ff00ff", "title_bg": "#1a0028", "title_fg": "#ffd0ff",
+    "bar_track": "#1a0028", "bar_fill": "#ff00ff",
+    "bar_warn": "#ffd000", "bar_alarm": "#ff0040"
+  },
+  "glyphs": {"bar_left": "├", "bar_right": "┤", "bar_track": "─",
+             "bar_marker": "●", "on": "●", "off": "○", "box": "double"},
+  "styles": {"title": "bold", "value": "bold", "unit": "dim"},
+  "gradients": [
+    {"target": "bar_fill",  "stops": ["#ff0000","#ff8000","#ffff00","#00ff00","#00ffff","#0080ff","#8000ff","#ff00ff"]},
+    {"target": "title_fg",  "stops": ["#ff80ff","#ffd080","#80ff80","#80ffff","#8080ff","#ff80c0"]},
+    {"target": "border",    "stops": ["#ff00ff","#00ffff","#ffff00","#ff8000"]}
+  ],
+  "animate": true,
+  "animate_fps": 4
+}
