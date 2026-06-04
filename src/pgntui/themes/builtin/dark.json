@@ -1,0 +1,16 @@
+{
+  "id": "dark",
+  "title": "Dark",
+  "colors": {
+    "bg": "#0a0a0a", "fg": "#e0e0e0", "fg_dim": "#707070",
+    "accent": "#5cd0ff", "ok": "#5cff5c", "warn": "#ffcc33", "alarm": "#ff3030",
+    "border": "#303030", "title_bg": "#1a1a1a", "title_fg": "#e0e0e0",
+    "bar_track": "#202020", "bar_fill": "#5cd0ff",
+    "bar_warn": "#ffcc33", "bar_alarm": "#ff3030"
+  },
+  "glyphs": {
+    "bar_left": "├", "bar_right": "┤", "bar_track": "─",
+    "bar_marker": "●", "on": "●", "off": "○", "box": "single"
+  },
+  "styles": {"title": "bold", "value": "bold", "unit": "dim"}
+}

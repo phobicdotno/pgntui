@@ -50,6 +50,7 @@ packages = ["src/pgntui"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/pgntui/decode/pgns.json" = "pgntui/decode/pgns.json"
+"src/pgntui/themes/builtin" = "pgntui/themes/builtin"
 
 [tool.ruff]
 line-length = 100
