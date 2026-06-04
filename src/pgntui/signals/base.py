@@ -83,7 +83,7 @@ def _common(payload: dict[str, Any]) -> dict[str, Any]:
 
 def load_signal(path: Path) -> Signal:
     try:
-        payload = json.loads(path.read_text())
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         raise SignalLoadError(f"{path}: invalid JSON: {e}") from e
     t = payload.get("type")

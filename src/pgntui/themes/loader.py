@@ -75,7 +75,7 @@ def _parse(payload: dict[str, Any], source: str) -> Theme:
 
 def load_theme(path: Path) -> Theme:
     try:
-        payload = json.loads(path.read_text())
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         raise ThemeLoadError(f"{path}: invalid JSON: {e}") from e
     return _parse(payload, str(path))

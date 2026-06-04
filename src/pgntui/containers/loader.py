@@ -29,7 +29,7 @@ class Container:
 
 def load_container(path: Path, known_signal_ids: set[str]) -> Container:
     try:
-        payload = json.loads(path.read_text())
+        payload = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as e:
         raise ContainerLoadError(f"{path}: invalid JSON: {e}") from e
     try:

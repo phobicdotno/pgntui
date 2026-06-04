@@ -23,7 +23,7 @@ def load_config(path: Path) -> Config:
     path = Path(path)
     if not path.exists():
         return Config()
-    data = tomllib.loads(path.read_text())
+    data = tomllib.loads(path.read_text(encoding="utf-8"))
     driver = data.get("driver", {})
     app = data.get("app", {})
     logging_cfg = data.get("logging", {})
