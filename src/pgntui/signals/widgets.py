@@ -86,3 +86,23 @@ class AnalogOutWidget(Widget):
 
     def render(self):
         return self.render_text()
+
+
+class DigitalInWidget(Widget):
+    def __init__(self, signal: DigitalIn) -> None:
+        super().__init__()
+        self.signal = signal
+        self.value: bool = False
+
+    def update_value(self, value: bool) -> None:
+        self.value = bool(value)
+        self.refresh()
+
+    def render_text(self) -> str:
+        s = self.signal
+        glyph = "●" if self.value else "○"
+        label = s.on_label if self.value else s.off_label
+        return f"{s.title:20s} {glyph} {label}"
+
+    def render(self):
+        return self.render_text()
