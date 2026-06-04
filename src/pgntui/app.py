@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
@@ -11,6 +12,7 @@ from textual.app import App, ComposeResult
 from textual.containers import Vertical
 from textual.widget import Widget
 from textual.widgets import Header, RichLog, Static, TabbedContent, TabPane
+from textual.worker import Worker
 
 from pgntui.containers.loader import Container
 from pgntui.containers.screen import ContainerView
@@ -97,11 +99,18 @@ class PgntuiApp(App[None]):
         self._container_titles = container_titles
         # Indexed at compose-time so route updates can find widgets fast.
         self._widgets_by_signal: dict[str, list[Widget]] = {}
-        # Recording state.
+        # Recording state. ``_writer_lock`` guards the atomic swap between the
+        # event-loop thread (which opens/closes the writer) and the frame-loop
+        # worker thread (which calls ``writer.write``).
         self._writer: ActisenseLogWriter | None = None
         self._writer_path: Path | None = None
+        self._writer_lock: threading.Lock = threading.Lock()
         # Debug pane log instance; populated in compose.
         self._debug_log: DebugLog | None = None
+        # Compose-time storage for (container, view) pairs. Populated as
+        # ``compose()`` yields each ContainerView so ``_wire_write_callbacks``
+        # can hook widgets after mount.
+        self._view_pairs: list[tuple[Container, ContainerView]] = []
 
     # ---- Mount / compose ---------------------------------------------------
 
@@ -131,7 +140,7 @@ class PgntuiApp(App[None]):
                                 write_enabled=self._write_enabled,
                             )
                             # Stash the view so we can hook widgets after mount.
-                            self._views.append((container, view))
+                            self._view_pairs.append((container, view))
                             yield view
                 with TabPane("Debug", id="debug"):
                     if not self._containers and self._container_titles is None:
@@ -146,14 +155,6 @@ class PgntuiApp(App[None]):
                 markup=False,
             )
             yield Static("status: idle", id="status-bar", markup=False)
-
-    @property
-    def _views(self) -> list[tuple[Container, ContainerView]]:
-        # Lazy attribute — compose() may run before __init__ finishes if a
-        # subclass calls super().__init__ in a particular order. Storing on
-        # the instance dict via property keeps mypy happy without redeclaring.
-        v = self.__dict__.setdefault("_view_pairs", [])
-        return v  # type: ignore[no-any-return]
 
     # ---- Frame loop --------------------------------------------------------
 
@@ -179,8 +180,10 @@ class PgntuiApp(App[None]):
         assert self._decoder is not None
         assert self._router is not None
         # Record raw frame first so the recording is faithful even if decoding
-        # is incomplete.
-        writer = self._writer
+        # is incomplete. Snapshot the writer under the lock so the event-loop
+        # thread cannot null + close the handle mid-write.
+        with self._writer_lock:
+            writer = self._writer
         if writer is not None:
             try:
                 writer.write(frame)
@@ -213,7 +216,7 @@ class PgntuiApp(App[None]):
         via ``ContainerView.widgets``.
         """
         self._widgets_by_signal.clear()
-        for _container, view in self._views:
+        for _container, view in self._view_pairs:
             for ref, widget in view.widgets.items():
                 self._widgets_by_signal.setdefault(ref, []).append(widget)
                 sig = self._signals.get(ref)
@@ -295,32 +298,61 @@ class PgntuiApp(App[None]):
         path = record_dir / f"{stamp}.pgnlog"
         writer = ActisenseLogWriter(path)
         writer.open()
-        self._writer = writer
-        self._writer_path = path
+        # Install under the lock so worker-thread reads of self._writer see a
+        # consistent (writer, path) pair.
+        with self._writer_lock:
+            self._writer = writer
+            self._writer_path = path
         self._set_status(f"REC -> {path.name}")
 
     def _stop_recording(self) -> None:
-        if self._writer is None:
+        # Atomic swap: null self._writer FIRST (under the lock) so any worker
+        # thread that snapshots after this point sees None. Only then close
+        # the local handle. Prevents writer.write() landing on a closed file.
+        with self._writer_lock:
+            writer, self._writer = self._writer, None
+            self._writer_path = None
+        if writer is None:
             return
         try:
-            self._writer.close()
+            writer.close()
         finally:
-            self._writer = None
-            self._writer_path = None
-        self._set_status("idle")
+            self._set_status("idle")
 
     def action_help(self) -> None:
         self._set_status("help: Tab/D/R/Q")
 
     def action_force_quit(self) -> None:
-        """Quit immediately, bypassing Textual's ctrl+q confirmation toast."""
+        """Quit immediately, bypassing Textual's ctrl+q confirmation toast.
+
+        Order matters here:
+          1. Flush + close the recording writer so the on-disk tail is intact.
+          2. Cancel the frame-loop worker so it stops reading from the (about
+             to be closed) driver and stops posting ``call_from_thread`` work
+             into an event loop that is about to die.
+          3. Exit the Textual app.
+        """
         # Make sure recording is flushed cleanly before we exit.
         if self._writer is not None:
             try:
                 self._stop_recording()
             except Exception:  # pragma: no cover — defensive
                 pass
+        # Cancel the frame_loop worker. Textual 8.x WorkerManager iterates as
+        # a set; look up by group name. ``cancel()`` on a thread-worker only
+        # flips state — the actual read loops cooperate via their own stop
+        # events (see ``NGT1Driver._stop`` / ``FileReplayDriver._stop``).
+        try:
+            for worker in list(self.workers):
+                if self._is_frame_loop_worker(worker):
+                    worker.cancel()
+        except Exception:  # pragma: no cover — defensive
+            pass
         self.exit()
+
+    @staticmethod
+    def _is_frame_loop_worker(worker: Worker[None]) -> bool:
+        return worker.group == "frame_loop" or worker.name == "frame_loop"
 
 
 _WELCOME_TEXT = """[b]pgntui[/b] — no workspace configured

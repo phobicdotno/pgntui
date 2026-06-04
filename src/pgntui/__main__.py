@@ -249,6 +249,15 @@ def main(argv: list[str] | None = None) -> int:
                 driver.close()
             except Exception:  # pragma: no cover — defensive
                 pass
+        # SIGINT (KeyboardInterrupt) escapes ``app.run()`` before
+        # ``action_force_quit`` can flush the recording writer. Backstop the
+        # flush here so the tail of the .pgnlog isn't lost on Ctrl+C.
+        writer = getattr(app, "_writer", None)
+        if writer is not None:
+            try:
+                writer.close()
+            except Exception:  # pragma: no cover — defensive
+                pass
     return 0
 
 

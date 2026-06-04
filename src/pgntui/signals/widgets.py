@@ -18,6 +18,14 @@ class AnalogInWidget(Widget):
         self.state_class: str = "state-ok"
 
     def update_value(self, value: float) -> None:
+        """Apply ``value`` to the widget and schedule a redraw.
+
+        Thread-safety: must be called from the Textual event-loop thread.
+        Mutates ``displayed_value`` and ``state_class`` without a lock and then
+        calls ``refresh()`` which queues a render message; both are unsafe from
+        other threads. From a worker thread (e.g. the frame loop) hop via
+        ``App.call_from_thread(widget.update_value, value)``.
+        """
         if self.signal.smoothing > 0 and self._raw is not None:
             a = self.signal.smoothing
             self.displayed_value = a * self._raw + (1 - a) * value

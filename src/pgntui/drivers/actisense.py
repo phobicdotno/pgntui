@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Iterator
 from typing import Any
 
@@ -89,10 +90,15 @@ class NGT1Driver:
 
     def __init__(self) -> None:
         self._serial: Any = None
+        # Cooperative stop: ``close()`` sets this so ``read_frames`` can break
+        # out of its blocking ``while True`` loop on the next iteration without
+        # waiting for the underlying serial port to raise.
+        self._stop: threading.Event = threading.Event()
 
     def open(self, config: dict[str, Any]) -> None:
         import serial  # type: ignore[import-untyped]  # pyserial has no stubs
 
+        self._stop.clear()
         self._serial = serial.Serial(
             port=config["port"],
             baudrate=int(config.get("baud", 115200)),
@@ -100,6 +106,10 @@ class NGT1Driver:
         )
 
     def close(self) -> None:
+        # Signal stop FIRST so a read_frames loop running on another thread
+        # exits cleanly the next time around, rather than racing the close on
+        # the underlying serial handle.
+        self._stop.set()
         if self._serial is not None:
             self._serial.close()
             self._serial = None
@@ -109,6 +119,8 @@ class NGT1Driver:
         buf = bytearray()
         in_frame = False
         while True:
+            if self._stop.is_set():
+                return
             byte = self._serial.read(1)
             if not byte:
                 continue
