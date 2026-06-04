@@ -1,0 +1,14 @@
+{
+  "id": "target_heading",
+  "type": "analog_out",
+  "title": "Target Heading",
+  "unit": "rad",
+  "pgn": 65360,
+  "field": "Target Heading Magnetic",
+  "min": 0,
+  "max": 6.2832,
+  "decimals": 2,
+  "write_pgn": 65360,
+  "write_field": "Target Heading Magnetic",
+  "log": false
+}

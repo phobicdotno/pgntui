@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pgntui"
-version = "0.2.1"
+version = "0.2.2"
 description = "Cross-platform TUI for NMEA 2000 with canboat decoding and pluggable drivers"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -64,6 +64,9 @@ packages = ["src/pgntui"]
 "src/pgntui/examples/signals/speed.json" = "pgntui/examples/signals/speed.json"
 "src/pgntui/examples/signals/depth.json" = "pgntui/examples/signals/depth.json"
 "src/pgntui/examples/signals/water_temp.json" = "pgntui/examples/signals/water_temp.json"
+"src/pgntui/examples/signals/target_heading.json" = "pgntui/examples/signals/target_heading.json"
+"src/pgntui/examples/signals/bilge_alarm.json" = "pgntui/examples/signals/bilge_alarm.json"
+"src/pgntui/examples/signals/anchor_light.json" = "pgntui/examples/signals/anchor_light.json"
 
 [tool.ruff]
 line-length = 100

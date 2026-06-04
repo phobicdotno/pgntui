@@ -6,28 +6,38 @@ from importlib import resources
 
 import pytest
 
-from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut, load_signal
+from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut, Signal, load_signal
+
+_EXAMPLE_EXPECTED: dict[str, type[Signal]] = {
+    "engine_rpm": AnalogIn,
+    "speed": AnalogIn,
+    "depth": AnalogIn,
+    "water_temp": AnalogIn,
+    "target_heading": AnalogOut,
+    "bilge_alarm": DigitalIn,
+    "anchor_light": DigitalOut,
+}
 
 
-@pytest.mark.parametrize(
-    "name",
-    ["engine_rpm", "speed", "depth", "water_temp"],
-)
+@pytest.mark.parametrize("name", sorted(_EXAMPLE_EXPECTED))
 def test_each_example_signal_loads(name: str, tmp_path) -> None:  # type: ignore[no-untyped-def]
-    """Every bundled signal JSON parses into a real Signal subclass."""
+    """Every bundled signal JSON parses into the expected Signal subclass."""
     src = resources.files("pgntui.examples.signals").joinpath(f"{name}.json")
     target = tmp_path / f"{name}.json"
     with src.open("rb") as fh:
         target.write_bytes(fh.read())
     sig = load_signal(target)
-    # The 4 bundled signals are all analog_in dashboards. If we ever ship a
-    # digital example, extend this assertion.
-    assert isinstance(sig, AnalogIn)
+    assert isinstance(sig, _EXAMPLE_EXPECTED[name])
     assert sig.id == name
     assert sig.pgn > 0
     assert sig.field
-    assert sig.min < sig.max
-    assert sig.smoothing >= 0
+    if isinstance(sig, AnalogIn | AnalogOut):
+        assert sig.min < sig.max
+    if isinstance(sig, AnalogIn):
+        assert sig.smoothing >= 0
+    if isinstance(sig, AnalogOut | DigitalOut):
+        assert sig.write_pgn > 0
+        assert sig.write_field
 
 
 def test_signal_load_round_trip_all_types(tmp_path) -> None:  # type: ignore[no-untyped-def]

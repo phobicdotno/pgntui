@@ -1,0 +1,10 @@
+{
+  "id": "bilge_alarm",
+  "type": "digital_in",
+  "title": "Bilge Alarm",
+  "pgn": 127501,
+  "field": "Indicator1",
+  "on_label": "WET",
+  "off_label": "DRY",
+  "log": true
+}
