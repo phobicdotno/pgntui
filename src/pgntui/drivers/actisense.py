@@ -66,12 +66,21 @@ def parse_frame(raw: bytes) -> Frame | None:
     body = inner[2 : 2 + length]
     if cmd != CMD_N2K_MSG or len(body) < 11:
         return None
+    priority = body[0]
     pgn = body[1] | (body[2] << 8) | (body[3] << 16)
+    dst = body[4]
     src = body[5]
     ts_ms = int.from_bytes(body[6:10], "little")
     data_len = body[10]
     data = bytes(body[11 : 11 + data_len])
-    return Frame(timestamp=ts_ms / 1000.0, source_addr=src, pgn=pgn, data=data)
+    return Frame(
+        timestamp=ts_ms / 1000.0,
+        source_addr=src,
+        pgn=pgn,
+        data=data,
+        priority=priority,
+        destination=dst,
+    )
 
 
 class NGT1Driver:
@@ -119,7 +128,11 @@ class NGT1Driver:
     def write_frame(self, frame: Frame) -> None:
         assert self._serial is not None
         msg = build_n2k_message(
-            prio=3, pgn=frame.pgn, dst=255, src=frame.source_addr, data=frame.data
+            prio=frame.priority,
+            pgn=frame.pgn,
+            dst=frame.destination,
+            src=frame.source_addr,
+            data=frame.data,
         )
         self._serial.write(bytes([STX]) + escape_frame(msg) + bytes([ETX]))
 

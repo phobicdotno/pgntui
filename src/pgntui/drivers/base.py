@@ -20,6 +20,10 @@ class Frame:
     source_addr: int
     pgn: int
     data: bytes
+    priority: int = 6
+    """NMEA 2000 priority 0-7 (0 = highest, 7 = lowest). 6 = default info per spec."""
+    destination: int = 255
+    """N2K destination address. 255 = global broadcast."""
 
 
 @runtime_checkable

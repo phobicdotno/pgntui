@@ -18,7 +18,9 @@ class ActisenseLogWriter:
 
     def open(self) -> None:
         self.path.parent.mkdir(parents=True, exist_ok=True)
-        self._fh = self.path.open("w", encoding="utf-8")
+        # newline="" disables universal-newline translation so "\n" stays a single
+        # byte on every platform (avoids CRLF pollution on Windows).
+        self._fh = self.path.open("w", encoding="utf-8", newline="")
 
     def close(self) -> None:
         if self._fh is not None:
@@ -30,10 +32,10 @@ class ActisenseLogWriter:
         ts = datetime.fromtimestamp(frame.timestamp, tz=UTC).strftime("%Y-%m-%d-%H:%M:%S.%f")[:-3]
         fields = [
             ts,
-            "3",
+            str(frame.priority),
             str(frame.pgn),
             str(frame.source_addr),
-            "255",
+            str(frame.destination),
             str(len(frame.data)),
             *[f"{b:02x}" for b in frame.data],
         ]
