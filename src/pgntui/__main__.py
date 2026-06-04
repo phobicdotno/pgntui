@@ -56,6 +56,13 @@ def scaffold_example(workspace: Path) -> int:
     Refuses to clobber an existing directory — the user must point at a fresh
     path or delete the old one.
     """
+    if workspace.is_file():
+        print(
+            f"workspace path {workspace} is a file, not a directory. "
+            "Pass --workspace <other> or delete the file.",
+            file=sys.stderr,
+        )
+        return 2
     if workspace.exists() and any(workspace.iterdir()):
         print(
             f"workspace exists at {workspace}, refusing to overwrite. "

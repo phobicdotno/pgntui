@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import pytest
 
@@ -94,3 +95,57 @@ async def test_record_writer_receives_frames(tmp_path: Path) -> None:
             assert writer.frame_count >= 0
         app.action_toggle_record()
         await pilot.pause()
+
+
+class _RaisingWriter:
+    """Stand-in writer whose write() always blows up."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self.opened = False
+        self.closed = False
+
+    def open(self) -> None:
+        self.opened = True
+
+    def close(self) -> None:
+        self.closed = True
+
+    def write(self, _frame: Frame) -> None:
+        raise OSError("disk full")
+
+
+@pytest.mark.asyncio
+async def test_record_write_error_surfaces_to_status(tmp_path: Path) -> None:
+    """When the writer's write() raises, the status bar shows 'rec error'."""
+    import asyncio
+
+    app = PgntuiApp(
+        theme=load_builtin("dark"),
+        containers=[],
+        decoder=CanboatDecoder.load_bundled(),
+        router=SignalRouter(),
+        record_dir=tmp_path / "rec",
+    )
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        # Inject a raising writer directly so we don't depend on the real
+        # ActisenseLogWriter for failure simulation.
+        bad_writer: Any = _RaisingWriter(tmp_path / "rec" / "fake.pgnlog")
+        with app._writer_lock:
+            app._writer = bad_writer
+            app._writer_path = bad_writer.path
+        frame = Frame(timestamp=1.0, source_addr=23, pgn=127488, data=b"\x00" * 8)
+        # _handle_frame runs on the worker thread in production. Use
+        # asyncio.to_thread so `call_from_thread` runs from a non-event-loop
+        # thread and can marshal the status update back without deadlocking.
+        await asyncio.to_thread(app._handle_frame, frame)
+        await pilot.pause()
+        # Status bar should reflect the recording error rather than silently
+        # carrying on as if writes were succeeding.
+        from textual.widgets import Static
+
+        status = app.query_one("#status-bar", Static)
+        rendered = str(status.render())
+        assert "rec error" in rendered
+        assert "disk full" in rendered

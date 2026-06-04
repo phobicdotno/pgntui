@@ -5,6 +5,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] — 2026-06-04
+
+### Fixed
+- Recording writer errors during `_handle_frame` now surface in the status bar instead of being silently swallowed.
+- `pgntui --example` targeting an existing file path now prints a clean error instead of a `NotADirectoryError` traceback.
+
 ## [0.3.1] — 2026-06-04
 
 ### Fixed
@@ -95,6 +101,7 @@ validation, and CI gating. Captures audits A/B/C/D from `docs/audits/2026-06-04-
 
 Initial published release.
 
+[0.3.2]: https://github.com/phobicdotno/pgntui/releases/tag/v0.3.2
 [0.3.1]: https://github.com/phobicdotno/pgntui/releases/tag/v0.3.1
 [0.3.0]: https://github.com/phobicdotno/pgntui/releases/tag/v0.3.0
 [0.2.2]: https://github.com/phobicdotno/pgntui/releases/tag/v0.2.2

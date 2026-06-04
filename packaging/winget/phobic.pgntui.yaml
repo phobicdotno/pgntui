@@ -1,6 +1,6 @@
 # Stub manifest for microsoft/winget-pkgs PR
 PackageIdentifier: phobic.pgntui
-PackageVersion: 0.3.1
+PackageVersion: 0.3.2
 PackageLocale: en-US
 Publisher: phobic
 PackageName: pgntui
@@ -15,7 +15,7 @@ Tags: [nmea, marine, tui, terminal]
 Installers:
   - Architecture: x64
     InstallerType: portable
-    InstallerUrl: https://github.com/phobicdotno/pgntui/releases/download/v0.3.1/pgntui-windows-x86_64.exe
+    InstallerUrl: https://github.com/phobicdotno/pgntui/releases/download/v0.3.2/pgntui-windows-x86_64.exe
     InstallerSha256: REPLACE_ON_RELEASE
 ManifestType: singleton
 ManifestVersion: 1.6.0

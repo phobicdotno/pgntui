@@ -187,8 +187,8 @@ class PgntuiApp(App[None]):
         if writer is not None:
             try:
                 writer.write(frame)
-            except Exception:  # pragma: no cover — defensive
-                pass
+            except Exception as e:  # pragma: no cover — defensive
+                self.call_from_thread(self._set_status, f"rec error: {e}")
         decoded = self._decoder.decode(frame)
         if decoded is None:
             return

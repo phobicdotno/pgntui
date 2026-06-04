@@ -65,3 +65,13 @@ def test_example_works_with_brand_new_workspace_dir(tmp_path: Path) -> None:
     ws.mkdir()  # empty dir is OK
     rc = main(["--workspace", str(ws), "--example"])
     assert rc == 0
+
+
+def test_example_refuses_file_path(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    """Pointing --example at an existing file (not dir) errors cleanly."""
+    tmp_file = tmp_path / "notadir.txt"
+    tmp_file.write_text("oops")
+    rc = main(["--workspace", str(tmp_file), "--example"])
+    assert rc == 2
+    captured = capsys.readouterr()
+    assert "is a file" in captured.err
