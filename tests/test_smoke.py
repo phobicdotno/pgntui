@@ -8,4 +8,4 @@ def test_version() -> None:
 def test_main_returns_zero() -> None:
     from pgntui.__main__ import main
 
-    assert main() == 0
+    assert main([]) == 0
