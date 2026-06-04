@@ -1,0 +1,3 @@
+{"id": "wind_speed", "type": "analog_in", "title": "Wind Speed",
+ "unit": "kn", "pgn": 130306, "field": "Wind Speed",
+ "source": 35, "min": 0, "max": 60, "decimals": 1}

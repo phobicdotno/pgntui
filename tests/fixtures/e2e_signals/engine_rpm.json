@@ -1,0 +1,3 @@
+{"id": "engine_rpm", "type": "analog_in", "title": "Engine RPM",
+ "unit": "rpm", "pgn": 127488, "field": "Engine Speed",
+ "source": 23, "min": 0, "max": 6000, "decimals": 0, "log": true}

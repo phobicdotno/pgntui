@@ -1,0 +1,2 @@
+{"id": "engine", "title": "Engine", "cols": 12,
+ "signals": [{"ref": "engine_rpm", "row": 0, "col": 0, "w": 12}]}
