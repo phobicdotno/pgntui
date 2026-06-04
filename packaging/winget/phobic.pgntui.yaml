@@ -1,0 +1,21 @@
+# Stub manifest for microsoft/winget-pkgs PR
+PackageIdentifier: phobic.pgntui
+PackageVersion: 0.1.0
+PackageLocale: en-US
+Publisher: phobic
+PackageName: pgntui
+License: MIT
+ShortDescription: Cross-platform TUI for NMEA 2000
+Description: |
+  Terminal UI for NMEA 2000 networks. Reads via pluggable drivers
+  (Actisense NGT-1, file replay), decodes via canboat pgns.json,
+  renders JSON-configured dashboards.
+Moniker: pgntui
+Tags: [nmea, marine, tui, terminal]
+Installers:
+  - Architecture: x64
+    InstallerType: portable
+    InstallerUrl: https://github.com/phobicdotno/pgntui/releases/download/v0.1.0/pgntui-windows-x86_64.exe
+    InstallerSha256: REPLACE_ON_RELEASE
+ManifestType: singleton
+ManifestVersion: 1.6.0

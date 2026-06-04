@@ -1,0 +1,59 @@
+name: release
+# Repository: phobicdotno/pgntui
+# PyPI Trusted Publisher binding: account `phobic`, repo `phobicdotno/pgntui`, workflow `release.yml`
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install build
+      - run: python -m build
+      - name: Publish to PyPI (Trusted Publisher)
+        uses: pypa/gh-action-pypi-publish@release/v1
+
+  binaries:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14
+            arch: arm64
+            asset: pgntui-macos-arm64
+          - os: macos-13
+            arch: x86_64
+            asset: pgntui-macos-x86_64
+          - os: ubuntu-latest
+            arch: x86_64
+            asset: pgntui-linux-x86_64
+          - os: windows-latest
+            arch: x86_64
+            asset: pgntui-windows-x86_64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.12" }
+      - run: pip install -e ".[dev]"
+      - run: pyinstaller pgntui.spec
+      - name: Upload binary
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/${{ matrix.asset }}
+
+  homebrew_winget:
+    needs: [pypi, binaries]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Update homebrew tap stub (manual follow-up to phobicdotno/homebrew-tap)
+        run: echo "Bump packaging/homebrew/pgntui.rb in phobicdotno/homebrew-tap for ${GITHUB_REF_NAME}"
+      - name: Update winget manifest stub (manual follow-up to microsoft/winget-pkgs)
+        run: echo "Bump packaging/winget/phobic.pgntui.yaml PR to microsoft/winget-pkgs for ${GITHUB_REF_NAME}"
