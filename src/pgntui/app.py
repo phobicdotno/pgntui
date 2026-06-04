@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from textual.app import App, ComposeResult
 from textual.containers import Vertical
-from textual.widgets import Static, TabbedContent, TabPane
+from textual.widgets import Header, Static, TabbedContent, TabPane
 
 from pgntui.themes.loader import Theme, to_textual_css
 
@@ -32,12 +32,13 @@ class PgntuiApp(App):
         self.refresh_css()
 
     def compose(self) -> ComposeResult:
+        yield Header()
         with Vertical():
             with TabbedContent(id="tabs"):
                 for title in self._container_titles:
                     with TabPane(title):
                         yield Static(title, classes="signal-title")
-                with TabPane("Debug"):
+                with TabPane("Debug", id="debug"):
                     yield Static("debug placeholder")
             yield Static("[Tab] Next [D] Debug [R] Rec [Q] Quit", id="hotkey-strip")
             yield Static("status: idle", id="status-bar")
@@ -52,7 +53,7 @@ class PgntuiApp(App):
 
     def action_show_debug(self) -> None:
         tabs = self.query_one(TabbedContent)
-        tabs.active = "tab-" + str(len(self._container_titles) + 1)
+        tabs.active = "debug"
 
     def action_toggle_record(self) -> None:
         status = self.query_one("#status-bar", Static)
