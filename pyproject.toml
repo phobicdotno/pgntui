@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pgntui"
-version = "0.1.1"
+version = "0.1.2"
 description = "Cross-platform TUI for NMEA 2000 with canboat decoding and pluggable drivers"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -52,7 +52,12 @@ packages = ["src/pgntui"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/pgntui/decode/pgns.json" = "pgntui/decode/pgns.json"
-"src/pgntui/themes/builtin" = "pgntui/themes/builtin"
+"src/pgntui/themes/builtin/dark.json" = "pgntui/themes/builtin/dark.json"
+"src/pgntui/themes/builtin/light.json" = "pgntui/themes/builtin/light.json"
+"src/pgntui/themes/builtin/amber-crt.json" = "pgntui/themes/builtin/amber-crt.json"
+"src/pgntui/themes/builtin/green-phosphor.json" = "pgntui/themes/builtin/green-phosphor.json"
+"src/pgntui/themes/builtin/mono-ascii.json" = "pgntui/themes/builtin/mono-ascii.json"
+"src/pgntui/themes/builtin/rainbow-disco.json" = "pgntui/themes/builtin/rainbow-disco.json"
 
 [tool.ruff]
 line-length = 100
