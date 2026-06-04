@@ -1,12 +1,10 @@
 from unittest.mock import MagicMock
 
-import pytest
-
 from pgntui.drivers.actisense import (
     DLE,
     ETX,
-    NGT1Driver,
     STX,
+    NGT1Driver,
     build_n2k_message,
     escape_frame,
     parse_frame,

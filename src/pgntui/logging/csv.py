@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import IO
 
@@ -23,7 +23,7 @@ class CSVSignalLogger:
         return fh
 
     def log(self, signal_id: str, timestamp: float, value: float | bool) -> None:
-        dt = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+        dt = datetime.fromtimestamp(timestamp, tz=UTC)
         day = dt.strftime("%Y-%m-%d")
         # close any older-day handles for this signal
         stale = [k for k in self._handles if k[0] == signal_id and k[1] != day]

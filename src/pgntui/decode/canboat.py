@@ -41,9 +41,9 @@ class CanboatDecoder:
 
     @classmethod
     def load_bundled(cls) -> CanboatDecoder:
-        with resources.files("pgntui.decode").joinpath("pgns.json").open(
-            "r", encoding="utf-8"
-        ) as fh:
+        with (
+            resources.files("pgntui.decode").joinpath("pgns.json").open("r", encoding="utf-8") as fh
+        ):
             return cls(json.load(fh))
 
     def has_pgn(self, pgn: int) -> bool:
@@ -63,18 +63,12 @@ class CanboatDecoder:
             fields=fields,
         )
 
-    def _decode_fields(
-        self, entry: dict[str, Any], data: bytes, pgn: int
-    ) -> dict[str, Any]:
+    def _decode_fields(self, entry: dict[str, Any], data: bytes, pgn: int) -> dict[str, Any]:
         out: dict[str, Any] = {}
         bit_offset = 0
         for f in entry.get("Fields", []) or entry.get("fields", []) or []:
             size = int(
-                f.get("BitLength")
-                or f.get("bitLength")
-                or f.get("Length")
-                or f.get("length")
-                or 0
+                f.get("BitLength") or f.get("bitLength") or f.get("Length") or f.get("length") or 0
             )
             if size <= 0:
                 continue

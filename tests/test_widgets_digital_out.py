@@ -4,10 +4,15 @@ from pgntui.signals.widgets import DigitalOutWidget
 
 def _sig() -> DigitalOut:
     return DigitalOut(
-        id="anchor", type="digital_out", title="Anchor Light",
-        pgn=127502, field="Indicator1",
-        on_label="ON", off_label="OFF",
-        write_pgn=127502, write_field="Indicator1",
+        id="anchor",
+        type="digital_out",
+        title="Anchor Light",
+        pgn=127502,
+        field="Indicator1",
+        on_label="ON",
+        off_label="OFF",
+        write_pgn=127502,
+        write_field="Indicator1",
     )
 
 

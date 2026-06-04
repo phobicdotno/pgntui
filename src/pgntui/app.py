@@ -9,7 +9,7 @@ from textual.widgets import Header, Static, TabbedContent, TabPane
 from pgntui.themes.loader import Theme, to_textual_css
 
 
-class PgntuiApp(App):
+class PgntuiApp(App[None]):
     CSS = ""
 
     BINDINGS = [
@@ -45,11 +45,11 @@ class PgntuiApp(App):
 
     def action_next_container(self) -> None:
         tabs = self.query_one(TabbedContent)
-        tabs.action_next_tab()
+        tabs.action_next_tab()  # type: ignore[attr-defined]  # Textual provides at runtime
 
     def action_prev_container(self) -> None:
         tabs = self.query_one(TabbedContent)
-        tabs.action_previous_tab()
+        tabs.action_previous_tab()  # type: ignore[attr-defined]  # Textual provides at runtime
 
     def action_show_debug(self) -> None:
         tabs = self.query_one(TabbedContent)

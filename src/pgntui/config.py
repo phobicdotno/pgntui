@@ -5,12 +5,13 @@ from __future__ import annotations
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 
 @dataclass(frozen=True, slots=True)
 class Config:
     driver_name: str = "file-replay"
-    driver_options: dict = field(default_factory=dict)
+    driver_options: dict[str, Any] = field(default_factory=dict)
     write_enabled: bool = False
     theme: str = "dark"
     workspace: Path = Path("~/.config/pgntui")

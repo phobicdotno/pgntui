@@ -4,9 +4,13 @@ from pgntui.signals.widgets import DigitalInWidget
 
 def _sig() -> DigitalIn:
     return DigitalIn(
-        id="bilge", type="digital_in", title="Bilge",
-        pgn=127501, field="Indicator1",
-        on_label="ON", off_label="OFF",
+        id="bilge",
+        type="digital_in",
+        title="Bilge",
+        pgn=127501,
+        field="Indicator1",
+        on_label="ON",
+        off_label="OFF",
     )
 
 

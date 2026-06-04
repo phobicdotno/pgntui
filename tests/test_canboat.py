@@ -1,6 +1,5 @@
-from tests.fixtures.frames import ENGINE_RAPID
-
 from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
+from tests.fixtures.frames import ENGINE_RAPID
 
 
 def test_decoder_loads_bundled_pgns() -> None:

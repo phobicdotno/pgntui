@@ -54,13 +54,16 @@ def test_gradients_block_round_trips(tmp_path: Path) -> None:
             ).split()
         },
         "glyphs": {
-            "bar_left": "|", "bar_right": "|", "bar_track": "-",
-            "bar_marker": "*", "on": "*", "off": "o", "box": "ascii",
+            "bar_left": "|",
+            "bar_right": "|",
+            "bar_track": "-",
+            "bar_marker": "*",
+            "on": "*",
+            "off": "o",
+            "box": "ascii",
         },
         "styles": {},
-        "gradients": [
-            {"target": "bar_fill", "stops": ["#ff0000", "#00ff00", "#0000ff"]}
-        ],
+        "gradients": [{"target": "bar_fill", "stops": ["#ff0000", "#00ff00", "#0000ff"]}],
         "animate": True,
         "animate_fps": 6,
     }

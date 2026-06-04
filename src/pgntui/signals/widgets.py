@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from textual.widget import Widget
 
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut
@@ -53,7 +55,7 @@ class AnalogInWidget(Widget):
         inner = "".join("●" if i == marker_at else "─" for i in range(width))
         return f"├{inner}┤"
 
-    def render(self):
+    def render(self) -> str:
         return self.render_text()
 
 
@@ -63,7 +65,7 @@ class AnalogOutWidget(Widget):
         self.signal = signal
         self.write_enabled = write_enabled
         self.value: float = signal.min
-        self.on_write = None  # type: ignore[assignment]
+        self.on_write: Callable[[float], None] | None = None
 
     @property
     def is_disabled(self) -> bool:
@@ -84,7 +86,7 @@ class AnalogOutWidget(Widget):
         tail = "[set]" if self.write_enabled else "[disabled]"
         return f"{s.title:20s} {val}{unit} {tail}"
 
-    def render(self):
+    def render(self) -> str:
         return self.render_text()
 
 
@@ -104,7 +106,7 @@ class DigitalInWidget(Widget):
         label = s.on_label if self.value else s.off_label
         return f"{s.title:20s} {glyph} {label}"
 
-    def render(self):
+    def render(self) -> str:
         return self.render_text()
 
 
@@ -114,7 +116,7 @@ class DigitalOutWidget(Widget):
         self.signal = signal
         self.write_enabled = write_enabled
         self.value: bool = False
-        self.on_write = None  # type: ignore[assignment]
+        self.on_write: Callable[[bool], None] | None = None
 
     @property
     def is_disabled(self) -> bool:
@@ -134,5 +136,5 @@ class DigitalOutWidget(Widget):
         label = s.on_label if self.value else s.off_label
         return f"{s.title:20s} [{glyph} {label}]"
 
-    def render(self):
+    def render(self) -> str:
         return self.render_text()

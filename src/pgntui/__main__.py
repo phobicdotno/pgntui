@@ -25,7 +25,11 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
-    workspace = Path(args.workspace).expanduser() if args.workspace else Path("~/.config/pgntui").expanduser()
+    workspace = (
+        Path(args.workspace).expanduser()
+        if args.workspace
+        else Path("~/.config/pgntui").expanduser()
+    )
     cfg_path = workspace / "config.toml"
     cfg = load_config(cfg_path)
     if args.enable_write:

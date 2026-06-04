@@ -51,7 +51,7 @@ def build_n2k_message(prio: int, pgn: int, dst: int, src: int, data: bytes) -> b
     body.append(len(data))
     body += data
     framed = bytearray([CMD_N2K_MSG, len(body)]) + body
-    framed.append(_checksum(framed))
+    framed.append(_checksum(bytes(framed)))
     return bytes(framed)
 
 
@@ -67,7 +67,6 @@ def parse_frame(raw: bytes) -> Frame | None:
     if cmd != CMD_N2K_MSG or len(body) < 11:
         return None
     pgn = body[1] | (body[2] << 8) | (body[3] << 16)
-    dst = body[4]
     src = body[5]
     ts_ms = int.from_bytes(body[6:10], "little")
     data_len = body[10]
@@ -82,8 +81,8 @@ class NGT1Driver:
     def __init__(self) -> None:
         self._serial: Any = None
 
-    def open(self, config: dict) -> None:
-        import serial  # lazy import — pyserial
+    def open(self, config: dict[str, Any]) -> None:
+        import serial  # type: ignore[import-untyped]  # pyserial has no stubs
 
         self._serial = serial.Serial(
             port=config["port"],
@@ -117,10 +116,11 @@ class NGT1Driver:
                     if frame is not None:
                         yield frame
 
-
     def write_frame(self, frame: Frame) -> None:
         assert self._serial is not None
-        msg = build_n2k_message(prio=3, pgn=frame.pgn, dst=255, src=frame.source_addr, data=frame.data)
+        msg = build_n2k_message(
+            prio=3, pgn=frame.pgn, dst=255, src=frame.source_addr, data=frame.data
+        )
         self._serial.write(bytes([STX]) + escape_frame(msg) + bytes([ETX]))
 
 

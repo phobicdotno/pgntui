@@ -3,7 +3,6 @@ from pathlib import Path
 from pgntui.drivers.base import Capability
 from pgntui.drivers.replay import FileReplayDriver
 
-
 FIXTURE = Path(__file__).parent / "fixtures" / "sample.pgnlog"
 
 

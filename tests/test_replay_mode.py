@@ -1,7 +1,7 @@
 from pathlib import Path
 
 from pgntui.drivers.replay import FileReplayDriver
-from pgntui.replay_mode import ReplaySession, SPEED_LADDER
+from pgntui.replay_mode import SPEED_LADDER, ReplaySession
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample.pgnlog"
 

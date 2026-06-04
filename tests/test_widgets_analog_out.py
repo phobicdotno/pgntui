@@ -6,10 +6,17 @@ from pgntui.signals.widgets import AnalogOutWidget
 
 def _sig() -> AnalogOut:
     return AnalogOut(
-        id="ap", type="analog_out", title="AP Heading",
-        pgn=65360, field="Heading",
-        unit="deg", min=0.0, max=359.0, decimals=0,
-        write_pgn=65360, write_field="Heading",
+        id="ap",
+        type="analog_out",
+        title="AP Heading",
+        pgn=65360,
+        field="Heading",
+        unit="deg",
+        min=0.0,
+        max=359.0,
+        decimals=0,
+        write_pgn=65360,
+        write_field="Heading",
     )
 
 

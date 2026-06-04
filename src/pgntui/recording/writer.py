@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
+from typing import TextIO
 
 from pgntui.drivers.base import Frame
 
@@ -11,7 +12,7 @@ from pgntui.drivers.base import Frame
 class ActisenseLogWriter:
     def __init__(self, path: Path) -> None:
         self.path = Path(path)
-        self._fh = None
+        self._fh: TextIO | None = None
         self.frame_count = 0
         self.bytes_written = 0
 
@@ -26,9 +27,7 @@ class ActisenseLogWriter:
 
     def write(self, frame: Frame) -> None:
         assert self._fh is not None
-        ts = datetime.fromtimestamp(frame.timestamp, tz=timezone.utc).strftime(
-            "%Y-%m-%d-%H:%M:%S.%f"
-        )[:-3]
+        ts = datetime.fromtimestamp(frame.timestamp, tz=UTC).strftime("%Y-%m-%d-%H:%M:%S.%f")[:-3]
         fields = [
             ts,
             "3",

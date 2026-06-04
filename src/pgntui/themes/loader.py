@@ -6,11 +6,23 @@ import json
 from dataclasses import dataclass
 from importlib import resources
 from pathlib import Path
+from typing import Any
 
 REQUIRED_COLORS = (
-    "bg", "fg", "fg_dim", "accent", "ok", "warn", "alarm",
-    "border", "title_bg", "title_fg",
-    "bar_track", "bar_fill", "bar_warn", "bar_alarm",
+    "bg",
+    "fg",
+    "fg_dim",
+    "accent",
+    "ok",
+    "warn",
+    "alarm",
+    "border",
+    "title_bg",
+    "title_fg",
+    "bar_track",
+    "bar_fill",
+    "bar_warn",
+    "bar_alarm",
 )
 
 
@@ -36,7 +48,7 @@ class Theme:
     animate_fps: int = 4
 
 
-def _parse(payload: dict, source: str) -> Theme:
+def _parse(payload: dict[str, Any], source: str) -> Theme:
     try:
         tid = payload["id"]
         title = payload["title"]
@@ -47,8 +59,7 @@ def _parse(payload: dict, source: str) -> Theme:
         if c not in colors:
             raise ThemeLoadError(f"{source}: missing color {c!r}")
     gradients = tuple(
-        Gradient(target=g["target"], stops=tuple(g["stops"]))
-        for g in payload.get("gradients", [])
+        Gradient(target=g["target"], stops=tuple(g["stops"])) for g in payload.get("gradients", [])
     )
     return Theme(
         id=tid,
@@ -72,9 +83,11 @@ def load_theme(path: Path) -> Theme:
 
 def load_builtin(name: str) -> Theme:
     try:
-        with resources.files("pgntui.themes.builtin").joinpath(f"{name}.json").open(
-            "r", encoding="utf-8"
-        ) as fh:
+        with (
+            resources.files("pgntui.themes.builtin")
+            .joinpath(f"{name}.json")
+            .open("r", encoding="utf-8") as fh
+        ):
             payload = json.load(fh)
     except FileNotFoundError as e:
         raise ThemeLoadError(f"builtin theme {name!r} not found") from e

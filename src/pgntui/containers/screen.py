@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from textual.app import ComposeResult
 from textual.containers import Grid
 from textual.screen import Screen
 from textual.widget import Widget
@@ -16,7 +17,7 @@ from pgntui.signals.widgets import (
 )
 
 
-class ContainerScreen(Screen):
+class ContainerScreen(Screen[None]):
     def __init__(
         self,
         container: Container,
@@ -29,7 +30,7 @@ class ContainerScreen(Screen):
         self.write_enabled = write_enabled
         self.widgets: dict[str, Widget] = {}
 
-    def compose(self):
+    def compose(self) -> ComposeResult:
         grid = Grid(id="container-grid")
         grid.styles.grid_size_columns = self.container_def.cols
         for placement in self.container_def.signals:
