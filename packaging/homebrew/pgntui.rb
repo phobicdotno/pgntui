@@ -3,7 +3,7 @@
 class Pgntui < Formula
   desc "Cross-platform TUI for NMEA 2000 with canboat decoding"
   homepage "https://github.com/phobicdotno/pgntui"
-  url "https://files.pythonhosted.org/packages/source/p/pgntui/pgntui-0.2.0.tar.gz"
+  url "https://files.pythonhosted.org/packages/source/p/pgntui/pgntui-0.2.1.tar.gz"
   sha256 "REPLACE_ON_RELEASE"
   license "MIT"
 

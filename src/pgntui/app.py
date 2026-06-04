@@ -52,14 +52,19 @@ class PgntuiApp(App[None]):
     serial waits) never stall the UI event loop.
     """
 
-    CSS = ""
+    CSS = """
+    TabbedContent { height: 1fr; }
+    #hotkey-strip { height: 1; dock: bottom; background: $primary; }
+    #status-bar { height: 1; dock: bottom; }
+    #welcome { padding: 1 2; }
+    """
 
     BINDINGS = [
         ("tab", "next_container", "Next"),
         ("shift+tab", "prev_container", "Prev"),
         ("d", "show_debug", "Debug"),
         ("r", "toggle_record", "Record"),
-        ("q", "quit", "Quit"),
+        ("q,ctrl+q", "force_quit", "Quit"),
         ("question_mark", "help", "Help"),
     ]
 
@@ -129,12 +134,18 @@ class PgntuiApp(App[None]):
                             self._views.append((container, view))
                             yield view
                 with TabPane("Debug", id="debug"):
+                    if not self._containers and self._container_titles is None:
+                        yield Static(_WELCOME_TEXT, id="welcome", markup=True)
                     self._debug_log = DebugLog(
                         highlight=False, markup=False, wrap=False, id="debug-log"
                     )
                     yield self._debug_log
-            yield Static("[Tab] Next [D] Debug [R] Rec [Q] Quit", id="hotkey-strip")
-            yield Static("status: idle", id="status-bar")
+            yield Static(
+                "[Tab] Next [D] Debug [R] Rec [Q] Quit",
+                id="hotkey-strip",
+                markup=False,
+            )
+            yield Static("status: idle", id="status-bar", markup=False)
 
     @property
     def _views(self) -> list[tuple[Container, ContainerView]]:
@@ -300,6 +311,29 @@ class PgntuiApp(App[None]):
 
     def action_help(self) -> None:
         self._set_status("help: Tab/D/R/Q")
+
+    def action_force_quit(self) -> None:
+        """Quit immediately, bypassing Textual's ctrl+q confirmation toast."""
+        # Make sure recording is flushed cleanly before we exit.
+        if self._writer is not None:
+            try:
+                self._stop_recording()
+            except Exception:  # pragma: no cover — defensive
+                pass
+        self.exit()
+
+
+_WELCOME_TEXT = """[b]pgntui[/b] — no workspace configured
+
+To get started:
+  [b]pgntui --example[/b]            scaffold an example workspace at ~/.config/pgntui/
+  [b]pgntui replay <file.pgnlog>[/b]  play a recording into the TUI
+  [b]pgntui --help[/b]               full options
+
+Once a workspace exists, container tabs will appear above and incoming PGN
+frames will scroll here.
+
+Press [b]Q[/b] to quit."""
 
 
 def _encode_analog_payload(value: float) -> bytes:
