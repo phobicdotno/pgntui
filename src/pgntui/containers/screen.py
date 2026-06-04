@@ -31,19 +31,23 @@ class ContainerScreen(Screen[None]):
         self.widgets: dict[str, Widget] = {}
 
     def compose(self) -> ComposeResult:
-        grid = Grid(id="container-grid")
-        grid.styles.grid_size_columns = self.container_def.cols
+        # Build widgets up front so we can yield them as Grid children.
+        # Styles like ``column_span`` cannot be assigned before a widget is
+        # attached to the DOM (Textual silently discards the value), so we
+        # apply them in ``on_mount`` once the compose chain has mounted us.
+        children: list[Widget] = []
         for placement in self.container_def.signals:
             sig = self.signals[placement.ref]
             w = self._make_widget(sig)
-            w.styles.column_span = placement.w
             self.widgets[placement.ref] = w
+            children.append(w)
+        grid = Grid(*children, id="container-grid")
+        grid.styles.grid_size_columns = self.container_def.cols
         yield grid
 
     def on_mount(self) -> None:
-        grid = self.query_one(Grid)
-        for w in self.widgets.values():
-            grid.mount(w)
+        for placement in self.container_def.signals:
+            self.widgets[placement.ref].styles.column_span = placement.w
 
     def _make_widget(self, sig: Signal) -> Widget:
         if isinstance(sig, AnalogIn):
