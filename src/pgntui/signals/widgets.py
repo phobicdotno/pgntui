@@ -23,7 +23,7 @@ class AnalogInWidget(Widget):
             self.displayed_value = a * self._raw + (1 - a) * value
         else:
             self.displayed_value = float(value)
-        self._raw = self.displayed_value
+        self._raw = float(value)
         self.state_class = f"state-{self.compute_state(self.displayed_value)}"
         self.refresh()
 
