@@ -1,4 +1,22 @@
-"""Actisense NGT-1 driver."""
+"""Actisense NGT-1 driver (BST serial protocol).
+
+Protocol verified against the canboat ``actisense-serial`` reference
+(``actisense.h`` + ``actisense-serial.c``):
+
+- Frames are delimited by ``DLE STX`` (start) and ``DLE ETX`` (end).
+- Only ``DLE`` (0x10) is escaped inside a frame, by doubling. A bare STX/ETX
+  in the body is a literal data byte — control bytes matter only after a DLE.
+- Frame body = ``command, length, payload…, checksum`` where
+  ``checksum = (256 - (command + length + sum(payload))) & 0xFF``.
+- ``N2K_MSG_RECEIVED = 0x93`` carries a received N2K message (NGT-1 → PC);
+  ``N2K_MSG_SEND = 0x94`` requests a transmit (PC → NGT-1).
+
+Received payload layout (0x93):
+``priority, PGN(3 LE), destination, source, timestamp(4 LE ms), length, data``.
+Send payload layout (0x94):
+``priority, PGN(3 LE), destination, length, data`` — no source/timestamp; the
+device fills those in.
+"""
 
 from __future__ import annotations
 
@@ -11,69 +29,85 @@ from pgntui.drivers.base import Capability, Frame
 STX = 0x02
 ETX = 0x03
 DLE = 0x10
-CMD_N2K_MSG = 0x93
+N2K_MSG_RECEIVED = 0x93
+N2K_MSG_SEND = 0x94
 
 
-def escape_frame(payload: bytes) -> bytes:
-    out = bytearray()
-    for b in payload:
-        if b in (STX, ETX, DLE):
-            out.append(DLE)
+# ---------------------------------------------------------------------------
+# Framing
+# ---------------------------------------------------------------------------
+
+
+def _checksum(command: int, length: int, payload: bytes) -> int:
+    return (256 - ((command + length + sum(payload)) & 0xFF)) & 0xFF
+
+
+def frame_message(command: int, payload: bytes) -> bytes:
+    """Wrap ``command`` + ``payload`` in a complete BST frame.
+
+    Doubles every DLE in the body (command, length, payload, checksum) and
+    wraps the result in ``DLE STX`` … ``DLE ETX``.
+    """
+    length = len(payload)
+    body = bytearray([command, length])
+    body += payload
+    body.append(_checksum(command, length, payload))
+    out = bytearray([DLE, STX])
+    for b in body:
+        if b == DLE:
+            out.append(DLE)  # double the DLE
         out.append(b)
+    out += bytes([DLE, ETX])
     return bytes(out)
 
 
-def unescape_frame(payload: bytes) -> bytes:
-    out = bytearray()
-    i = 0
-    while i < len(payload):
-        if payload[i] == DLE and i + 1 < len(payload):
-            out.append(payload[i + 1])
-            i += 2
-        else:
-            out.append(payload[i])
-            i += 1
-    return bytes(out)
+def build_n2k_send(prio: int, pgn: int, dst: int, data: bytes) -> bytes:
+    """Build a complete N2K_MSG_SEND (0x94) frame for transmission."""
+    payload = bytearray()
+    payload.append(prio & 0xFF)
+    payload.append(pgn & 0xFF)
+    payload.append((pgn >> 8) & 0xFF)
+    payload.append((pgn >> 16) & 0xFF)
+    payload.append(dst & 0xFF)
+    payload.append(len(data))
+    payload += data
+    return frame_message(N2K_MSG_SEND, bytes(payload))
 
 
-def _checksum(buf: bytes) -> int:
-    return (256 - (sum(buf) & 0xFF)) & 0xFF
+def build_n2k_received(prio: int, pgn: int, dst: int, src: int, ts_ms: int, data: bytes) -> bytes:
+    """Build a complete N2K_MSG_RECEIVED (0x93) frame.
+
+    Used to fabricate frames as the NGT-1 would emit them — handy for tests
+    and replay tooling; the live driver only ever parses these.
+    """
+    payload = bytearray()
+    payload.append(prio & 0xFF)
+    payload.append(pgn & 0xFF)
+    payload.append((pgn >> 8) & 0xFF)
+    payload.append((pgn >> 16) & 0xFF)
+    payload.append(dst & 0xFF)
+    payload.append(src & 0xFF)
+    payload += int(ts_ms).to_bytes(4, "little")
+    payload.append(len(data))
+    payload += data
+    return frame_message(N2K_MSG_RECEIVED, bytes(payload))
 
 
-def build_n2k_message(prio: int, pgn: int, dst: int, src: int, data: bytes) -> bytes:
-    body = bytearray()
-    body.append(prio & 0xFF)
-    body.append(pgn & 0xFF)
-    body.append((pgn >> 8) & 0xFF)
-    body.append((pgn >> 16) & 0xFF)
-    body.append(dst & 0xFF)
-    body.append(src & 0xFF)
-    body += (0).to_bytes(4, "little")  # timestamp
-    body.append(len(data))
-    body += data
-    framed = bytearray([CMD_N2K_MSG, len(body)]) + body
-    framed.append(_checksum(bytes(framed)))
-    return bytes(framed)
+def parse_n2k_received(payload: bytes) -> Frame | None:
+    """Parse a 0x93 message payload into a :class:`Frame`.
 
-
-def parse_frame(raw: bytes) -> Frame | None:
-    if len(raw) < 4 or raw[0] != STX or raw[-1] != ETX:
+    ``payload`` is the body between ``length`` and ``checksum`` — i.e. what
+    :class:`MessageReassembler` yields. Returns ``None`` if too short.
+    """
+    if len(payload) < 11:
         return None
-    inner = unescape_frame(raw[1:-1])
-    if len(inner) < 3:
-        return None
-    cmd = inner[0]
-    length = inner[1]
-    body = inner[2 : 2 + length]
-    if cmd != CMD_N2K_MSG or len(body) < 11:
-        return None
-    priority = body[0]
-    pgn = body[1] | (body[2] << 8) | (body[3] << 16)
-    dst = body[4]
-    src = body[5]
-    ts_ms = int.from_bytes(body[6:10], "little")
-    data_len = body[10]
-    data = bytes(body[11 : 11 + data_len])
+    priority = payload[0]
+    pgn = payload[1] | (payload[2] << 8) | (payload[3] << 16)
+    dst = payload[4]
+    src = payload[5]
+    ts_ms = int.from_bytes(payload[6:10], "little")
+    data_len = payload[10]
+    data = bytes(payload[11 : 11 + data_len])
     return Frame(
         timestamp=ts_ms / 1000.0,
         source_addr=src,
@@ -84,6 +118,86 @@ def parse_frame(raw: bytes) -> Frame | None:
     )
 
 
+class MessageReassembler:
+    """Streaming BST unframer.
+
+    Feed raw serial bytes via :meth:`push`; it returns a list of
+    ``(command, payload)`` tuples for every complete, checksum-valid frame.
+    Implements the canboat receive state machine: DLE toggles escape; after a
+    DLE, STX starts a frame, ETX ends it, and DLE is a literal byte.
+    """
+
+    _IDLE = 0
+    _IN_MSG = 1
+
+    def __init__(self) -> None:
+        self._state = self._IDLE
+        self._escape = False
+        self._buf = bytearray()
+
+    def push(self, chunk: bytes) -> list[tuple[int, bytes]]:
+        out: list[tuple[int, bytes]] = []
+        for b in chunk:
+            if self._escape:
+                self._escape = False
+                if b == STX:
+                    self._state = self._IN_MSG
+                    self._buf = bytearray()
+                elif b == ETX:
+                    if self._state == self._IN_MSG:
+                        msg = self._finish()
+                        if msg is not None:
+                            out.append(msg)
+                    self._state = self._IDLE
+                    self._buf = bytearray()
+                elif b == DLE:
+                    if self._state == self._IN_MSG:
+                        self._buf.append(DLE)
+                else:
+                    # DLE followed by anything else: framing error, resync.
+                    self._state = self._IDLE
+                    self._buf = bytearray()
+                continue
+            if b == DLE:
+                self._escape = True
+                continue
+            if self._state == self._IN_MSG:
+                self._buf.append(b)
+        return out
+
+    def _finish(self) -> tuple[int, bytes] | None:
+        # buf = command, length, payload…, checksum
+        if len(self._buf) < 3:
+            return None
+        command = self._buf[0]
+        length = self._buf[1]
+        if len(self._buf) < 2 + length + 1:
+            return None
+        payload = bytes(self._buf[2 : 2 + length])
+        checksum = self._buf[2 + length]
+        if _checksum(command, length, payload) != checksum:
+            return None
+        return command, payload
+
+
+# ---------------------------------------------------------------------------
+# Serial port discovery
+# ---------------------------------------------------------------------------
+
+
+def list_serial_ports() -> list[tuple[str, str]]:
+    """Return ``(device, description)`` for every serial port, or ``[]``.
+
+    Used by ``pgntui --list-ports`` so a user can find their NGT-1's COM/tty
+    name without guessing.
+    """
+    try:
+        from serial.tools import list_ports  # type: ignore[import-untyped]
+    except Exception:  # pragma: no cover — pyserial missing
+        return []
+    return [(p.device, p.description or "") for p in list_ports.comports()]
+
+
 class NGT1Driver:
     name = "actisense-ngt1"
     capabilities = {Capability.READ, Capability.WRITE}
@@ -91,14 +205,16 @@ class NGT1Driver:
     def __init__(self) -> None:
         self._serial: Any = None
         # Cooperative stop: ``close()`` sets this so ``read_frames`` can break
-        # out of its blocking ``while True`` loop on the next iteration without
-        # waiting for the underlying serial port to raise.
+        # out of its blocking loop on the next iteration without waiting for
+        # the underlying serial port to raise.
         self._stop: threading.Event = threading.Event()
+        self._reassembler = MessageReassembler()
 
     def open(self, config: dict[str, Any]) -> None:
         import serial  # type: ignore[import-untyped]  # pyserial has no stubs
 
         self._stop.clear()
+        self._reassembler = MessageReassembler()
         self._serial = serial.Serial(
             port=config["port"],
             baudrate=int(config.get("baud", 115200)),
@@ -116,46 +232,42 @@ class NGT1Driver:
 
     def read_frames(self) -> Iterator[Frame]:
         assert self._serial is not None
-        buf = bytearray()
-        in_frame = False
         while True:
             if self._stop.is_set():
                 return
-            byte = self._serial.read(1)
-            if not byte:
+            chunk = self._serial.read(256)
+            if not chunk:
                 continue
-            b = byte[0]
-            if b == STX and not in_frame:
-                in_frame = True
-                buf = bytearray([STX])
-                continue
-            if in_frame:
-                buf.append(b)
-                if b == ETX and (len(buf) < 2 or buf[-2] != DLE):
-                    in_frame = False
-                    frame = parse_frame(bytes(buf))
-                    if frame is not None:
-                        yield frame
+            for command, payload in self._reassembler.push(chunk):
+                if command != N2K_MSG_RECEIVED:
+                    continue  # ignore NGT status/ack messages
+                frame = parse_n2k_received(payload)
+                if frame is not None:
+                    yield frame
 
     def write_frame(self, frame: Frame) -> None:
         assert self._serial is not None
-        msg = build_n2k_message(
-            prio=frame.priority,
-            pgn=frame.pgn,
-            dst=frame.destination,
-            src=frame.source_addr,
-            data=frame.data,
+        self._serial.write(
+            build_n2k_send(
+                prio=frame.priority,
+                pgn=frame.pgn,
+                dst=frame.destination,
+                data=frame.data,
+            )
         )
-        self._serial.write(bytes([STX]) + escape_frame(msg) + bytes([ETX]))
 
 
 __all__ = [
     "DLE",
     "ETX",
-    "NGT1Driver",
+    "N2K_MSG_RECEIVED",
+    "N2K_MSG_SEND",
     "STX",
-    "build_n2k_message",
-    "escape_frame",
-    "parse_frame",
-    "unescape_frame",
+    "MessageReassembler",
+    "NGT1Driver",
+    "build_n2k_received",
+    "build_n2k_send",
+    "frame_message",
+    "list_serial_ports",
+    "parse_n2k_received",
 ]

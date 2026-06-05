@@ -5,6 +5,23 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] — 2026-06-05
+
+### Fixed
+- Actisense NGT-1 driver now speaks the real BST serial protocol, verified
+  against the canboat actisense-serial reference. Previously it used bare
+  `STX`/`ETX` delimiters, escaped the wrong bytes, and built transmit frames
+  with the receive-format body under command `0x93` — none of which would
+  interoperate with real hardware. Now: `DLE STX`…`DLE ETX` framing,
+  DLE-only escaping, correct checksum, `0x94` send command with the
+  `priority, PGN, destination, length, data` layout, and a streaming
+  reassembler that drops bad-checksum frames. (Field validation pending on
+  live hardware.)
+
+### Added
+- `pgntui --list-ports` lists available serial ports so you can find the
+  NGT-1's COM/tty name. README gains an Actisense NGT-1 setup section.
+
 ## [0.3.6] — 2026-06-05
 
 ### Added

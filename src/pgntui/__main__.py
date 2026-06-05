@@ -31,6 +31,11 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="scaffold an example workspace at --workspace (or the OS default location) and exit",
     )
+    p.add_argument(
+        "--list-ports",
+        action="store_true",
+        help="list available serial ports (for the actisense-ngt1 driver) and exit",
+    )
     sub = p.add_subparsers(dest="command")
     replay = sub.add_parser("replay", help="replay a .pgnlog file")
     replay.add_argument("replay_file")
@@ -48,6 +53,20 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
 
 def resolve_workspace(arg: str | None) -> Path:
     return (Path(arg).expanduser() if arg else _default_workspace()).resolve()
+
+
+def _list_ports() -> int:
+    from pgntui.drivers.actisense import list_serial_ports
+
+    ports = list_serial_ports()
+    if not ports:
+        print("no serial ports found (is pyserial installed and the NGT-1 plugged in?)")
+        return 0
+    print("available serial ports:")
+    for device, desc in ports:
+        print(f"  {device:12s} {desc}")
+    print('\nset driver.port in config.toml, e.g. port = "COM4" (Windows) or "/dev/ttyUSB0".')
+    return 0
 
 
 def scaffold_example(workspace: Path) -> int:
@@ -215,6 +234,9 @@ def _build_app(
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
     workspace = resolve_workspace(args.workspace)
+
+    if args.list_ports:
+        return _list_ports()
 
     if args.example:
         return scaffold_example(workspace)

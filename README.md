@@ -103,6 +103,20 @@ Pick one in `config.toml`:
 Third-party drivers can register additional entry points under the
 `pgntui.drivers` group.
 
+### Actisense NGT-1
+
+The NGT-1 is a USB↔NMEA 2000 gateway. Plug it in, then find its port:
+
+    pgntui --list-ports
+
+Set the reported device as `driver.port` in `config.toml` (`COM4` on Windows,
+`/dev/ttyUSB0` on Linux, `/dev/tty.usbserial-XXXX` on macOS) with
+`driver.name = "actisense-ngt1"`, then run `pgntui` — incoming PGNs scroll on
+the Debug tab and feed the dashboards. The driver speaks the Actisense BST
+serial protocol (`DLE STX`…`DLE ETX` framing, `0x93` receive / `0x94` send).
+Writes (`analog_out`/`digital_out`) additionally need `--enable-write` and
+`app.write_enabled = true`.
+
 ## Signal types
 
 Signal JSON files declare how each PGN field renders:
