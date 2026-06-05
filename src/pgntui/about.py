@@ -16,13 +16,14 @@ TAGLINE = "NMEA 2000 reader"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
-    ("0.3.10", "Fixed a crash when pressing Connect, and a stray driver warning."),
-    ("0.3.9", "Connection menu: pick port + speed, test the NGT-1, save/connect."),
-    ("0.3.8", "About screen and a titled header showing the version."),
-    ("0.3.7", "Actisense NGT-1 serial driver (real BST protocol); --list-ports."),
-    ("0.3.6", "Themed header & tabs, compact grouped rows, full signal library."),
-    ("0.3.5", "Signal widgets render the theme's colors."),
-    ("0.3.4", "Display-unit scaling, status lamps, Nav/Engine example tabs."),
+    ("0.3.11", "Wider About dialog with aligned, one-line entries."),
+    ("0.3.10", "Fixed Connect crash and a stray driver warning."),
+    ("0.3.9", "Connection menu: port, speed, test, connect."),
+    ("0.3.8", "About dialog and a titled header with version."),
+    ("0.3.7", "Real Actisense NGT-1 serial driver; --list-ports."),
+    ("0.3.6", "Themed chrome, compact rows, full signal library."),
+    ("0.3.5", "Signal widgets use the theme's colors."),
+    ("0.3.4", "Display-unit scaling, status lamps, Nav/Engine tabs."),
     ("0.3.3", "Fixed blank dashboard tabs."),
 )
 
@@ -33,8 +34,13 @@ def header_title() -> str:
 
 
 def changelog_lines(limit: int = 6) -> list[str]:
-    """Return up to ``limit`` ``vX.Y.Z  summary`` lines, newest first."""
-    return [f"v{ver}  {summary}" for ver, summary in RELEASE_NOTES[:limit]]
+    """Return up to ``limit`` ``vX.Y.Z  summary`` lines, newest first.
+
+    The version is padded to a fixed width so every summary starts at the same
+    column (lines up under each other) regardless of version-string length.
+    """
+    width = max(len(ver) for ver, _ in RELEASE_NOTES[:limit])
+    return [f"v{ver:<{width}}  {summary}" for ver, summary in RELEASE_NOTES[:limit]]
 
 
 __all__ = ["APP_NAME", "RELEASE_NOTES", "TAGLINE", "changelog_lines", "header_title"]

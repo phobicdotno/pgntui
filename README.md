@@ -171,6 +171,8 @@ inside the TUI to start/stop recording the live stream to a new
     Tab / Shift+Tab     next / previous container tab
     D                   jump to Debug tab
     R                   start / stop recording
+    C                   open the Connection menu (NGT-1 port / speed / test)
+    A                   show the About dialog
     Q / Ctrl+Q          quit immediately
     ?                   show help line in status bar
 
@@ -196,7 +198,8 @@ inside the TUI to start/stop recording the live stream to a new
 
 ## Status
 
-Alpha. Reasonable to dogfood on a known-good boat or a bench rig.
+Early days — expect rough edges. Solid enough to use for real on a boat whose
+NMEA 2000 network you already trust, or on a test-bench setup.
 
 - Works: TUI shell, canboat decoder, signal routing, file replay,
   Actisense NGT-1 driver (read), recording.

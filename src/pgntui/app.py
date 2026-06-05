@@ -91,7 +91,8 @@ class AboutScreen(ModalScreen[None]):
     DEFAULT_CSS = """
     AboutScreen { align: center middle; }
     AboutScreen #about-dialog {
-        width: 66;
+        width: 80;
+        max-width: 95%;
         height: auto;
         max-height: 80%;
         padding: 1 2;
