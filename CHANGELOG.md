@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.4] — 2026-06-05
+
+### Added
+- `scale`/`offset` display transform on `analog_in` signals
+  (`shown = decoded * scale + offset`) — canboat decodes SI base units
+  (rad, m/s, Pa, K, s); dashboards can now show deg, kn, Bar, mBar, h.
+  `min`/`max` and warn/alarm thresholds are in display units.
+- `bit` index on `digital_in` signals — binds one flag out of integer
+  bitfields such as 127489 Discrete Status 1/2.
+- Example workspace: Nav and Engine tabs mirroring the NMEA Simulator
+  main panels (heading/deviation/variation, position, SOW/SOG/COG/ROT,
+  depth, rudder, wind, current; full 127488/127489 engine readout).
+- `library/`: drop-in signal + container JSON sets for 13 simulator
+  pages (GPS, Environmental, Boat, Batteries, Engine main/status/
+  transmission, Tanks, Binary, DC and Charge, AC, Windlass, Thruster),
+  136 signals, all PGN/field bindings validated by tests.
+
+### Fixed
+- `speed` and `water_temp` example signals now convert to the kn/°C
+  units they always claimed to display.
+
 ## [0.3.3] — 2026-06-05
 
 ### Fixed
