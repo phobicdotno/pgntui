@@ -5,6 +5,17 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.5] — 2026-06-05
+
+### Fixed
+- Theme colors now actually render on signal widgets. The theme CSS
+  classes (`.state-ok`, `.bar-fill`, …) were generated but never applied
+  by any widget, so everything except the header drew monochrome.
+  Widgets now receive the `Theme` and render Rich text using the theme's
+  colors (track/marker/border/value/unit, state colors for warn/alarm)
+  and glyphs (`bar_*`, `on`/`off`), so all six builtin themes take
+  effect across every tab.
+
 ## [0.3.4] — 2026-06-05
 
 ### Added

@@ -138,6 +138,7 @@ class PgntuiApp(App[None]):
                                 container=container,
                                 signals=self._signals,
                                 write_enabled=self._write_enabled,
+                                theme=self._theme,
                             )
                             # Stash the view so we can hook widgets after mount.
                             self._view_pairs.append((container, view))

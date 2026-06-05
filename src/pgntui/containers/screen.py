@@ -21,17 +21,18 @@ from pgntui.signals.widgets import (
     DigitalInWidget,
     DigitalOutWidget,
 )
+from pgntui.themes.loader import Theme
 
 
-def _make_widget(sig: Signal, write_enabled: bool) -> Widget:
+def _make_widget(sig: Signal, write_enabled: bool, theme: Theme | None = None) -> Widget:
     if isinstance(sig, AnalogIn):
-        return AnalogInWidget(sig)
+        return AnalogInWidget(sig, theme=theme)
     if isinstance(sig, AnalogOut):
-        return AnalogOutWidget(sig, write_enabled=write_enabled)
+        return AnalogOutWidget(sig, write_enabled=write_enabled, theme=theme)
     if isinstance(sig, DigitalIn):
-        return DigitalInWidget(sig)
+        return DigitalInWidget(sig, theme=theme)
     if isinstance(sig, DigitalOut):
-        return DigitalOutWidget(sig, write_enabled=write_enabled)
+        return DigitalOutWidget(sig, write_enabled=write_enabled, theme=theme)
     raise TypeError(f"Unknown signal type: {type(sig).__name__}")
 
 
@@ -56,11 +57,13 @@ class ContainerView(Widget):
         container: Container,
         signals: dict[str, Signal],
         write_enabled: bool,
+        theme: Theme | None = None,
     ) -> None:
         super().__init__()
         self.container_def = container
         self.signals = signals
         self.write_enabled = write_enabled
+        self.theme_def = theme
         self.widgets: dict[str, Widget] = {}
 
     def compose(self) -> ComposeResult:
@@ -70,7 +73,7 @@ class ContainerView(Widget):
         children: list[Widget] = []
         for placement in self.container_def.signals:
             sig = self.signals[placement.ref]
-            w = _make_widget(sig, self.write_enabled)
+            w = _make_widget(sig, self.write_enabled, theme=self.theme_def)
             self.widgets[placement.ref] = w
             children.append(w)
         grid = Grid(*children, id=f"container-grid-{self.container_def.id}")
@@ -88,11 +91,13 @@ class ContainerScreen(Screen[None]):
         container: Container,
         signals: dict[str, Signal],
         write_enabled: bool,
+        theme: Theme | None = None,
     ) -> None:
         super().__init__()
         self.container_def = container
         self.signals = signals
         self.write_enabled = write_enabled
+        self.theme_def = theme
         self._view: ContainerView | None = None
 
     @property
@@ -106,6 +111,7 @@ class ContainerScreen(Screen[None]):
             container=self.container_def,
             signals=self.signals,
             write_enabled=self.write_enabled,
+            theme=self.theme_def,
         )
         yield self._view
 
