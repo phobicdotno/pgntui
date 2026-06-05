@@ -20,11 +20,20 @@ class SignalPlacement:
 
 
 @dataclass(frozen=True, slots=True)
+class GroupHeader:
+    """A full-width separator rule rendered as ``├── Title ──────┤``."""
+
+    title: str
+    row: int
+
+
+@dataclass(frozen=True, slots=True)
 class Container:
     id: str
     title: str
     cols: int
     signals: list[SignalPlacement]
+    groups: tuple[GroupHeader, ...] = ()
 
 
 def load_container(path: Path, known_signal_ids: set[str]) -> Container:
@@ -43,6 +52,21 @@ def load_container(path: Path, known_signal_ids: set[str]) -> Container:
     placements: list[SignalPlacement] = []
     # Track occupied cells to detect overlapping placements: (row, col) -> ref.
     occupied: dict[tuple[int, int], str] = {}
+    # Group headers claim their whole row so signals cannot share it.
+    groups: list[GroupHeader] = []
+    group_rows: set[int] = set()
+    for g in payload.get("groups", []):
+        try:
+            gtitle = g["title"]
+            grow = int(g["row"])
+        except KeyError as e:
+            raise ContainerLoadError(f"{path}: group missing key {e}") from e
+        if grow < 0:
+            raise ContainerLoadError(f"{path}: group {gtitle!r} has negative row")
+        groups.append(GroupHeader(title=gtitle, row=grow))
+        group_rows.add(grow)
+        for c in range(cols):
+            occupied[(grow, c)] = f"group:{gtitle}"
     for item in payload.get("signals", []):
         ref = item["ref"]
         if ref not in known_signal_ids:
@@ -63,7 +87,13 @@ def load_container(path: Path, known_signal_ids: set[str]) -> Container:
                 )
             occupied[cell] = ref
         placements.append(SignalPlacement(ref=ref, row=row, col=col, w=w))
-    return Container(id=cid, title=title, cols=cols, signals=placements)
+    return Container(id=cid, title=title, cols=cols, signals=placements, groups=tuple(groups))
 
 
-__all__ = ["Container", "ContainerLoadError", "SignalPlacement", "load_container"]
+__all__ = [
+    "Container",
+    "ContainerLoadError",
+    "GroupHeader",
+    "SignalPlacement",
+    "load_container",
+]

@@ -32,7 +32,7 @@ from pgntui.signals.widgets import (
     DigitalInWidget,
     DigitalOutWidget,
 )
-from pgntui.themes.loader import Theme, to_textual_css
+from pgntui.themes.loader import Theme, to_textual_css, to_textual_theme
 
 
 class DebugLog(RichLog):
@@ -115,6 +115,13 @@ class PgntuiApp(App[None]):
     # ---- Mount / compose ---------------------------------------------------
 
     def on_mount(self) -> None:
+        # Drive Textual's own chrome (header, tabs, footer, scrollbars) from the
+        # pgntui theme so the whole screen is themed, not just widget content.
+        # Without this, the chrome stays on Textual's default theme and the UI
+        # looks half-themed (pgntui colors inside, catppuccin outside).
+        textual_theme = to_textual_theme(self._theme)
+        self.register_theme(textual_theme)
+        self.theme = textual_theme.name
         self.stylesheet.add_source(to_textual_css(self._theme), read_from=("theme", "theme"))
         self.stylesheet.parse()
         self.refresh_css()

@@ -8,6 +8,7 @@ push the container as its own full-screen view.
 
 from __future__ import annotations
 
+from rich.text import Text
 from textual.app import ComposeResult
 from textual.containers import Grid
 from textual.screen import Screen
@@ -46,9 +47,22 @@ class ContainerView(Widget):
     # Without an explicit height the view is auto-sized, and the child Grid's
     # default ``height: 1fr`` cannot resolve inside an auto parent — the grid
     # collapses and every signal widget renders at height 0 (blank tab).
+    # ``grid-rows: 1`` keeps every row a single line (tight rows) and lets the
+    # content pack at the top instead of stretching to fill the tab.
     DEFAULT_CSS = """
     ContainerView {
         height: 1fr;
+    }
+    ContainerView Grid {
+        grid-rows: 1;
+        grid-gutter: 0;
+    }
+    ContainerView AnalogInWidget,
+    ContainerView AnalogOutWidget,
+    ContainerView DigitalInWidget,
+    ContainerView DigitalOutWidget,
+    ContainerView GroupRule {
+        height: 1;
     }
     """
 
@@ -65,24 +79,67 @@ class ContainerView(Widget):
         self.write_enabled = write_enabled
         self.theme_def = theme
         self.widgets: dict[str, Widget] = {}
+        # Ordered (child widget, column_span) pairs, built in compose, applied
+        # in on_mount (column_span can't be set before the widget is mounted).
+        self._spans: list[tuple[Widget, int]] = []
 
     def compose(self) -> ComposeResult:
-        # Build widgets up front so we can yield them as Grid children.
-        # ``column_span`` cannot be assigned before the widget is mounted, so we
-        # apply spans in ``on_mount`` once the compose chain has attached us.
-        children: list[Widget] = []
+        # Interleave group rules and signals in row-major order so the grid's
+        # left-to-right auto-flow lands each on the right row. A full-width
+        # group rule forces a fresh row (the previous row is already full).
+        cols = self.container_def.cols
+        items: list[tuple[int, int, Widget, int]] = []
+        for g in self.container_def.groups:
+            items.append((g.row, 0, GroupRule(g.title, theme=self.theme_def), cols))
         for placement in self.container_def.signals:
             sig = self.signals[placement.ref]
             w = _make_widget(sig, self.write_enabled, theme=self.theme_def)
             self.widgets[placement.ref] = w
-            children.append(w)
+            items.append((placement.row, placement.col, w, placement.w))
+        items.sort(key=lambda it: (it[0], it[1]))
+        children = [w for _, _, w, _ in items]
+        self._spans = [(w, span) for _, _, w, span in items]
         grid = Grid(*children, id=f"container-grid-{self.container_def.id}")
-        grid.styles.grid_size_columns = self.container_def.cols
+        grid.styles.grid_size_columns = cols
         yield grid
 
     def on_mount(self) -> None:
-        for placement in self.container_def.signals:
-            self.widgets[placement.ref].styles.column_span = placement.w
+        for widget, span in self._spans:
+            widget.styles.column_span = span
+
+
+class GroupRule(Widget):
+    """Full-width separator line: ``├── Title ──────────────┤``."""
+
+    def __init__(self, title: str, theme: Theme | None = None) -> None:
+        super().__init__()
+        self.title = title
+        self.theme_def = theme
+        self._width = 0
+
+    def set_width(self, width: int) -> None:
+        self._width = width
+
+    def on_resize(self) -> None:
+        self._width = self.size.width
+
+    def _line(self, width: int) -> tuple[str, str, str]:
+        left = "├── "
+        label = f"{self.title} "
+        fill = max(width - len(left) - len(label) - 1, 0)
+        return left, label, ("─" * fill) + "┤"
+
+    def render(self) -> Text | str:
+        width = self._width or self.size.width or (len(self.title) + 8)
+        left, label, right = self._line(width)
+        if self.theme_def is None:
+            return f"{left}{label}{right}"
+        c = self.theme_def.colors
+        text = Text()
+        text.append(left, style=c["border"])
+        text.append(label, style=f"bold {c['accent']}")
+        text.append(right, style=c["border"])
+        return text
 
 
 class ContainerScreen(Screen[None]):
@@ -116,4 +173,4 @@ class ContainerScreen(Screen[None]):
         yield self._view
 
 
-__all__ = ["ContainerScreen", "ContainerView"]
+__all__ = ["ContainerScreen", "ContainerView", "GroupRule"]

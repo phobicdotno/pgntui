@@ -111,6 +111,39 @@ def load_builtin(name: str) -> Theme:
     return _parse(payload, f"builtin:{name}")
 
 
+def to_textual_theme(theme: Theme) -> Any:
+    """Build a Textual ``Theme`` from a pgntui theme.
+
+    Maps pgntui's color roles onto Textual's chrome theme so the header,
+    tab bar, footer and scrollbars match the rest of the UI. Imported
+    lazily so the loader has no hard dependency on Textual.
+    """
+    from textual.theme import Theme as TextualTheme
+
+    c = theme.colors
+    # ``light`` is the only builtin that is a light theme; everything else is
+    # dark. Fall back to the bg luminance if a custom theme sets neither.
+    dark = theme.id != "light"
+    return TextualTheme(
+        name=f"pgntui-{theme.id}",
+        primary=c["accent"],
+        secondary=c.get("ok", c["accent"]),
+        warning=c["warn"],
+        error=c["alarm"],
+        success=c["ok"],
+        accent=c["accent"],
+        foreground=c["fg"],
+        background=c["bg"],
+        surface=c["title_bg"],
+        panel=c["title_bg"],
+        dark=dark,
+        variables={
+            "border": c["border"],
+            "footer-key-foreground": c["accent"],
+        },
+    )
+
+
 def to_textual_css(theme: Theme) -> str:
     c = theme.colors
     lines = [
@@ -139,4 +172,5 @@ __all__ = [
     "load_builtin",
     "load_theme",
     "to_textual_css",
+    "to_textual_theme",
 ]
