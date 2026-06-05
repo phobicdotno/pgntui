@@ -9,11 +9,14 @@ from pathlib import Path
 
 from textual import work
 from textual.app import App, ComposeResult
-from textual.containers import Vertical
+from textual.containers import Container as TextualContainer
+from textual.containers import Horizontal, Vertical
+from textual.screen import ModalScreen
 from textual.widget import Widget
-from textual.widgets import Header, RichLog, Static, TabbedContent, TabPane
+from textual.widgets import RichLog, Static, TabbedContent, TabPane
 from textual.worker import Worker
 
+from pgntui import about
 from pgntui.containers.loader import Container
 from pgntui.containers.screen import ContainerView
 from pgntui.debug.tab import DebugBuffer
@@ -46,6 +49,64 @@ class DebugLog(RichLog):
         self.write(f"{ts}  pgn={df.pgn:>6}  src={df.source_addr:>3}  {name}  {fields}")
 
 
+class AboutButton(Static):
+    """Clickable ``About`` affordance at the top-right of the title bar."""
+
+    DEFAULT_CSS = """
+    AboutButton { width: auto; padding: 0 2; }
+    AboutButton:hover { background: $accent; text-style: bold; }
+    """
+
+    def on_click(self) -> None:
+        # Defer to the app action so the keyboard binding and the click share
+        # one code path.
+        self.app.action_about()  # type: ignore[attr-defined]
+
+
+class TopBar(Horizontal):
+    """Top title bar: ``PgnTui — NMEA 2000 reader — vX.Y.Z`` with an About button."""
+
+    DEFAULT_CSS = """
+    TopBar { dock: top; height: 1; background: $surface; }
+    TopBar #app-title { width: 1fr; content-align: left middle; padding: 0 1; text-style: bold; }
+    """
+
+    def compose(self) -> ComposeResult:
+        yield Static(about.header_title(), id="app-title")
+        yield AboutButton("About", id="about-button")
+
+
+class AboutScreen(ModalScreen[None]):
+    """Modal dialog: app name, version, and a short changelog."""
+
+    DEFAULT_CSS = """
+    AboutScreen { align: center middle; }
+    AboutScreen #about-dialog {
+        width: 66;
+        height: auto;
+        max-height: 80%;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+    AboutScreen #about-head { text-style: bold; }
+    AboutScreen #about-hint { color: $accent; margin-top: 1; }
+    """
+
+    BINDINGS = [("escape,q,a", "dismiss", "Close")]
+
+    def compose(self) -> ComposeResult:
+        from pgntui import __version__
+
+        body = [f"{about.APP_NAME} — {about.TAGLINE}", f"version {__version__}", "", "What's new:"]
+        body += [f"  {line}" for line in about.changelog_lines()]
+        yield TextualContainer(
+            Static("\n".join(body), id="about-head"),
+            Static("[Esc] close", id="about-hint", markup=False),
+            id="about-dialog",
+        )
+
+
 class PgntuiApp(App[None]):
     """Top-level Textual app.
 
@@ -66,6 +127,7 @@ class PgntuiApp(App[None]):
         ("shift+tab", "prev_container", "Prev"),
         ("d", "show_debug", "Debug"),
         ("r", "toggle_record", "Record"),
+        ("a", "about", "About"),
         ("q,ctrl+q", "force_quit", "Quit"),
         ("question_mark", "help", "Help"),
     ]
@@ -122,6 +184,8 @@ class PgntuiApp(App[None]):
         textual_theme = to_textual_theme(self._theme)
         self.register_theme(textual_theme)
         self.theme = textual_theme.name
+        # Also set the OS terminal title.
+        self.title = about.header_title()
         self.stylesheet.add_source(to_textual_css(self._theme), read_from=("theme", "theme"))
         self.stylesheet.parse()
         self.refresh_css()
@@ -130,7 +194,7 @@ class PgntuiApp(App[None]):
             self.frame_loop()
 
     def compose(self) -> ComposeResult:
-        yield Header()
+        yield TopBar()
         with Vertical():
             with TabbedContent(id="tabs"):
                 if self._container_titles is not None:
@@ -295,6 +359,13 @@ class PgntuiApp(App[None]):
         tabs = self.query_one(TabbedContent)
         tabs.active = "debug"
 
+    def action_about(self) -> None:
+        # No-op if the About dialog is already open (avoids stacking copies
+        # when the key is pressed or the button clicked repeatedly).
+        if isinstance(self.screen, AboutScreen):
+            return
+        self.push_screen(AboutScreen())
+
     def action_toggle_record(self) -> None:
         if self._writer is not None:
             self._stop_recording()
@@ -390,4 +461,4 @@ def _encode_analog_payload(value: float) -> bytes:
     return v.to_bytes(2, "little")
 
 
-__all__ = ["DebugLog", "PgntuiApp"]
+__all__ = ["AboutButton", "AboutScreen", "DebugLog", "PgntuiApp", "TopBar"]

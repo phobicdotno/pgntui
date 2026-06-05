@@ -5,6 +5,14 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.8] — 2026-06-05
+
+### Added
+- Title bar showing `PgnTui — NMEA 2000 reader — vX.Y.Z`, replacing the
+  default `PgntuiApp` header.
+- About dialog (top-right **About** button or the `A` key) with a short,
+  curated changelog and the running version. `Esc` closes it.
+
 ## [0.3.7] — 2026-06-05
 
 ### Fixed
