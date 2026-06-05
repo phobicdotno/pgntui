@@ -74,8 +74,17 @@ class AnalogOut(Signal):
 
 @dataclass(frozen=True, slots=True)
 class DigitalIn(Signal):
+    """Inbound boolean signal binding.
+
+    ``bit`` selects a single bit out of an integer bitfield value
+    (``shown = (decoded >> bit) & 1``) — used for status PGNs such as
+    127489 Discrete Status 1/2 where each flag is one bit. ``None`` keeps
+    the plain truthiness behaviour for fields that are already boolean.
+    """
+
     on_label: str = "ON"
     off_label: str = "OFF"
+    bit: int | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -148,6 +157,7 @@ def load_signal(path: Path) -> Signal:
             **common,
             on_label=payload.get("on_label", "ON"),
             off_label=payload.get("off_label", "OFF"),
+            bit=int(payload["bit"]) if "bit" in payload else None,
         )
     if t == "digital_out":
         if "write_pgn" not in payload or "write_field" not in payload:

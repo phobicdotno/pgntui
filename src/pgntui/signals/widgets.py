@@ -107,8 +107,11 @@ class DigitalInWidget(Widget):
         self.signal = signal
         self.value: bool = False
 
-    def update_value(self, value: bool) -> None:
-        self.value = bool(value)
+    def update_value(self, value: object) -> None:
+        if self.signal.bit is not None:
+            self.value = bool((int(value) >> self.signal.bit) & 1)  # type: ignore[call-overload]
+        else:
+            self.value = bool(value)
         self.refresh()
 
     def render_text(self) -> str:

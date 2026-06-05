@@ -205,7 +205,9 @@ class PgntuiApp(App[None]):
         if isinstance(widget, AnalogInWidget):
             widget.update_value(float(value))  # type: ignore[arg-type]
         elif isinstance(widget, DigitalInWidget):
-            widget.update_value(bool(value))
+            # Hand over the raw decoded value — the widget may need the full
+            # integer bitfield to extract its configured ``bit``.
+            widget.update_value(value)
 
     # ---- Write callbacks ---------------------------------------------------
 
