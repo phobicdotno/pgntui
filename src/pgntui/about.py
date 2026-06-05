@@ -16,6 +16,7 @@ TAGLINE = "NMEA 2000 reader"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.3.12", "Switch engine instance with [ and ] (Stb/Port/gens)."),
     ("0.3.11", "Wider About dialog with aligned, one-line entries."),
     ("0.3.10", "Fixed Connect crash and a stray driver warning."),
     ("0.3.9", "Connection menu: port, speed, test, connect."),

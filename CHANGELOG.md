@@ -5,6 +5,21 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.12] — 2026-06-05
+
+### Added
+- Instance-switchable containers. A container may declare `instances`
+  (`{"id": 0, "label": "Engine Stb"}`, …); the tab then shows one source at a
+  time and `[` / `]` cycle between them, with a group-style header line
+  (`├── ◀ Engine Stb (0) ▶ ──┤`). Frames are filtered by Instance at the
+  widget so the same signal shown on another tab is unaffected.
+- The example Engine tab is now instance-switchable across Engine Stb (0),
+  Engine Port (1), Generator Stb (2), Generator Port (3) — so two engines on
+  one PGN no longer overwrite each other.
+
+### Changed
+- `SignalUpdate` now carries the frame's `instance`.
+
 ## [0.3.11] — 2026-06-05
 
 ### Changed

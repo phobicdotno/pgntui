@@ -2,7 +2,7 @@ from pgntui import __version__
 
 
 def test_version() -> None:
-    assert __version__ == "0.3.11"
+    assert __version__ == "0.3.12"
 
 
 def test_main_returns_zero() -> None:

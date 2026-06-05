@@ -21,6 +21,9 @@ class SignalUpdate:
     signal_id: str
     timestamp: float
     value: object
+    instance: int | None = None
+    """The frame's Instance field (if any), so instance-switchable containers
+    can show one engine/battery at a time without re-binding the router."""
 
 
 class SignalRouter:
@@ -49,6 +52,7 @@ class SignalRouter:
                 signal_id=signal_id,
                 timestamp=df.timestamp,
                 value=df.fields[key.field],
+                instance=instance if isinstance(instance, int) else None,
             )
 
 

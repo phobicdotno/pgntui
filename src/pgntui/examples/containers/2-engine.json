@@ -2,6 +2,12 @@
   "id": "engine",
   "title": "Engine",
   "cols": 12,
+  "instances": [
+    {"id": 0, "label": "Engine Stb"},
+    {"id": 1, "label": "Engine Port"},
+    {"id": 2, "label": "Generator Stb"},
+    {"id": 3, "label": "Generator Port"}
+  ],
   "groups": [
     {
       "title": "Drive",

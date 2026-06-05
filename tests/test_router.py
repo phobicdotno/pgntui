@@ -13,7 +13,7 @@ def test_router_matches_pgn_field_source_instance() -> None:
         fields={"Engine Speed": 2150.0, "Instance": 0},
     )
     updates = list(router.route(df))
-    assert updates == [SignalUpdate(signal_id="rpm_port", timestamp=1.0, value=2150.0)]
+    assert updates == [SignalUpdate(signal_id="rpm_port", timestamp=1.0, value=2150.0, instance=0)]
 
 
 def test_router_skips_non_matching_source() -> None:

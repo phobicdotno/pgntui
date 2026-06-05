@@ -52,6 +52,7 @@ class ContainerView(Widget):
     DEFAULT_CSS = """
     ContainerView {
         height: 1fr;
+        layout: vertical;
     }
     ContainerView Grid {
         grid-rows: 1;
@@ -82,8 +83,45 @@ class ContainerView(Widget):
         # Ordered (child widget, column_span) pairs, built in compose, applied
         # in on_mount (column_span can't be set before the widget is mounted).
         self._spans: list[tuple[Widget, int]] = []
+        # Instance switcher state (only used when container.instances is set).
+        self.active_index = 0
+        self._instance_header: GroupRule | None = None
+
+    @property
+    def active_instance_id(self) -> int | None:
+        """The NMEA Instance currently shown, or ``None`` if not switchable."""
+        instances = self.container_def.instances
+        if not instances:
+            return None
+        return instances[self.active_index].id
+
+    def _instance_label(self, index: int) -> str:
+        opt = self.container_def.instances[index]
+        return f"◀ {opt.label} ({opt.id}) ▶"
+
+    def set_active_instance(self, index: int) -> None:
+        """Switch which instance this container displays (wraps around)."""
+        instances = self.container_def.instances
+        if not instances:
+            return
+        self.active_index = index % len(instances)
+        if self._instance_header is not None:
+            self._instance_header.set_title(self._instance_label(self.active_index))
+        # Clear stale readings so the previous instance's values don't linger.
+        for widget in self.widgets.values():
+            if isinstance(widget, AnalogInWidget):
+                widget.update_value(widget.signal.min)
+            elif isinstance(widget, DigitalInWidget):
+                widget.update_value(0)
 
     def compose(self) -> ComposeResult:
+        # An instance-switchable container gets a group-style header line at the
+        # top showing the active source (e.g. ``├── ◀ Engine Stb (0) ▶ ──┤``).
+        if self.container_def.instances:
+            self._instance_header = GroupRule(
+                self._instance_label(self.active_index), theme=self.theme_def
+            )
+            yield self._instance_header
         # Interleave group rules and signals in row-major order so the grid's
         # left-to-right auto-flow lands each on the right row. A full-width
         # group rule forces a fresh row (the previous row is already full).
@@ -119,6 +157,10 @@ class GroupRule(Widget):
 
     def set_width(self, width: int) -> None:
         self._width = width
+
+    def set_title(self, title: str) -> None:
+        self.title = title
+        self.refresh()
 
     def on_resize(self) -> None:
         self._width = self.size.width

@@ -111,7 +111,9 @@ class AboutScreen(ModalScreen[None]):
         body = [f"{about.APP_NAME} — {about.TAGLINE}", f"version {__version__}", "", "What's new:"]
         body += [f"  {line}" for line in about.changelog_lines()]
         yield TextualContainer(
-            Static("\n".join(body), id="about-head"),
+            # markup=False: changelog text is literal (entries may contain
+            # ``[`` / ``]``, which Rich markup would otherwise eat).
+            Static("\n".join(body), id="about-head", markup=False),
             Static("[Esc] close", id="about-hint", markup=False),
             id="about-dialog",
         )
@@ -280,6 +282,8 @@ class PgntuiApp(App[None]):
         ("shift+tab", "prev_container", "Prev"),
         ("d", "show_debug", "Debug"),
         ("r", "toggle_record", "Record"),
+        ("left_square_bracket", "prev_instance", "Inst-"),
+        ("right_square_bracket", "next_instance", "Inst+"),
         ("c", "connection", "Connection"),
         ("a", "about", "About"),
         ("q,ctrl+q", "force_quit", "Quit"),
@@ -321,6 +325,8 @@ class PgntuiApp(App[None]):
         self._container_titles = container_titles
         # Indexed at compose-time so route updates can find widgets fast.
         self._widgets_by_signal: dict[str, list[Widget]] = {}
+        # widget -> its ContainerView, for per-container instance filtering.
+        self._view_of_widget: dict[Widget, ContainerView] = {}
         # Recording state. ``_writer_lock`` guards the atomic swap between the
         # event-loop thread (which opens/closes the writer) and the frame-loop
         # worker thread (which calls ``writer.write``).
@@ -382,7 +388,8 @@ class PgntuiApp(App[None]):
                     )
                     yield self._debug_log
             yield Static(
-                "[Tab] Next [D] Debug [R] Rec [C] Connection [A] About [Q] Quit",
+                "[Tab] Next  [ [ / ] ] Instance  [D] Debug  [R] Rec  "
+                "[C] Connection  [A] About  [Q] Quit",
                 id="hotkey-strip",
                 markup=False,
             )
@@ -428,8 +435,16 @@ class PgntuiApp(App[None]):
         if self._debug_log is not None:
             self.call_from_thread(self._debug_log.push_decoded, decoded)
         for update in self._router.route(decoded):
-            widgets = self._widgets_by_signal.get(update.signal_id, [])
-            for w in widgets:
+            for w in self._widgets_by_signal.get(update.signal_id, []):
+                # Instance-switchable containers show one source at a time, so
+                # skip frames whose Instance isn't the one this view is showing.
+                view = self._view_of_widget.get(w)
+                if (
+                    view is not None
+                    and view.container_def.instances
+                    and view.active_instance_id != update.instance
+                ):
+                    continue
                 self.call_from_thread(self._apply_update, w, update.value)
 
     @staticmethod
@@ -450,9 +465,11 @@ class PgntuiApp(App[None]):
         via ``ContainerView.widgets``.
         """
         self._widgets_by_signal.clear()
+        self._view_of_widget.clear()
         for _container, view in self._view_pairs:
             for ref, widget in view.widgets.items():
                 self._widgets_by_signal.setdefault(ref, []).append(widget)
+                self._view_of_widget[widget] = view
                 sig = self._signals.get(ref)
                 if sig is None:
                     continue
@@ -518,6 +535,31 @@ class PgntuiApp(App[None]):
     def action_show_debug(self) -> None:
         tabs = self.query_one(TabbedContent)
         tabs.active = "debug"
+
+    def _active_view(self) -> ContainerView | None:
+        try:
+            active = self.query_one(TabbedContent).active
+        except Exception:  # pragma: no cover — pre-mount
+            return None
+        for container, view in self._view_pairs:
+            if f"tab-{container.id}" == active:
+                return view
+        return None
+
+    def action_next_instance(self) -> None:
+        self._cycle_instance(1)
+
+    def action_prev_instance(self) -> None:
+        self._cycle_instance(-1)
+
+    def _cycle_instance(self, delta: int) -> None:
+        view = self._active_view()
+        if view is None or not view.container_def.instances:
+            self._set_status("this tab has no instances to switch")
+            return
+        view.set_active_instance(view.active_index + delta)
+        label = view.container_def.instances[view.active_index].label
+        self._set_status(f"showing {label}")
 
     def action_about(self) -> None:
         # No-op if the About dialog is already open (avoids stacking copies
