@@ -1,0 +1,14 @@
+{
+  "id": "speed_sog",
+  "type": "analog_in",
+  "title": "Speed (SOG)",
+  "unit": "kn",
+  "pgn": 129026,
+  "field": "SOG",
+  "min": 0,
+  "max": 70,
+  "decimals": 1,
+  "scale": 1.9438444924406,
+  "smoothing": 0.3,
+  "log": true
+}

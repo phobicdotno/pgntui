@@ -1,0 +1,12 @@
+{
+  "id": "wind_speed",
+  "type": "analog_in",
+  "title": "Wind speed",
+  "unit": "m/s",
+  "pgn": 130306,
+  "field": "Wind Speed",
+  "min": 0,
+  "max": 60,
+  "decimals": 1,
+  "smoothing": 0.3
+}

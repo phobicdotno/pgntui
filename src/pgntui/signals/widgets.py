@@ -26,6 +26,9 @@ class AnalogInWidget(Widget):
         other threads. From a worker thread (e.g. the frame loop) hop via
         ``App.call_from_thread(widget.update_value, value)``.
         """
+        # Convert decoded (SI) value into display units before smoothing so
+        # min/max, thresholds, and the bar all operate in display units.
+        value = float(value) * self.signal.scale + self.signal.offset
         if self.signal.smoothing > 0 and self._raw is not None:
             a = self.signal.smoothing
             self.displayed_value = a * self._raw + (1 - a) * value

@@ -1,0 +1,12 @@
+{
+  "id": "rate_of_turn",
+  "type": "analog_in",
+  "title": "Rate of turn (ROT)",
+  "unit": "°/s",
+  "pgn": 127251,
+  "field": "Rate",
+  "min": -10,
+  "max": 10,
+  "decimals": 1,
+  "scale": 57.29577951308232
+}

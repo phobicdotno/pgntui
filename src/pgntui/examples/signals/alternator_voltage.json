@@ -1,0 +1,12 @@
+{
+  "id": "alternator_voltage",
+  "type": "analog_in",
+  "title": "Alternator voltage",
+  "unit": "V",
+  "pgn": 127489,
+  "field": "Alternator Potential",
+  "min": 0,
+  "max": 30,
+  "decimals": 1,
+  "warn_below": 12.0
+}

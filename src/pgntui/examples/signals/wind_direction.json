@@ -1,0 +1,12 @@
+{
+  "id": "wind_direction",
+  "type": "analog_in",
+  "title": "Wind direction",
+  "unit": "°",
+  "pgn": 130306,
+  "field": "Wind Angle",
+  "min": 0,
+  "max": 360,
+  "decimals": 0,
+  "scale": 57.29577951308232
+}

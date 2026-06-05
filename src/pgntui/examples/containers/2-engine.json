@@ -1,0 +1,85 @@
+{
+  "id": "engine",
+  "title": "Engine",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "engine_rpm",
+      "row": 0,
+      "col": 0,
+      "w": 12
+    },
+    {
+      "ref": "boost_pressure",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "tilt_trim",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "oil_pressure",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "oil_temperature",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "engine_temp",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "alternator_voltage",
+      "row": 3,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "fuel_rate",
+      "row": 4,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "total_hours",
+      "row": 4,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "coolant_pressure",
+      "row": 5,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "fuel_pressure",
+      "row": 5,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "engine_load",
+      "row": 6,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "engine_torque",
+      "row": 6,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

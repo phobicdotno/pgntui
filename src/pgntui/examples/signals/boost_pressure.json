@@ -1,0 +1,12 @@
+{
+  "id": "boost_pressure",
+  "type": "analog_in",
+  "title": "Boost pressure",
+  "unit": "Bar",
+  "pgn": 127488,
+  "field": "Engine Boost Pressure",
+  "min": 0,
+  "max": 5,
+  "decimals": 1,
+  "scale": 1e-05
+}

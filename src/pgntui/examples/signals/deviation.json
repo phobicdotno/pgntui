@@ -1,0 +1,12 @@
+{
+  "id": "deviation",
+  "type": "analog_in",
+  "title": "Deviation",
+  "unit": "°",
+  "pgn": 127250,
+  "field": "Deviation",
+  "min": -30,
+  "max": 30,
+  "decimals": 1,
+  "scale": 57.29577951308232
+}

@@ -1,0 +1,12 @@
+{
+  "id": "variation",
+  "type": "analog_in",
+  "title": "Variation",
+  "unit": "°",
+  "pgn": 127250,
+  "field": "Variation",
+  "min": -30,
+  "max": 30,
+  "decimals": 1,
+  "scale": 57.29577951308232
+}

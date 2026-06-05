@@ -1,0 +1,12 @@
+{
+  "id": "rudder",
+  "type": "analog_in",
+  "title": "Rudder",
+  "unit": "°",
+  "pgn": 127245,
+  "field": "Position",
+  "min": -45,
+  "max": 45,
+  "decimals": 1,
+  "scale": 57.29577951308232
+}

@@ -18,9 +18,9 @@ def test_example_creates_expected_files(tmp_path: Path) -> None:
     assert (ws / "containers").is_dir()
     signals = load_signals_dir(ws / "signals")
     ids = {s.id for s in signals}
-    # Seven shipped defaults: four analog readouts plus one of each remaining
-    # widget kind so the scaffold exercises the full UI surface.
-    assert ids == {
+    # The original seven defaults must still ship (one of each widget kind),
+    # plus the Nav/Engine dashboard signals added on top.
+    assert {
         "engine_rpm",
         "speed",
         "depth",
@@ -28,12 +28,19 @@ def test_example_creates_expected_files(tmp_path: Path) -> None:
         "target_heading",
         "bilge_alarm",
         "anchor_light",
-    }
-    # Containers reference signal ids that exist.
-    main_container = load_container(ws / "containers" / "main.json", ids)
-    refs = {p.ref for p in main_container.signals}
-    assert refs.issubset(ids)
-    assert main_container.cols == 12
+        "heading_mag",
+        "speed_sog",
+        "oil_pressure",
+    }.issubset(ids)
+    # Every container only references signal ids that exist, and the tab
+    # order is nav, engine, main (numeric filename prefixes).
+    container_paths = sorted((ws / "containers").glob("*.json"))
+    assert [p.name for p in container_paths] == ["1-nav.json", "2-engine.json", "3-main.json"]
+    for path in container_paths:
+        container = load_container(path, ids)
+        refs = {p.ref for p in container.signals}
+        assert refs.issubset(ids)
+        assert container.cols == 12
 
 
 def test_example_includes_all_four_widget_types(tmp_path: Path) -> None:

@@ -1,0 +1,12 @@
+{
+  "id": "engine_temp",
+  "type": "analog_in",
+  "title": "Temperature",
+  "unit": "K",
+  "pgn": 127489,
+  "field": "Temperature",
+  "min": 250,
+  "max": 400,
+  "decimals": 1,
+  "warn_above": 370
+}

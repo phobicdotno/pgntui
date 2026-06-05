@@ -1,0 +1,13 @@
+{
+  "id": "true_heading",
+  "type": "analog_in",
+  "title": "True heading",
+  "unit": "°",
+  "pgn": 130577,
+  "field": "Heading",
+  "min": 0,
+  "max": 360,
+  "decimals": 1,
+  "scale": 57.29577951308232,
+  "smoothing": 0.2
+}

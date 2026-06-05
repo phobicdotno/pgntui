@@ -1,7 +1,7 @@
 {
   "id": "speed",
   "type": "analog_in",
-  "title": "Speed",
+  "title": "Speed (SOW)",
   "unit": "kn",
   "pgn": 128259,
   "field": "Speed Water Referenced",
@@ -9,5 +9,6 @@
   "max": 30,
   "decimals": 1,
   "smoothing": 0.3,
-  "log": true
+  "log": true,
+  "scale": 1.9438444924406
 }

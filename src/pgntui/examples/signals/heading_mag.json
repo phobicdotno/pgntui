@@ -1,0 +1,13 @@
+{
+  "id": "heading_mag",
+  "type": "analog_in",
+  "title": "Magnetic heading",
+  "unit": "°",
+  "pgn": 127250,
+  "field": "Heading",
+  "min": 0,
+  "max": 360,
+  "decimals": 1,
+  "scale": 57.29577951308232,
+  "smoothing": 0.2
+}

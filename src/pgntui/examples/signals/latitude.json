@@ -1,0 +1,11 @@
+{
+  "id": "latitude",
+  "type": "analog_in",
+  "title": "Latitude",
+  "unit": "°",
+  "pgn": 129025,
+  "field": "Latitude",
+  "min": -90,
+  "max": 90,
+  "decimals": 5
+}

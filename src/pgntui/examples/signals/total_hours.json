@@ -1,0 +1,12 @@
+{
+  "id": "total_hours",
+  "type": "analog_in",
+  "title": "Total hours",
+  "unit": "h",
+  "pgn": 127489,
+  "field": "Total Engine hours",
+  "min": 0,
+  "max": 20000,
+  "decimals": 1,
+  "scale": 0.0002777777777777778
+}

@@ -37,6 +37,12 @@ class AnalogIn(Signal):
     ``smoothing=1.0`` freezes the value at the first sample. This is the
     opposite convention of textbook EMA ``alpha``, which weights the NEW
     sample. Express your value accordingly when porting from references.
+
+    ``scale``/``offset`` convert the decoded value into display units
+    (``shown = decoded * scale + offset``). Canboat decodes SI base units —
+    radians, m/s, Pa, K — so e.g. ``scale=57.29578`` renders degrees and
+    ``offset=-273.15`` renders Celsius. ``min``/``max`` and the warn/alarm
+    thresholds are expressed in display units.
     """
 
     unit: str | None = None
@@ -48,6 +54,8 @@ class AnalogIn(Signal):
     warn_below: float | None = None
     alarm_below: float | None = None
     smoothing: float = 0.0
+    scale: float = 1.0
+    offset: float = 0.0
 
 
 @dataclass(frozen=True, slots=True)
@@ -116,6 +124,8 @@ def load_signal(path: Path) -> Signal:
             warn_below=float(payload["warn_below"]) if "warn_below" in payload else None,
             alarm_below=float(payload["alarm_below"]) if "alarm_below" in payload else None,
             smoothing=float(payload.get("smoothing", 0.0)),
+            scale=float(payload.get("scale", 1.0)),
+            offset=float(payload.get("offset", 0.0)),
         )
     if t == "analog_out":
         if "write_pgn" not in payload or "write_field" not in payload:

@@ -1,0 +1,103 @@
+{
+  "id": "nav",
+  "title": "Nav",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "heading_mag",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "true_heading",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "deviation",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "variation",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "latitude",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "longitude",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "speed",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "speed_sog",
+      "row": 3,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "course_cog",
+      "row": 4,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "rate_of_turn",
+      "row": 4,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "depth",
+      "row": 5,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "rudder",
+      "row": 5,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "wind_direction",
+      "row": 6,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "wind_speed",
+      "row": 6,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "current_direction",
+      "row": 7,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "current_speed",
+      "row": 7,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

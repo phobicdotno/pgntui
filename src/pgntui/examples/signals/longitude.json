@@ -1,0 +1,11 @@
+{
+  "id": "longitude",
+  "type": "analog_in",
+  "title": "Longitude",
+  "unit": "°",
+  "pgn": 129025,
+  "field": "Longitude",
+  "min": -180,
+  "max": 180,
+  "decimals": 5
+}

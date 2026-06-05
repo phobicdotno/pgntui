@@ -9,5 +9,6 @@
   "max": 40,
   "decimals": 1,
   "smoothing": 0.5,
-  "log": false
+  "log": false,
+  "offset": -273.15
 }

@@ -1,0 +1,12 @@
+{
+  "id": "current_direction",
+  "type": "analog_in",
+  "title": "Current direction",
+  "unit": "°",
+  "pgn": 130577,
+  "field": "Set",
+  "min": 0,
+  "max": 360,
+  "decimals": 0,
+  "scale": 57.29577951308232
+}

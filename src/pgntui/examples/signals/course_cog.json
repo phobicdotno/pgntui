@@ -1,0 +1,13 @@
+{
+  "id": "course_cog",
+  "type": "analog_in",
+  "title": "Course (COG)",
+  "unit": "°",
+  "pgn": 129026,
+  "field": "COG",
+  "min": 0,
+  "max": 360,
+  "decimals": 1,
+  "scale": 57.29577951308232,
+  "smoothing": 0.2
+}

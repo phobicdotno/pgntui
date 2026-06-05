@@ -1,0 +1,12 @@
+{
+  "id": "engine_load",
+  "type": "analog_in",
+  "title": "Load",
+  "unit": "%",
+  "pgn": 127489,
+  "field": "Engine Load",
+  "min": 0,
+  "max": 125,
+  "decimals": 0,
+  "warn_above": 100
+}

@@ -1,0 +1,12 @@
+{
+  "id": "current_speed",
+  "type": "analog_in",
+  "title": "Current speed",
+  "unit": "kn",
+  "pgn": 130577,
+  "field": "Drift",
+  "min": 0,
+  "max": 50,
+  "decimals": 1,
+  "scale": 1.9438444924406
+}

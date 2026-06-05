@@ -1,0 +1,12 @@
+{
+  "id": "coolant_pressure",
+  "type": "analog_in",
+  "title": "Coolant pressure",
+  "unit": "Bar",
+  "pgn": 127489,
+  "field": "Coolant Pressure",
+  "min": 0,
+  "max": 5,
+  "decimals": 1,
+  "scale": 1e-05
+}

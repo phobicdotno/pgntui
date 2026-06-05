@@ -1,0 +1,12 @@
+{
+  "id": "fuel_pressure",
+  "type": "analog_in",
+  "title": "Fuel pressure",
+  "unit": "Bar",
+  "pgn": 127489,
+  "field": "Fuel Pressure",
+  "min": 0,
+  "max": 10,
+  "decimals": 1,
+  "scale": 1e-05
+}
