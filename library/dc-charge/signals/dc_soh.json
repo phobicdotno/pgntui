@@ -1,0 +1,12 @@
+{
+  "id": "dc_soh",
+  "type": "analog_in",
+  "title": "State of health",
+  "pgn": 127506,
+  "field": "State of Health",
+  "min": 0,
+  "max": 100,
+  "decimals": 0,
+  "unit": "%",
+  "instance": 0
+}

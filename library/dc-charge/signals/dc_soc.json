@@ -1,0 +1,12 @@
+{
+  "id": "dc_soc",
+  "type": "analog_in",
+  "title": "State of charge",
+  "pgn": 127506,
+  "field": "State of Charge",
+  "min": 0,
+  "max": 100,
+  "decimals": 0,
+  "unit": "%",
+  "instance": 0
+}

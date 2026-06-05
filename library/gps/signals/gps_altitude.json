@@ -1,0 +1,11 @@
+{
+  "id": "gps_altitude",
+  "type": "analog_in",
+  "title": "Altitude",
+  "pgn": 129029,
+  "field": "Altitude",
+  "min": -50,
+  "max": 1000,
+  "decimals": 1,
+  "unit": "m"
+}

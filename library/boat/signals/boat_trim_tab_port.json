@@ -1,0 +1,11 @@
+{
+  "id": "boat_trim_tab_port",
+  "type": "analog_in",
+  "title": "Port trim tab",
+  "pgn": 130576,
+  "field": "Port trim tab",
+  "min": -100,
+  "max": 100,
+  "decimals": 0,
+  "unit": "%"
+}

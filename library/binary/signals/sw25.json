@@ -1,0 +1,10 @@
+{
+  "id": "sw25",
+  "type": "digital_in",
+  "title": "Switch 25",
+  "pgn": 127501,
+  "field": "Indicator25",
+  "on_label": "On",
+  "off_label": "Off",
+  "instance": 1
+}

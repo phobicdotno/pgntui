@@ -1,0 +1,12 @@
+{
+  "id": "boat_roll",
+  "type": "analog_in",
+  "title": "Roll",
+  "pgn": 127257,
+  "field": "Roll",
+  "min": -45,
+  "max": 45,
+  "decimals": 1,
+  "unit": "deg",
+  "scale": 57.29577951308232
+}

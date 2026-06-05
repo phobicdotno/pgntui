@@ -1,0 +1,12 @@
+{
+  "id": "env_cabin_temp",
+  "type": "analog_in",
+  "title": "Cabin temp",
+  "pgn": 130312,
+  "field": "Actual Temperature",
+  "min": 250,
+  "max": 330,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 0
+}

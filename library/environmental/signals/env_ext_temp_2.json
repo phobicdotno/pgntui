@@ -1,0 +1,12 @@
+{
+  "id": "env_ext_temp_2",
+  "type": "analog_in",
+  "title": "Ext. temp 2",
+  "pgn": 130312,
+  "field": "Actual Temperature",
+  "min": 230,
+  "max": 330,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 2
+}

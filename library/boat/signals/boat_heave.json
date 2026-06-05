@@ -1,0 +1,11 @@
+{
+  "id": "boat_heave",
+  "type": "analog_in",
+  "title": "Heave",
+  "pgn": 127252,
+  "field": "Heave",
+  "min": -5,
+  "max": 5,
+  "decimals": 2,
+  "unit": "m"
+}

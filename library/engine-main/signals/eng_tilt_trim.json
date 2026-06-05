@@ -1,0 +1,12 @@
+{
+  "id": "eng_tilt_trim",
+  "type": "analog_in",
+  "title": "Tilt/trim",
+  "pgn": 127488,
+  "field": "Engine Tilt/Trim",
+  "min": -100,
+  "max": 100,
+  "decimals": 0,
+  "unit": "%",
+  "instance": 0
+}

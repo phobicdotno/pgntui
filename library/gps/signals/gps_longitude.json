@@ -1,0 +1,11 @@
+{
+  "id": "gps_longitude",
+  "type": "analog_in",
+  "title": "Longitude",
+  "pgn": 129029,
+  "field": "Longitude",
+  "min": -180,
+  "max": 180,
+  "decimals": 6,
+  "unit": "deg"
+}

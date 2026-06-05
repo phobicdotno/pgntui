@@ -1,0 +1,12 @@
+{
+  "id": "bat3_voltage",
+  "type": "analog_in",
+  "title": "Battery 4 voltage",
+  "pgn": 127508,
+  "field": "Voltage",
+  "min": 0,
+  "max": 18,
+  "decimals": 1,
+  "unit": "V",
+  "instance": 3
+}

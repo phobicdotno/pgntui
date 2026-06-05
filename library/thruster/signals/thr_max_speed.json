@@ -1,0 +1,11 @@
+{
+  "id": "thr_max_speed",
+  "type": "analog_in",
+  "title": "Max. speed",
+  "pgn": 128007,
+  "field": "Maximum Rotational Speed",
+  "min": 0,
+  "max": 5000,
+  "decimals": 0,
+  "unit": "RPM"
+}

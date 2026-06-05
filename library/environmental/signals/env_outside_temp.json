@@ -1,0 +1,11 @@
+{
+  "id": "env_outside_temp",
+  "type": "analog_in",
+  "title": "Outside temp",
+  "pgn": 130310,
+  "field": "Outside Ambient Air Temperature",
+  "min": 230,
+  "max": 330,
+  "decimals": 1,
+  "unit": "K"
+}

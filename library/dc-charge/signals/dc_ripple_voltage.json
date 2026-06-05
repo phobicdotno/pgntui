@@ -1,0 +1,12 @@
+{
+  "id": "dc_ripple_voltage",
+  "type": "analog_in",
+  "title": "Ripple voltage",
+  "pgn": 127506,
+  "field": "Ripple Voltage",
+  "min": 0,
+  "max": 1,
+  "decimals": 3,
+  "unit": "V",
+  "instance": 0
+}

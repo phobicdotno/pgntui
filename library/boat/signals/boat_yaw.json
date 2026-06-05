@@ -1,0 +1,12 @@
+{
+  "id": "boat_yaw",
+  "type": "analog_in",
+  "title": "Yaw",
+  "pgn": 127257,
+  "field": "Yaw",
+  "min": -180,
+  "max": 180,
+  "decimals": 1,
+  "unit": "deg",
+  "scale": 57.29577951308232
+}

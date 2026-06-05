@@ -1,0 +1,11 @@
+{
+  "id": "ac_voltage",
+  "type": "analog_in",
+  "title": "Voltage",
+  "pgn": 127503,
+  "field": "Voltage",
+  "min": 0,
+  "max": 260,
+  "decimals": 1,
+  "unit": "V"
+}

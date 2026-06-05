@@ -1,0 +1,10 @@
+{
+  "id": "gps_pdop",
+  "type": "analog_in",
+  "title": "GPS PDOP",
+  "pgn": 129029,
+  "field": "PDOP",
+  "min": 0,
+  "max": 10,
+  "decimals": 1
+}

@@ -1,0 +1,67 @@
+{
+  "id": "gps",
+  "title": "GPS",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "gps_satellites",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gps_altitude",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gps_latitude",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gps_longitude",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gps_hdop",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gps_vdop",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gps_tdop",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gps_pdop",
+      "row": 3,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gps_wpt_latitude",
+      "row": 4,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gps_wpt_longitude",
+      "row": 4,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

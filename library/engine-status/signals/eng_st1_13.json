@@ -1,0 +1,11 @@
+{
+  "id": "eng_st1_13",
+  "type": "digital_in",
+  "title": "EGR System",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 13,
+  "instance": 0
+}

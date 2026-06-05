@@ -1,0 +1,12 @@
+{
+  "id": "chg_eq_time_remaining",
+  "type": "analog_in",
+  "title": "Eq. time remaining",
+  "pgn": 127507,
+  "field": "Equalization Time Remaining",
+  "min": 0,
+  "max": 48,
+  "decimals": 2,
+  "unit": "h",
+  "scale": 0.0002777777777777778
+}

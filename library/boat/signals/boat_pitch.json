@@ -1,0 +1,12 @@
+{
+  "id": "boat_pitch",
+  "type": "analog_in",
+  "title": "Pitch",
+  "pgn": 127257,
+  "field": "Pitch",
+  "min": -30,
+  "max": 30,
+  "decimals": 1,
+  "unit": "deg",
+  "scale": 57.29577951308232
+}

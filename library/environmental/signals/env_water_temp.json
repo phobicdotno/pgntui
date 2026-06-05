@@ -1,0 +1,11 @@
+{
+  "id": "env_water_temp",
+  "type": "analog_in",
+  "title": "Water temp",
+  "pgn": 130310,
+  "field": "Water Temperature",
+  "min": 250,
+  "max": 320,
+  "decimals": 1,
+  "unit": "K"
+}

@@ -72,6 +72,19 @@ Layout:
 
 Run `pgntui --example` to drop a working sample inside this directory.
 
+## JSON library
+
+[`library/`](library/) in the repo ships ready-made signal + container sets
+for one tab per NMEA Simulator page — GPS, Environmental, Boat, Batteries,
+Engine (main / status / transmission), Tanks, Binary, DC and Charge, AC,
+Windlass, Thruster. Copy the pages you want into your workspace:
+
+    cp library/gps/signals/*.json      <workspace>/signals/
+    cp library/gps/containers/*.json   <workspace>/containers/
+
+See [`library/README.md`](library/README.md) for the page list and unit
+conventions.
+
 ## Drivers
 
 Built-in driver entry points (`pgntui.drivers`):

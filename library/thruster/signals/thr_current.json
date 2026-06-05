@@ -1,0 +1,11 @@
+{
+  "id": "thr_current",
+  "type": "analog_in",
+  "title": "Current",
+  "pgn": 128008,
+  "field": "Current",
+  "min": 0,
+  "max": 255,
+  "decimals": 0,
+  "unit": "A"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "eng_st2_04",
+  "type": "digital_in",
+  "title": "Engine Comm Error",
+  "pgn": 127489,
+  "field": "Discrete Status 2",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 4,
+  "instance": 0
+}

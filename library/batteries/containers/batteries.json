@@ -1,0 +1,79 @@
+{
+  "id": "batteries",
+  "title": "Batteries",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "bat0_voltage",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "bat0_current",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "bat0_temperature",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "bat1_voltage",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "bat1_current",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "bat1_temperature",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "bat2_voltage",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "bat2_current",
+      "row": 3,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "bat2_temperature",
+      "row": 4,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "bat3_voltage",
+      "row": 4,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "bat3_current",
+      "row": 5,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "bat3_temperature",
+      "row": 5,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "id": "bat0_current",
+  "type": "analog_in",
+  "title": "Main battery current",
+  "pgn": 127508,
+  "field": "Current",
+  "min": -200,
+  "max": 200,
+  "decimals": 1,
+  "unit": "A",
+  "instance": 0
+}

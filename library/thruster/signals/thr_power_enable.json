@@ -1,0 +1,9 @@
+{
+  "id": "thr_power_enable",
+  "type": "digital_in",
+  "title": "Power enable",
+  "pgn": 128006,
+  "field": "Power Enabled",
+  "on_label": "On",
+  "off_label": "Off"
+}

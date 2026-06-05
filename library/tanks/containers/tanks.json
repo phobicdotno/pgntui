@@ -1,0 +1,55 @@
+{
+  "id": "tanks",
+  "title": "Tanks",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "tank0_level",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "tank1_level",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "tank2_level",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "tank3_level",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "tank4_level",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "tank5_level",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "tank6_level",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "tank7_level",
+      "row": 3,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

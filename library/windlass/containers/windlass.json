@@ -1,0 +1,19 @@
+{
+  "id": "windlass",
+  "title": "Windlass",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "wl_rode_count",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "wl_line_speed",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

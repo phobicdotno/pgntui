@@ -1,0 +1,12 @@
+{
+  "id": "env_atm_pressure",
+  "type": "analog_in",
+  "title": "Atm. pressure",
+  "pgn": 130311,
+  "field": "Atmospheric Pressure",
+  "min": 850,
+  "max": 1100,
+  "decimals": 0,
+  "unit": "mBar",
+  "scale": 0.01
+}

@@ -1,0 +1,49 @@
+{
+  "id": "thruster",
+  "title": "Thruster",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "thr_speed",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "thr_power_enable",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "thr_power_rating",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "thr_max_speed",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "thr_current",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "thr_temperature",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "thr_run_time",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    }
+  ]
+}

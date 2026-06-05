@@ -1,0 +1,12 @@
+{
+  "id": "thr_run_time",
+  "type": "analog_in",
+  "title": "Run time",
+  "pgn": 128008,
+  "field": "Operating Time",
+  "min": 0,
+  "max": 1000,
+  "decimals": 2,
+  "unit": "h",
+  "scale": 0.0002777777777777778
+}

@@ -1,0 +1,11 @@
+{
+  "id": "wl_line_speed",
+  "type": "analog_in",
+  "title": "Line speed",
+  "pgn": 128777,
+  "field": "Windlass Line Speed",
+  "min": 0,
+  "max": 2,
+  "decimals": 2,
+  "unit": "m/s"
+}

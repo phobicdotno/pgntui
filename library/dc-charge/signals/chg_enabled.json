@@ -1,0 +1,9 @@
+{
+  "id": "chg_enabled",
+  "type": "digital_in",
+  "title": "Charger enabled",
+  "pgn": 127507,
+  "field": "Enabled",
+  "on_label": "Enabled",
+  "off_label": "Disabled"
+}

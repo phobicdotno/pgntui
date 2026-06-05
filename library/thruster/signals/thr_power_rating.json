@@ -1,0 +1,11 @@
+{
+  "id": "thr_power_rating",
+  "type": "analog_in",
+  "title": "Power",
+  "pgn": 128007,
+  "field": "Power Rating",
+  "min": 0,
+  "max": 20000,
+  "decimals": 0,
+  "unit": "W"
+}

@@ -1,0 +1,49 @@
+{
+  "id": "engine_transmission",
+  "title": "Transmission",
+  "cols": 12,
+  "signals": [
+    {
+      "ref": "trans_oil_temperature",
+      "row": 0,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "trans_oil_pressure",
+      "row": 0,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "trans_st_00",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "trans_st_01",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "trans_st_02",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "trans_st_03",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "trans_st_04",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    }
+  ]
+}

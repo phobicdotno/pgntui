@@ -1,0 +1,11 @@
+{
+  "id": "ac_frequency",
+  "type": "analog_in",
+  "title": "Frequency",
+  "pgn": 127503,
+  "field": "Frequency",
+  "min": 40,
+  "max": 70,
+  "decimals": 1,
+  "unit": "Hz"
+}

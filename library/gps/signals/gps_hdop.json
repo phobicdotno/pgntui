@@ -1,0 +1,10 @@
+{
+  "id": "gps_hdop",
+  "type": "analog_in",
+  "title": "GPS HDOP",
+  "pgn": 129539,
+  "field": "HDOP",
+  "min": 0,
+  "max": 10,
+  "decimals": 1
+}

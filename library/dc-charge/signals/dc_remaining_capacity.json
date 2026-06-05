@@ -1,0 +1,12 @@
+{
+  "id": "dc_remaining_capacity",
+  "type": "analog_in",
+  "title": "Remaining capacity",
+  "pgn": 127506,
+  "field": "Remaining capacity",
+  "min": 0,
+  "max": 1000,
+  "decimals": 0,
+  "unit": "Ah",
+  "instance": 0
+}

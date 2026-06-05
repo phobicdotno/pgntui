@@ -1,0 +1,11 @@
+{
+  "id": "boat_trim_tab_stbd",
+  "type": "analog_in",
+  "title": "Starboard trim tab",
+  "pgn": 130576,
+  "field": "Starboard trim tab",
+  "min": -100,
+  "max": 100,
+  "decimals": 0,
+  "unit": "%"
+}

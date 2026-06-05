@@ -1,0 +1,11 @@
+{
+  "id": "env_outside_humidity",
+  "type": "analog_in",
+  "title": "Outside humidity",
+  "pgn": 130311,
+  "field": "Humidity",
+  "min": 0,
+  "max": 100,
+  "decimals": 1,
+  "unit": "%"
+}

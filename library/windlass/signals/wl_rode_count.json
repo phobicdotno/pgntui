@@ -1,0 +1,11 @@
+{
+  "id": "wl_rode_count",
+  "type": "analog_in",
+  "title": "Rode count",
+  "pgn": 128777,
+  "field": "Rode Counter Value",
+  "min": 0,
+  "max": 100,
+  "decimals": 2,
+  "unit": "m"
+}

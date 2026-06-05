@@ -1,0 +1,11 @@
+{
+  "id": "ac_current",
+  "type": "analog_in",
+  "title": "Current",
+  "pgn": 127503,
+  "field": "Current",
+  "min": 0,
+  "max": 64,
+  "decimals": 1,
+  "unit": "A"
+}

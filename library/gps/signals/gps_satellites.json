@@ -1,0 +1,10 @@
+{
+  "id": "gps_satellites",
+  "type": "analog_in",
+  "title": "Number of satellites",
+  "pgn": 129029,
+  "field": "Number of SVs",
+  "min": 0,
+  "max": 32,
+  "decimals": 0
+}

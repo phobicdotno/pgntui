@@ -1,0 +1,11 @@
+{
+  "id": "eng_st1_07",
+  "type": "digital_in",
+  "title": "Water Flow",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 7,
+  "instance": 0
+}

@@ -1,0 +1,12 @@
+{
+  "id": "env_cabin_set_temp",
+  "type": "analog_in",
+  "title": "Cabin set temp",
+  "pgn": 130312,
+  "field": "Set Temperature",
+  "min": 250,
+  "max": 330,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 0
+}

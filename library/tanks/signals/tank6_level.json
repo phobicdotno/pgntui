@@ -1,0 +1,12 @@
+{
+  "id": "tank6_level",
+  "type": "analog_in",
+  "title": "Tank 7 level",
+  "pgn": 127505,
+  "field": "Level",
+  "min": 0,
+  "max": 100,
+  "decimals": 1,
+  "unit": "%",
+  "instance": 6
+}

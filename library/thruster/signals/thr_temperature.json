@@ -1,0 +1,11 @@
+{
+  "id": "thr_temperature",
+  "type": "analog_in",
+  "title": "Temperature",
+  "pgn": 128008,
+  "field": "Temperature",
+  "min": 250,
+  "max": 400,
+  "decimals": 0,
+  "unit": "K"
+}

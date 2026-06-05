@@ -1,0 +1,11 @@
+{
+  "id": "gps_latitude",
+  "type": "analog_in",
+  "title": "Latitude",
+  "pgn": 129029,
+  "field": "Latitude",
+  "min": -90,
+  "max": 90,
+  "decimals": 6,
+  "unit": "deg"
+}

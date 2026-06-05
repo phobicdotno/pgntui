@@ -1,0 +1,11 @@
+{
+  "id": "thr_speed",
+  "type": "analog_in",
+  "title": "Speed",
+  "pgn": 128006,
+  "field": "Speed Control",
+  "min": 0,
+  "max": 100,
+  "decimals": 0,
+  "unit": "%"
+}

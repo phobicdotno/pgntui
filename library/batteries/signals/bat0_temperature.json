@@ -1,0 +1,12 @@
+{
+  "id": "bat0_temperature",
+  "type": "analog_in",
+  "title": "Main battery temp",
+  "pgn": 127508,
+  "field": "Temperature",
+  "min": 250,
+  "max": 330,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 0
+}
