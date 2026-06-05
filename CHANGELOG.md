@@ -5,6 +5,25 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.6] — 2026-06-05
+
+### Added
+- Group separators: containers may declare `groups`, rendered as full-width
+  themed rule lines (`├── Title ──────┤`) between signal rows.
+- JSON library expanded to full NMEA Simulator coverage — four engine
+  instances (Main/Stbd/Gen1/Gen2) each with readout/status/transmission,
+  batteries Set 1 + Set 2 (instances 0–7), and a second binary switch bank.
+
+### Changed
+- Signal rows are now one line tall and pack at the top of the tab
+  (`grid-rows: 1`), so dense pages fit on screen.
+- Example Nav/Engine tabs regrouped under labelled separators.
+
+### Fixed
+- The configured theme now drives Textual's chrome (header, tabs, footer,
+  scrollbars), not just widget content — the whole screen is themed instead
+  of clashing with Textual's default theme.
+
 ## [0.3.5] — 2026-06-05
 
 ### Fixed
