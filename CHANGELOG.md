@@ -5,6 +5,15 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] — 2026-06-05
+
+### Fixed
+- Container tabs rendered blank: `ContainerView` had no height rule, so the child
+  `Grid` (`height: 1fr`) collapsed inside the auto-height parent and every signal
+  widget got zero screen area. The view now fills its tab (`height: 1fr`).
+  Regression-tested by running the app against the scaffolded example workspace
+  and asserting every placed widget occupies non-zero screen area.
+
 ## [0.3.2] — 2026-06-04
 
 ### Fixed

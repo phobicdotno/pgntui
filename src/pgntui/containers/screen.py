@@ -42,6 +42,15 @@ class ContainerView(Widget):
     so callers can update displayed values or wire write callbacks.
     """
 
+    # Without an explicit height the view is auto-sized, and the child Grid's
+    # default ``height: 1fr`` cannot resolve inside an auto parent — the grid
+    # collapses and every signal widget renders at height 0 (blank tab).
+    DEFAULT_CSS = """
+    ContainerView {
+        height: 1fr;
+    }
+    """
+
     def __init__(
         self,
         container: Container,

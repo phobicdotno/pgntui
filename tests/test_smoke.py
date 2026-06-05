@@ -1,8 +1,8 @@
-from pgntui import __version__
+﻿from pgntui import __version__
 
 
 def test_version() -> None:
-    assert __version__ == "0.3.2"
+    assert __version__ == "0.3.3"
 
 
 def test_main_returns_zero() -> None:
