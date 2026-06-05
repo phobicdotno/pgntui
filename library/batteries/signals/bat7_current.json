@@ -1,0 +1,12 @@
+{
+  "id": "bat7_current",
+  "type": "analog_in",
+  "title": "Battery 8 A",
+  "pgn": 127508,
+  "field": "Current",
+  "min": -200,
+  "max": 200,
+  "decimals": 1,
+  "unit": "A",
+  "instance": 7
+}

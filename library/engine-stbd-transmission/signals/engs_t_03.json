@@ -1,0 +1,11 @@
+{
+  "id": "engs_t_03",
+  "type": "digital_in",
+  "title": "Low Oil Level",
+  "pgn": 127493,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 3,
+  "instance": 1
+}

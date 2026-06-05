@@ -1,0 +1,11 @@
+{
+  "id": "gen1_s1_05",
+  "type": "digital_in",
+  "title": "Low System Voltage",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 5,
+  "instance": 2
+}

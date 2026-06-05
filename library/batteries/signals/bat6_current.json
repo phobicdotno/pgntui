@@ -1,0 +1,12 @@
+{
+  "id": "bat6_current",
+  "type": "analog_in",
+  "title": "Battery 7 A",
+  "pgn": 127508,
+  "field": "Current",
+  "min": -200,
+  "max": 200,
+  "decimals": 1,
+  "unit": "A",
+  "instance": 6
+}

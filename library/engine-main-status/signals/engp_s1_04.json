@@ -1,0 +1,11 @@
+{
+  "id": "engp_s1_04",
+  "type": "digital_in",
+  "title": "Low Fuel Pressure",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 4,
+  "instance": 0
+}

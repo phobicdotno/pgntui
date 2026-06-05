@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s1_09",
+  "type": "digital_in",
+  "title": "Charge Indicator",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 9,
+  "instance": 3
+}

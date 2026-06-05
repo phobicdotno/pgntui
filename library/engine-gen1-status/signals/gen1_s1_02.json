@@ -1,0 +1,11 @@
+{
+  "id": "gen1_s1_02",
+  "type": "digital_in",
+  "title": "Low Oil Pressure",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 2,
+  "instance": 2
+}

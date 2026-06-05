@@ -1,0 +1,13 @@
+{
+  "id": "engp_oilt",
+  "type": "analog_in",
+  "title": "Oil temperature",
+  "pgn": 127489,
+  "field": "Oil temperature",
+  "min": 250,
+  "max": 450,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 0,
+  "warn_above": 400
+}

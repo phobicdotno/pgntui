@@ -1,0 +1,13 @@
+{
+  "id": "gen2_coolp",
+  "type": "analog_in",
+  "title": "Coolant pressure",
+  "pgn": 127489,
+  "field": "Coolant Pressure",
+  "min": 0,
+  "max": 5,
+  "decimals": 1,
+  "unit": "Bar",
+  "scale": 1e-05,
+  "instance": 3
+}

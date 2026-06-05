@@ -1,0 +1,12 @@
+{
+  "id": "gen1_t_oilt",
+  "type": "analog_in",
+  "title": "Gear oil temp",
+  "pgn": 127493,
+  "field": "Oil temperature",
+  "min": 250,
+  "max": 450,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 2
+}

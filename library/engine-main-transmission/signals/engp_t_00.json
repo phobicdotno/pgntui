@@ -1,0 +1,11 @@
+{
+  "id": "engp_t_00",
+  "type": "digital_in",
+  "title": "Check",
+  "pgn": 127493,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 0,
+  "instance": 0
+}

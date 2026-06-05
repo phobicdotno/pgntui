@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s1_14",
+  "type": "digital_in",
+  "title": "Throttle Position Sensor",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 14,
+  "instance": 3
+}

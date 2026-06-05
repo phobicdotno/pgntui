@@ -1,0 +1,13 @@
+{
+  "id": "gen2_fuelp",
+  "type": "analog_in",
+  "title": "Fuel pressure",
+  "pgn": 127489,
+  "field": "Fuel Pressure",
+  "min": 0,
+  "max": 10,
+  "decimals": 1,
+  "unit": "Bar",
+  "scale": 1e-05,
+  "instance": 3
+}

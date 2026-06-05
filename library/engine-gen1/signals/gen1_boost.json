@@ -1,0 +1,13 @@
+{
+  "id": "gen1_boost",
+  "type": "analog_in",
+  "title": "Boost pressure",
+  "pgn": 127488,
+  "field": "Engine Boost Pressure",
+  "min": 0,
+  "max": 5,
+  "decimals": 1,
+  "unit": "Bar",
+  "scale": 1e-05,
+  "instance": 2
+}

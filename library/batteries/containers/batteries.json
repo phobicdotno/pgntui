@@ -2,78 +2,160 @@
   "id": "batteries",
   "title": "Batteries",
   "cols": 12,
+  "groups": [
+    {
+      "title": "Set 1",
+      "row": 0
+    },
+    {
+      "title": "Set 2",
+      "row": 5
+    }
+  ],
   "signals": [
     {
       "ref": "bat0_voltage",
-      "row": 0,
+      "row": 1,
       "col": 0,
-      "w": 6
+      "w": 4
     },
     {
       "ref": "bat0_current",
-      "row": 0,
-      "col": 6,
-      "w": 6
+      "row": 1,
+      "col": 4,
+      "w": 4
     },
     {
-      "ref": "bat0_temperature",
+      "ref": "bat0_temp",
       "row": 1,
-      "col": 0,
-      "w": 6
+      "col": 8,
+      "w": 4
     },
     {
       "ref": "bat1_voltage",
-      "row": 1,
-      "col": 6,
-      "w": 6
+      "row": 2,
+      "col": 0,
+      "w": 4
     },
     {
       "ref": "bat1_current",
       "row": 2,
-      "col": 0,
-      "w": 6
+      "col": 4,
+      "w": 4
     },
     {
-      "ref": "bat1_temperature",
+      "ref": "bat1_temp",
       "row": 2,
-      "col": 6,
-      "w": 6
+      "col": 8,
+      "w": 4
     },
     {
       "ref": "bat2_voltage",
       "row": 3,
       "col": 0,
-      "w": 6
+      "w": 4
     },
     {
       "ref": "bat2_current",
       "row": 3,
-      "col": 6,
-      "w": 6
+      "col": 4,
+      "w": 4
     },
     {
-      "ref": "bat2_temperature",
-      "row": 4,
-      "col": 0,
-      "w": 6
+      "ref": "bat2_temp",
+      "row": 3,
+      "col": 8,
+      "w": 4
     },
     {
       "ref": "bat3_voltage",
       "row": 4,
-      "col": 6,
-      "w": 6
+      "col": 0,
+      "w": 4
     },
     {
       "ref": "bat3_current",
-      "row": 5,
-      "col": 0,
-      "w": 6
+      "row": 4,
+      "col": 4,
+      "w": 4
     },
     {
-      "ref": "bat3_temperature",
-      "row": 5,
-      "col": 6,
-      "w": 6
+      "ref": "bat3_temp",
+      "row": 4,
+      "col": 8,
+      "w": 4
+    },
+    {
+      "ref": "bat4_voltage",
+      "row": 6,
+      "col": 0,
+      "w": 4
+    },
+    {
+      "ref": "bat4_current",
+      "row": 6,
+      "col": 4,
+      "w": 4
+    },
+    {
+      "ref": "bat4_temp",
+      "row": 6,
+      "col": 8,
+      "w": 4
+    },
+    {
+      "ref": "bat5_voltage",
+      "row": 7,
+      "col": 0,
+      "w": 4
+    },
+    {
+      "ref": "bat5_current",
+      "row": 7,
+      "col": 4,
+      "w": 4
+    },
+    {
+      "ref": "bat5_temp",
+      "row": 7,
+      "col": 8,
+      "w": 4
+    },
+    {
+      "ref": "bat6_voltage",
+      "row": 8,
+      "col": 0,
+      "w": 4
+    },
+    {
+      "ref": "bat6_current",
+      "row": 8,
+      "col": 4,
+      "w": 4
+    },
+    {
+      "ref": "bat6_temp",
+      "row": 8,
+      "col": 8,
+      "w": 4
+    },
+    {
+      "ref": "bat7_voltage",
+      "row": 9,
+      "col": 0,
+      "w": 4
+    },
+    {
+      "ref": "bat7_current",
+      "row": 9,
+      "col": 4,
+      "w": 4
+    },
+    {
+      "ref": "bat7_temp",
+      "row": 9,
+      "col": 8,
+      "w": 4
     }
   ]
 }

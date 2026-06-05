@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s2_03",
+  "type": "digital_in",
+  "title": "Maintenance Needed",
+  "pgn": 127489,
+  "field": "Discrete Status 2",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 3,
+  "instance": 3
+}

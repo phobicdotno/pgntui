@@ -1,7 +1,7 @@
 {
   "id": "bat1_current",
   "type": "analog_in",
-  "title": "Start battery current",
+  "title": "Start battery A",
   "pgn": 127508,
   "field": "Current",
   "min": -200,

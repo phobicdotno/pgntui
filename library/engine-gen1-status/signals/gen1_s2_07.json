@@ -1,0 +1,11 @@
+{
+  "id": "gen1_s2_07",
+  "type": "digital_in",
+  "title": "Engine Shutting Down",
+  "pgn": 127489,
+  "field": "Discrete Status 2",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 7,
+  "instance": 2
+}

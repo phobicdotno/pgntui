@@ -1,0 +1,11 @@
+{
+  "id": "gen1_t_04",
+  "type": "digital_in",
+  "title": "Sail Drive",
+  "pgn": 127493,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 4,
+  "instance": 2
+}

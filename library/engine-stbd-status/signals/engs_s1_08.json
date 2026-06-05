@@ -1,0 +1,11 @@
+{
+  "id": "engs_s1_08",
+  "type": "digital_in",
+  "title": "Water In Fuel",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 8,
+  "instance": 1
+}

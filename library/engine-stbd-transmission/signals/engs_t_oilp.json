@@ -1,0 +1,13 @@
+{
+  "id": "engs_t_oilp",
+  "type": "analog_in",
+  "title": "Gear oil pressure",
+  "pgn": 127493,
+  "field": "Oil pressure",
+  "min": 0,
+  "max": 10,
+  "decimals": 1,
+  "unit": "Bar",
+  "scale": 1e-05,
+  "instance": 1
+}

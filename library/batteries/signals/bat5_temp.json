@@ -1,0 +1,12 @@
+{
+  "id": "bat5_temp",
+  "type": "analog_in",
+  "title": "Battery 6 temp",
+  "pgn": 127508,
+  "field": "Temperature",
+  "min": 250,
+  "max": 330,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 5
+}

@@ -1,0 +1,161 @@
+{
+  "id": "engine_gen1_status",
+  "title": "Generator 1 status",
+  "cols": 12,
+  "groups": [
+    {
+      "title": "Discrete status 1",
+      "row": 0
+    },
+    {
+      "title": "Discrete status 2",
+      "row": 9
+    }
+  ],
+  "signals": [
+    {
+      "ref": "gen1_s1_00",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_01",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_02",
+      "row": 2,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_03",
+      "row": 2,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_04",
+      "row": 3,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_05",
+      "row": 3,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_06",
+      "row": 4,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_07",
+      "row": 4,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_08",
+      "row": 5,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_09",
+      "row": 5,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_10",
+      "row": 6,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_11",
+      "row": 6,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_12",
+      "row": 7,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_13",
+      "row": 7,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_14",
+      "row": 8,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s1_15",
+      "row": 8,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_00",
+      "row": 10,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_01",
+      "row": 10,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_02",
+      "row": 11,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_03",
+      "row": 11,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_04",
+      "row": 12,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_05",
+      "row": 12,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_06",
+      "row": 13,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "gen1_s2_07",
+      "row": 13,
+      "col": 6,
+      "w": 6
+    }
+  ]
+}

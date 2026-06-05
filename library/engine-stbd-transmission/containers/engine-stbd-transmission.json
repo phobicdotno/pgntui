@@ -1,0 +1,59 @@
+{
+  "id": "engine_stbd_transmission",
+  "title": "Engine stbd transmission",
+  "cols": 12,
+  "groups": [
+    {
+      "title": "Gear",
+      "row": 0
+    },
+    {
+      "title": "Discrete status",
+      "row": 2
+    }
+  ],
+  "signals": [
+    {
+      "ref": "engs_t_oilt",
+      "row": 1,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "engs_t_oilp",
+      "row": 1,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "engs_t_00",
+      "row": 3,
+      "col": 0,
+      "w": 12
+    },
+    {
+      "ref": "engs_t_01",
+      "row": 4,
+      "col": 0,
+      "w": 12
+    },
+    {
+      "ref": "engs_t_02",
+      "row": 5,
+      "col": 0,
+      "w": 12
+    },
+    {
+      "ref": "engs_t_03",
+      "row": 6,
+      "col": 0,
+      "w": 12
+    },
+    {
+      "ref": "engs_t_04",
+      "row": 7,
+      "col": 0,
+      "w": 12
+    }
+  ]
+}

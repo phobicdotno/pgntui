@@ -1,0 +1,11 @@
+{
+  "id": "engs_s2_01",
+  "type": "digital_in",
+  "title": "Warning Level 2",
+  "pgn": 127489,
+  "field": "Discrete Status 2",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 1,
+  "instance": 1
+}

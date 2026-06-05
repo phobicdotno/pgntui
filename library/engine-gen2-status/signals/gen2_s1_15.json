@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s1_15",
+  "type": "digital_in",
+  "title": "Emergency Stop",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 15,
+  "instance": 3
+}

@@ -1,0 +1,13 @@
+{
+  "id": "gen1_torque",
+  "type": "analog_in",
+  "title": "Torque",
+  "pgn": 127489,
+  "field": "Engine Torque",
+  "min": 0,
+  "max": 125,
+  "decimals": 0,
+  "unit": "%",
+  "instance": 2,
+  "warn_above": 100
+}

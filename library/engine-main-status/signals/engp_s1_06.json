@@ -1,0 +1,11 @@
+{
+  "id": "engp_s1_06",
+  "type": "digital_in",
+  "title": "Low Coolant Level",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 6,
+  "instance": 0
+}

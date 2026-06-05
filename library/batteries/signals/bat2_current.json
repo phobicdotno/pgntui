@@ -1,7 +1,7 @@
 {
   "id": "bat2_current",
   "type": "analog_in",
-  "title": "Battery 3 current",
+  "title": "Battery 3 A",
   "pgn": 127508,
   "field": "Current",
   "min": -200,

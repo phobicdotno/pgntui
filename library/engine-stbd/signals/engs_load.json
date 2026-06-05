@@ -1,0 +1,13 @@
+{
+  "id": "engs_load",
+  "type": "analog_in",
+  "title": "Load",
+  "pgn": 127489,
+  "field": "Engine Load",
+  "min": 0,
+  "max": 125,
+  "decimals": 0,
+  "unit": "%",
+  "instance": 1,
+  "warn_above": 100
+}

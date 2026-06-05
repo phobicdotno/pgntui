@@ -1,0 +1,13 @@
+{
+  "id": "engs_speed",
+  "type": "analog_in",
+  "title": "Speed",
+  "pgn": 127488,
+  "field": "Engine Speed",
+  "min": 0,
+  "max": 6000,
+  "decimals": 0,
+  "unit": "RPM",
+  "instance": 1,
+  "smoothing": 0.2
+}

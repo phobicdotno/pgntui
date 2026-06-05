@@ -1,0 +1,11 @@
+{
+  "id": "engs_s1_11",
+  "type": "digital_in",
+  "title": "High Boost Pressure",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 11,
+  "instance": 1
+}

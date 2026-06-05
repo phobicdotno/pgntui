@@ -1,0 +1,10 @@
+{
+  "id": "b2_sw27",
+  "type": "digital_in",
+  "title": "Switch 27",
+  "pgn": 127501,
+  "field": "Indicator27",
+  "on_label": "On",
+  "off_label": "Off",
+  "instance": 2
+}

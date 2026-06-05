@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s1_03",
+  "type": "digital_in",
+  "title": "Low Oil Level",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 3,
+  "instance": 3
+}

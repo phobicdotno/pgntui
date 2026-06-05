@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s2_05",
+  "type": "digital_in",
+  "title": "Sub or Secondary Throttle",
+  "pgn": 127489,
+  "field": "Discrete Status 2",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 5,
+  "instance": 3
+}

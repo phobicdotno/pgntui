@@ -1,0 +1,14 @@
+{
+  "id": "engs_oilp",
+  "type": "analog_in",
+  "title": "Oil pressure",
+  "pgn": 127489,
+  "field": "Oil pressure",
+  "min": 0,
+  "max": 10,
+  "decimals": 1,
+  "unit": "Bar",
+  "scale": 1e-05,
+  "instance": 1,
+  "warn_below": 1.0
+}

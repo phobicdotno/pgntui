@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s2_06",
+  "type": "digital_in",
+  "title": "Neutral Start Protect",
+  "pgn": 127489,
+  "field": "Discrete Status 2",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 6,
+  "instance": 3
+}

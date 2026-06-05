@@ -1,0 +1,12 @@
+{
+  "id": "gen1_fuel",
+  "type": "analog_in",
+  "title": "Fuel rate",
+  "pgn": 127489,
+  "field": "Fuel Rate",
+  "min": 0,
+  "max": 100,
+  "decimals": 1,
+  "unit": "l/h",
+  "instance": 2
+}

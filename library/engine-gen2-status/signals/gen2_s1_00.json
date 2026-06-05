@@ -1,0 +1,11 @@
+{
+  "id": "gen2_s1_00",
+  "type": "digital_in",
+  "title": "Check Engine",
+  "pgn": 127489,
+  "field": "Discrete Status 1",
+  "on_label": "ON",
+  "off_label": "OFF",
+  "bit": 0,
+  "instance": 3
+}

@@ -1,84 +1,102 @@
 {
   "id": "engine_main",
-  "title": "Engine",
+  "title": "Engine port",
   "cols": 12,
+  "groups": [
+    {
+      "title": "Drive",
+      "row": 1
+    },
+    {
+      "title": "Oil & temperature",
+      "row": 3
+    },
+    {
+      "title": "Fuel & hours",
+      "row": 6
+    },
+    {
+      "title": "Output",
+      "row": 9
+    }
+  ],
   "signals": [
     {
-      "ref": "eng_speed",
+      "ref": "engp_speed",
       "row": 0,
       "col": 0,
-      "w": 6
+      "w": 12
     },
     {
-      "ref": "eng_boost_pressure",
-      "row": 0,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "eng_tilt_trim",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "eng_oil_pressure",
-      "row": 1,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "eng_oil_temperature",
+      "ref": "engp_boost",
       "row": 2,
       "col": 0,
       "w": 6
     },
     {
-      "ref": "eng_temperature",
+      "ref": "engp_tilt",
       "row": 2,
       "col": 6,
       "w": 6
     },
     {
-      "ref": "eng_alternator_voltage",
-      "row": 3,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "eng_fuel_rate",
-      "row": 3,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "eng_total_hours",
+      "ref": "engp_oilp",
       "row": 4,
       "col": 0,
       "w": 6
     },
     {
-      "ref": "eng_coolant_pressure",
+      "ref": "engp_oilt",
       "row": 4,
       "col": 6,
       "w": 6
     },
     {
-      "ref": "eng_fuel_pressure",
+      "ref": "engp_temp",
       "row": 5,
       "col": 0,
       "w": 6
     },
     {
-      "ref": "eng_load",
+      "ref": "engp_alt",
       "row": 5,
       "col": 6,
       "w": 6
     },
     {
-      "ref": "eng_torque",
-      "row": 6,
+      "ref": "engp_fuel",
+      "row": 7,
       "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "engp_hours",
+      "row": 7,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "engp_coolp",
+      "row": 8,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "engp_fuelp",
+      "row": 8,
+      "col": 6,
+      "w": 6
+    },
+    {
+      "ref": "engp_load",
+      "row": 10,
+      "col": 0,
+      "w": 6
+    },
+    {
+      "ref": "engp_torque",
+      "row": 10,
+      "col": 6,
       "w": 6
     }
   ]

@@ -1,7 +1,7 @@
 {
   "id": "bat2_voltage",
   "type": "analog_in",
-  "title": "Battery 3 voltage",
+  "title": "Battery 3 V",
   "pgn": 127508,
   "field": "Voltage",
   "min": 0,

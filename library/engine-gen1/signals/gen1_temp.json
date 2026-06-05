@@ -1,0 +1,13 @@
+{
+  "id": "gen1_temp",
+  "type": "analog_in",
+  "title": "Temperature",
+  "pgn": 127489,
+  "field": "Temperature",
+  "min": 250,
+  "max": 400,
+  "decimals": 1,
+  "unit": "K",
+  "instance": 2,
+  "warn_above": 370
+}
