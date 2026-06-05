@@ -297,6 +297,13 @@ def main(argv: list[str] | None = None) -> int:
             return 2
         driver: Driver | None = FileReplayDriver()
         driver = open_driver_or_none(driver, {"path": str(replay_path), "speed": "1x"})
+    elif cfg.driver_name == "file-replay" and "path" not in cfg.driver_options:
+        # The scaffold ships ``name = "file-replay"`` as a placeholder; it only
+        # works via the ``replay`` subcommand (which supplies a path). Launching
+        # the UI with it would fail to open for lack of a path, so start with no
+        # driver instead of printing a confusing warning. Use the Connection
+        # menu (press C) to attach an NGT-1.
+        driver = None
     else:
         driver = load_driver(cfg.driver_name)
         if driver is not None:

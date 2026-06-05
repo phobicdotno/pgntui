@@ -140,6 +140,9 @@ class ConnectionScreen(ModalScreen[None]):
 
     BINDINGS = [("escape", "dismiss", "Close")]
 
+    # Seconds to keep the dialog up after a successful Connect (override in tests).
+    AUTO_CLOSE_SECONDS = 1.2
+
     def __init__(
         self, *, workspace: Path | None, current_port: str | None, current_baud: int | None
     ) -> None:
@@ -246,7 +249,14 @@ class ConnectionScreen(ModalScreen[None]):
         ok, message = self.app.connect_ngt1(port, baud)  # type: ignore[attr-defined]
         self._set_result(message)
         if ok:
-            self.set_timer(1.0, self.dismiss)
+            # Auto-close shortly so the user sees the live dashboard. The timer
+            # callback must NOT return the AwaitComplete from dismiss(): Textual
+            # would await it inside this screen's message pump and raise
+            # ScreenError. Calling dismiss() and returning None pops safely.
+            self.set_timer(self.AUTO_CLOSE_SECONDS, self._close)
+
+    def _close(self) -> None:
+        self.dismiss()
 
 
 class PgntuiApp(App[None]):

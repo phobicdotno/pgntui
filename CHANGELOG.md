@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.10] — 2026-06-05
+
+### Fixed
+- Pressing **Connect** in the Connection menu crashed with a Textual
+  `ScreenError` — the post-connect auto-close timer made Textual await
+  `dismiss()` inside the screen's own message pump. The timer now closes via
+  a wrapper that doesn't return the awaitable.
+- Launching with the scaffold's default `file-replay` driver no longer prints
+  `failed to open driver: 'path'`; that placeholder only applies to the
+  `replay` subcommand, so the UI now starts with no driver and you attach the
+  NGT-1 from the Connection menu.
+
 ## [0.3.9] — 2026-06-05
 
 ### Added

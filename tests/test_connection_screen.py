@@ -135,3 +135,32 @@ async def test_connect_ngt1_wires_driver(monkeypatch) -> None:  # type: ignore[n
         ok2, message2 = app.connect_ngt1("COM4", 115200)
         assert ok2 is False
         assert "already connected" in message2.lower()
+
+
+@pytest.mark.asyncio
+async def test_connect_button_auto_closes_without_screen_error(monkeypatch) -> None:  # type: ignore[no-untyped-def]
+    """Regression: the post-connect auto-close timer must not raise ScreenError.
+
+    ``set_timer(delay, self.dismiss)`` made Textual await dismiss()'s result
+    inside the screen's own message pump, which raises ScreenError. The timer
+    now calls a wrapper that returns None.
+    """
+    monkeypatch.setattr("pgntui.drivers.actisense.list_serial_ports", lambda: PORTS)
+    monkeypatch.setattr("pgntui.drivers.actisense.NGT1Driver", _FakeDriver)
+    monkeypatch.setattr(ConnectionScreen, "AUTO_CLOSE_SECONDS", 0.05)
+    app = PgntuiApp(
+        theme=load_builtin("dark"),
+        containers=[],
+        debug_buffer=DebugBuffer(),
+        decoder=CanboatDecoder.load_bundled(),
+        router=SignalRouter(),
+        driver_options={"port": "COM7", "baud": 115200},
+    )
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.press("c")
+        await pilot.pause()
+        await pilot.click("#conn-connect")
+        await pilot.pause(0.2)  # let the auto-close timer fire
+        assert not isinstance(app.screen, ConnectionScreen)
+        assert type(app._n2k_driver).__name__ == "_FakeDriver"
