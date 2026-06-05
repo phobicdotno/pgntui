@@ -5,6 +5,18 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.9] — 2026-06-05
+
+### Added
+- In-app **Connection** menu (top-bar button or `C` key): choose the serial
+  port and speed from dropdowns, **Test** the NGT-1 live (2-second listen with
+  a plain-language verdict), **Save** the choice to `config.toml`, or
+  **Connect** without restarting.
+- `pgntui probe [--port … --baud … --seconds …]` runs the same connection test
+  from the command line (port/speed default to `config.toml`).
+- `config.write_driver_settings()` persists driver port/speed while preserving
+  the file's comments.
+
 ## [0.3.8] — 2026-06-05
 
 ### Added

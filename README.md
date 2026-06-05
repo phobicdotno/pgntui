@@ -108,16 +108,23 @@ Third-party drivers can register additional entry points under the
 
 ### Actisense NGT-1
 
-The NGT-1 is a USB↔NMEA 2000 gateway. Plug it in, then find its port:
+The NGT-1 is a USB↔NMEA 2000 gateway. The easiest path is the in-app
+**Connection** menu — run `pgntui`, press `C` (or click **Connection** in the
+title bar), pick the port and speed, and press **Test** to confirm it's
+receiving. **Save** writes the choice to `config.toml`; **Connect** goes live
+without a restart.
 
-    pgntui --list-ports
+Prefer the command line? Find the port and test it there:
 
-Set the reported device as `driver.port` in `config.toml` (`COM4` on Windows,
-`/dev/ttyUSB0` on Linux, `/dev/tty.usbserial-XXXX` on macOS) with
-`driver.name = "actisense-ngt1"`, then run `pgntui` — incoming PGNs scroll on
-the Debug tab and feed the dashboards. The driver speaks the Actisense BST
-serial protocol (`DLE STX`…`DLE ETX` framing, `0x93` receive / `0x94` send).
-Writes (`analog_out`/`digital_out`) additionally need `--enable-write` and
+    pgntui --list-ports          # list serial ports
+    pgntui probe --port COM4     # 2-second connection test + verdict
+
+Then set `driver.name = "actisense-ngt1"` and `driver.port` in `config.toml`
+(`COM4` on Windows, `/dev/ttyUSB0` on Linux, `/dev/tty.usbserial-XXXX` on
+macOS) and run `pgntui` — incoming PGNs scroll on the Debug tab and feed the
+dashboards. The driver speaks the Actisense BST serial protocol
+(`DLE STX`…`DLE ETX` framing, `0x93` receive / `0x94` send). Writes
+(`analog_out`/`digital_out`) additionally need `--enable-write` and
 `app.write_enabled = true`.
 
 ## Signal types

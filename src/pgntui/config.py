@@ -62,4 +62,51 @@ def load_config(path: Path) -> Config:
     )
 
 
-__all__ = ["Config", "load_config"]
+def _toml_key(line: str) -> str:
+    stripped = line.strip()
+    if stripped.startswith("#") or "=" not in stripped:
+        return ""
+    return stripped.split("=", 1)[0].strip()
+
+
+def write_driver_settings(path: Path, name: str, port: str, baud: int) -> None:
+    """Persist ``[driver]`` ``name``/``port``/``baud`` into ``path``.
+
+    Line-based so existing comments and other sections are preserved. The three
+    keys are written directly under the ``[driver]`` header; any pre-existing
+    (non-commented) copies elsewhere in that section are dropped. A missing file
+    or missing ``[driver]`` section is created.
+    """
+    path = Path(path)
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    new = {
+        "name": f'name = "{name}"',
+        "port": f'port = "{port}"',
+        "baud": f"baud = {int(baud)}",
+    }
+    out: list[str] = []
+    in_driver = False
+    driver_found = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        is_header = stripped.startswith("[") and not stripped.startswith("#")
+        if is_header and stripped == "[driver]":
+            out.append(line)
+            out.extend((new["name"], new["port"], new["baud"]))
+            in_driver = True
+            driver_found = True
+            continue
+        if is_header and in_driver:
+            in_driver = False
+        if in_driver and _toml_key(line) in ("name", "port", "baud"):
+            continue  # drop the old key; the new value is already written
+        out.append(line)
+    if not driver_found:
+        if out and out[-1].strip() != "":
+            out.append("")
+        out.append("[driver]")
+        out.extend((new["name"], new["port"], new["baud"]))
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+__all__ = ["Config", "load_config", "write_driver_settings"]

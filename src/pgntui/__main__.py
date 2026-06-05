@@ -39,6 +39,16 @@ def build_parser() -> argparse.ArgumentParser:
     sub = p.add_subparsers(dest="command")
     replay = sub.add_parser("replay", help="replay a .pgnlog file")
     replay.add_argument("replay_file")
+    probe = sub.add_parser("probe", help="test the NGT-1 connection and exit")
+    probe.add_argument(
+        "--port", default=None, help="serial port (default: driver.port from config)"
+    )
+    probe.add_argument(
+        "--baud", type=int, default=None, help="speed (default: driver.baud or 115200)"
+    )
+    probe.add_argument(
+        "--seconds", type=float, default=2.0, help="how long to listen (default: 2.0)"
+    )
     return p
 
 
@@ -67,6 +77,24 @@ def _list_ports() -> int:
         print(f"  {device:12s} {desc}")
     print('\nset driver.port in config.toml, e.g. port = "COM4" (Windows) or "/dev/ttyUSB0".')
     return 0
+
+
+def _run_probe(cfg: Config, port: str | None, baud: int | None, seconds: float) -> int:
+    from pgntui.drivers.actisense import probe_ngt1
+
+    resolved_port = port or cfg.driver_options.get("port")
+    if not resolved_port:
+        print(
+            "no port given. Pass --port COM4 (run `pgntui --list-ports` to find it) "
+            "or set driver.port in config.toml.",
+            file=sys.stderr,
+        )
+        return 2
+    resolved_baud = int(baud or cfg.driver_options.get("baud", 115200))
+    print(f"probing {resolved_port} @ {resolved_baud} baud for {seconds:g}s…")
+    result = probe_ngt1(str(resolved_port), baud=resolved_baud, duration=seconds)
+    print(result.summary())
+    return 0 if result.ok else 1
 
 
 def scaffold_example(workspace: Path) -> int:
@@ -228,6 +256,8 @@ def _build_app(
         write_enabled=cfg.write_enabled,
         record_dir=record_dir,
         debug_buffer=debug_buffer,
+        workspace=workspace,
+        driver_options=cfg.driver_options,
     )
 
 
@@ -256,6 +286,9 @@ def main(argv: list[str] | None = None) -> int:
     if args.check:
         print(f"pgntui: workspace={workspace} theme={cfg.theme} write_enabled={cfg.write_enabled}")
         return 0
+
+    if args.command == "probe":
+        return _run_probe(cfg, args.port, args.baud, args.seconds)
 
     if args.command == "replay":
         replay_path = Path(args.replay_file).expanduser().resolve()

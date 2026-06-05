@@ -16,6 +16,7 @@ TAGLINE = "NMEA 2000 reader"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.3.9", "Connection menu: pick port + speed, test the NGT-1, save/connect."),
     ("0.3.8", "About screen and a titled header showing the version."),
     ("0.3.7", "Actisense NGT-1 serial driver (real BST protocol); --list-ports."),
     ("0.3.6", "Themed header & tabs, compact grouped rows, full signal library."),

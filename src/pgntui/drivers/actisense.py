@@ -21,7 +21,9 @@ device fills those in.
 from __future__ import annotations
 
 import threading
-from collections.abc import Iterator
+import time
+from collections.abc import Callable, Iterator
+from dataclasses import dataclass, field
 from typing import Any
 
 from pgntui.drivers.base import Capability, Frame
@@ -198,6 +200,105 @@ def list_serial_ports() -> list[tuple[str, str]]:
     return [(p.device, p.description or "") for p in list_ports.comports()]
 
 
+# ---------------------------------------------------------------------------
+# Connection probe — the "is it working?" self-test
+# ---------------------------------------------------------------------------
+
+
+@dataclass
+class ProbeResult:
+    """Outcome of :func:`probe_ngt1`."""
+
+    ok: bool
+    port: str
+    baud: int
+    bytes_read: int = 0
+    frames: int = 0
+    n2k_messages: int = 0
+    sample_pgns: list[int] = field(default_factory=list)
+    error: str | None = None
+
+    def summary(self) -> str:
+        """A human-readable verdict suitable for the UI or CLI."""
+        if self.error is not None:
+            return (
+                f"Could not open {self.port}: {self.error}. "
+                "Check the port name and that nothing else is using it."
+            )
+        if self.bytes_read == 0:
+            return (
+                f"{self.port} opened, but no data arrived. Check the NGT-1 is powered "
+                "and the USB cable is connected."
+            )
+        if self.frames == 0:
+            return (
+                f"{self.port}: received {self.bytes_read} bytes but no valid NGT-1 frames "
+                "— try a different speed (baud)."
+            )
+        if self.n2k_messages == 0:
+            return (
+                f"{self.port}: NGT-1 is responding ({self.frames} frames) but no NMEA 2000 "
+                "bus traffic yet. Check the backbone connection and termination."
+            )
+        pgns = ", ".join(str(p) for p in self.sample_pgns)
+        return (
+            f"Connected on {self.port} @ {self.baud} baud — {self.n2k_messages} N2K messages "
+            f"in {self.frames} frames. PGNs seen: {pgns}"
+        )
+
+
+def _open_serial(port: str, baud: int) -> Any:
+    import serial  # type: ignore[import-untyped]
+
+    return serial.Serial(port=port, baudrate=int(baud), timeout=0.2)
+
+
+def probe_ngt1(
+    port: str,
+    baud: int = 115200,
+    duration: float = 2.0,
+    serial_factory: Callable[[str, int], Any] | None = None,
+) -> ProbeResult:
+    """Open ``port`` at ``baud``, read for ``duration`` seconds, and report.
+
+    Counts valid BST frames and N2K messages so the caller can tell apart "port
+    won't open", "no data", "wrong speed", "NGT-1 fine but no bus traffic", and
+    "connected and receiving". ``serial_factory`` is injectable for testing.
+    """
+    factory = serial_factory or _open_serial
+    try:
+        ser = factory(port, baud)
+    except Exception as e:
+        return ProbeResult(ok=False, port=port, baud=baud, error=str(e))
+    res = ProbeResult(ok=False, port=port, baud=baud)
+    reassembler = MessageReassembler()
+    try:
+        deadline = time.monotonic() + duration
+        while time.monotonic() < deadline:
+            chunk = ser.read(256)
+            if not chunk:
+                continue
+            res.bytes_read += len(chunk)
+            for command, payload in reassembler.push(chunk):
+                res.frames += 1
+                if command == N2K_MSG_RECEIVED:
+                    res.n2k_messages += 1
+                    frame = parse_n2k_received(payload)
+                    if (
+                        frame is not None
+                        and frame.pgn not in res.sample_pgns
+                        and len(res.sample_pgns) < 8
+                    ):
+                        res.sample_pgns.append(frame.pgn)
+    finally:
+        try:
+            ser.close()
+        except Exception:  # pragma: no cover — defensive
+            pass
+    res.ok = res.frames > 0
+    return res
+
+
 class NGT1Driver:
     name = "actisense-ngt1"
     capabilities = {Capability.READ, Capability.WRITE}
@@ -211,7 +312,7 @@ class NGT1Driver:
         self._reassembler = MessageReassembler()
 
     def open(self, config: dict[str, Any]) -> None:
-        import serial  # type: ignore[import-untyped]  # pyserial has no stubs
+        import serial
 
         self._stop.clear()
         self._reassembler = MessageReassembler()
@@ -265,9 +366,11 @@ __all__ = [
     "STX",
     "MessageReassembler",
     "NGT1Driver",
+    "ProbeResult",
     "build_n2k_received",
     "build_n2k_send",
     "frame_message",
     "list_serial_ports",
     "parse_n2k_received",
+    "probe_ngt1",
 ]

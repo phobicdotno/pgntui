@@ -37,3 +37,43 @@ def test_list_ports_runs_without_ui(monkeypatch, capsys) -> None:  # type: ignor
     out = capsys.readouterr().out
     assert "COM4" in out
     assert "USB Serial Port" in out
+
+
+def test_parse_probe() -> None:
+    args = parse_args(["probe", "--port", "COM4", "--baud", "230400", "--seconds", "1.5"])
+    assert args.command == "probe"
+    assert args.port == "COM4"
+    assert args.baud == 230400
+    assert args.seconds == 1.5
+
+
+def test_probe_reports_and_exit_code(tmp_path: Path, monkeypatch, capsys) -> None:  # type: ignore[no-untyped-def]
+    from pgntui.drivers.actisense import ProbeResult
+
+    captured: dict[str, object] = {}
+
+    def fake_probe(port, baud=115200, duration=2.0, serial_factory=None):  # type: ignore[no-untyped-def]
+        captured["port"] = port
+        captured["baud"] = baud
+        return ProbeResult(
+            ok=True,
+            port=port,
+            baud=baud,
+            bytes_read=200,
+            frames=3,
+            n2k_messages=3,
+            sample_pgns=[127488],
+        )
+
+    monkeypatch.setattr("pgntui.drivers.actisense.probe_ngt1", fake_probe)
+    rc = main(["--workspace", str(tmp_path), "probe", "--port", "COM9", "--baud", "115200"])
+    assert rc == 0
+    assert captured["port"] == "COM9"
+    assert "Connected" in capsys.readouterr().out
+
+
+def test_probe_without_port_errors(tmp_path: Path, capsys) -> None:  # type: ignore[no-untyped-def]
+    # Empty workspace -> default config has no driver.port.
+    rc = main(["--workspace", str(tmp_path), "probe"])
+    assert rc == 2
+    assert "no port" in capsys.readouterr().err.lower()

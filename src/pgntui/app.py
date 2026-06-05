@@ -6,14 +6,15 @@ import threading
 from collections.abc import Callable
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
-from textual import work
+from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Container as TextualContainer
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widget import Widget
-from textual.widgets import RichLog, Static, TabbedContent, TabPane
+from textual.widgets import Button, RichLog, Select, Static, TabbedContent, TabPane
 from textual.worker import Worker
 
 from pgntui import about
@@ -49,22 +50,29 @@ class DebugLog(RichLog):
         self.write(f"{ts}  pgn={df.pgn:>6}  src={df.source_addr:>3}  {name}  {fields}")
 
 
-class AboutButton(Static):
-    """Clickable ``About`` affordance at the top-right of the title bar."""
+class TopBarButton(Static):
+    """Clickable label in the title bar that fires a named app action."""
 
     DEFAULT_CSS = """
-    AboutButton { width: auto; padding: 0 2; }
-    AboutButton:hover { background: $accent; text-style: bold; }
+    TopBarButton { width: auto; padding: 0 2; }
+    TopBarButton:hover { background: $accent; text-style: bold; }
     """
 
+    def __init__(self, label: str, action: str, **kwargs: Any) -> None:
+        super().__init__(label, **kwargs)
+        self._action = action
+
     def on_click(self) -> None:
-        # Defer to the app action so the keyboard binding and the click share
-        # one code path.
-        self.app.action_about()  # type: ignore[attr-defined]
+        # Call the app's action method directly so the keyboard binding and the
+        # click share one code path. (run_action is async; these actions are
+        # sync, so a plain call avoids an un-awaited coroutine.)
+        action = getattr(self.app, f"action_{self._action}", None)
+        if action is not None:
+            action()
 
 
 class TopBar(Horizontal):
-    """Top title bar: ``PgnTui — NMEA 2000 reader — vX.Y.Z`` with an About button."""
+    """Top title bar: ``PgnTui — NMEA 2000 reader — vX.Y.Z`` with menu buttons."""
 
     DEFAULT_CSS = """
     TopBar { dock: top; height: 1; background: $surface; }
@@ -73,7 +81,8 @@ class TopBar(Horizontal):
 
     def compose(self) -> ComposeResult:
         yield Static(about.header_title(), id="app-title")
-        yield AboutButton("About", id="about-button")
+        yield TopBarButton("Connection", "connection", id="connection-button")
+        yield TopBarButton("About", "about", id="about-button")
 
 
 class AboutScreen(ModalScreen[None]):
@@ -107,6 +116,139 @@ class AboutScreen(ModalScreen[None]):
         )
 
 
+BAUD_RATES = (4800, 9600, 19200, 38400, 57600, 115200, 230400)
+
+
+class ConnectionScreen(ModalScreen[None]):
+    """Pick a serial port + speed, test the NGT-1, then Save or Connect."""
+
+    DEFAULT_CSS = """
+    ConnectionScreen { align: center middle; }
+    ConnectionScreen #conn-dialog {
+        width: 72;
+        height: auto;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+    ConnectionScreen #conn-title { text-style: bold; margin-bottom: 1; }
+    ConnectionScreen .conn-label { color: $accent; margin-top: 1; }
+    ConnectionScreen #conn-buttons { height: auto; margin-top: 1; }
+    ConnectionScreen Button { margin: 0 1 0 0; }
+    ConnectionScreen #conn-result { margin-top: 1; height: auto; min-height: 2; }
+    """
+
+    BINDINGS = [("escape", "dismiss", "Close")]
+
+    def __init__(
+        self, *, workspace: Path | None, current_port: str | None, current_baud: int | None
+    ) -> None:
+        super().__init__()
+        self._workspace = workspace
+        self._current_port = current_port
+        self._current_baud = current_baud if current_baud in BAUD_RATES else 115200
+
+    def compose(self) -> ComposeResult:
+        from pgntui.drivers.actisense import list_serial_ports
+
+        ports = list_serial_ports()
+        port_options = [(f"{dev}  {desc}".rstrip(), dev) for dev, desc in ports]
+        known = {dev for dev, _ in ports}
+        # Only preselect when the saved port is actually present; otherwise leave
+        # the Select blank (its default NULL state).
+        port_kwargs: dict[str, Any] = {}
+        if self._current_port in known:
+            port_kwargs["value"] = self._current_port
+        yield TextualContainer(
+            Static("NMEA 2000 connection", id="conn-title"),
+            Static("Serial port", classes="conn-label"),
+            Select(
+                port_options,
+                prompt="(no port — plug in the NGT-1)",
+                id="port-select",
+                **port_kwargs,
+            ),
+            Static("Speed (baud)", classes="conn-label"),
+            Select(
+                [(str(b), b) for b in BAUD_RATES],
+                value=self._current_baud,
+                allow_blank=False,
+                id="baud-select",
+            ),
+            Horizontal(
+                Button("Test", id="conn-test", variant="primary"),
+                Button("Save", id="conn-save"),
+                Button("Connect", id="conn-connect", variant="success"),
+                Button("Close", id="conn-close"),
+                id="conn-buttons",
+            ),
+            Static("Pick a port and press Test.", id="conn-result", markup=False),
+            id="conn-dialog",
+        )
+
+    # ---- helpers -----------------------------------------------------------
+
+    def _selected_port(self) -> str | None:
+        value = self.query_one("#port-select", Select).value
+        return None if value is Select.NULL else str(value)
+
+    def _selected_baud(self) -> int:
+        return int(self.query_one("#baud-select", Select).value)  # type: ignore[arg-type]
+
+    def _set_result(self, text: str) -> None:
+        self.query_one("#conn-result", Static).update(text)
+
+    # ---- buttons -----------------------------------------------------------
+
+    @on(Button.Pressed, "#conn-close")
+    def _on_close(self) -> None:
+        self.dismiss()
+
+    @on(Button.Pressed, "#conn-test")
+    def _on_test(self) -> None:
+        port = self._selected_port()
+        if not port:
+            self._set_result("Pick a serial port first.")
+            return
+        baud = self._selected_baud()
+        self._set_result(f"Testing {port} @ {baud} baud — listening for 2s…")
+        self._probe(port, baud)
+
+    @work(thread=True, exclusive=True, group="conn_probe")
+    def _probe(self, port: str, baud: int) -> None:
+        from pgntui.drivers.actisense import probe_ngt1
+
+        result = probe_ngt1(port, baud, duration=2.0)
+        self.app.call_from_thread(self._set_result, result.summary())
+
+    @on(Button.Pressed, "#conn-save")
+    def _on_save(self) -> None:
+        port = self._selected_port()
+        if not port:
+            self._set_result("Pick a serial port first.")
+            return
+        if self._workspace is None:
+            self._set_result("No workspace to save into.")
+            return
+        from pgntui.config import write_driver_settings
+
+        baud = self._selected_baud()
+        write_driver_settings(self._workspace / "config.toml", "actisense-ngt1", port, baud)
+        self._set_result(f"Saved {port} @ {baud} to config.toml. Press Connect, or restart pgntui.")
+
+    @on(Button.Pressed, "#conn-connect")
+    def _on_connect(self) -> None:
+        port = self._selected_port()
+        if not port:
+            self._set_result("Pick a serial port first.")
+            return
+        baud = self._selected_baud()
+        ok, message = self.app.connect_ngt1(port, baud)  # type: ignore[attr-defined]
+        self._set_result(message)
+        if ok:
+            self.set_timer(1.0, self.dismiss)
+
+
 class PgntuiApp(App[None]):
     """Top-level Textual app.
 
@@ -127,6 +269,7 @@ class PgntuiApp(App[None]):
         ("shift+tab", "prev_container", "Prev"),
         ("d", "show_debug", "Debug"),
         ("r", "toggle_record", "Record"),
+        ("c", "connection", "Connection"),
         ("a", "about", "About"),
         ("q,ctrl+q", "force_quit", "Quit"),
         ("question_mark", "help", "Help"),
@@ -143,6 +286,8 @@ class PgntuiApp(App[None]):
         write_enabled: bool = False,
         record_dir: Path | None = None,
         debug_buffer: DebugBuffer | None = None,
+        workspace: Path | None = None,
+        driver_options: dict[str, Any] | None = None,
         # Back-compat: older callers (and tests) construct with container_titles=[...].
         # When present, containers + signals are ignored and the app renders title-only
         # placeholder tabs. New callers should prefer the structured args.
@@ -150,6 +295,10 @@ class PgntuiApp(App[None]):
     ) -> None:
         super().__init__()
         self._theme = theme
+        # Workspace + last-known driver options, so the Connection menu can show
+        # the current port/speed as defaults and save changes back to config.toml.
+        self._workspace = workspace
+        self._driver_options: dict[str, Any] = driver_options or {}
         self._n2k_driver = driver
         self._decoder = decoder
         self._router = router
@@ -222,7 +371,7 @@ class PgntuiApp(App[None]):
                     )
                     yield self._debug_log
             yield Static(
-                "[Tab] Next [D] Debug [R] Rec [Q] Quit",
+                "[Tab] Next [D] Debug [R] Rec [C] Connection [A] About [Q] Quit",
                 id="hotkey-strip",
                 markup=False,
             )
@@ -366,6 +515,40 @@ class PgntuiApp(App[None]):
             return
         self.push_screen(AboutScreen())
 
+    def action_connection(self) -> None:
+        if isinstance(self.screen, ConnectionScreen):
+            return
+        self.push_screen(
+            ConnectionScreen(
+                workspace=self._workspace,
+                current_port=self._driver_options.get("port"),
+                current_baud=self._driver_options.get("baud"),
+            )
+        )
+
+    def connect_ngt1(self, port: str, baud: int) -> tuple[bool, str]:
+        """Open an NGT-1 on ``port`` and start the frame loop. Returns (ok, message).
+
+        Used by the Connection menu's Connect button to go live without a
+        restart. Refuses if a driver is already running.
+        """
+        from pgntui.drivers.actisense import NGT1Driver
+
+        if self._n2k_driver is not None:
+            return False, "A driver is already connected — restart pgntui to switch ports."
+        if self._decoder is None or self._router is None:
+            return False, "No decoder/router available in this session."
+        driver = NGT1Driver()
+        try:
+            driver.open({"port": port, "baud": baud})
+        except Exception as e:
+            return False, f"Could not open {port}: {e}"
+        self._n2k_driver = driver
+        self._driver_options = {"port": port, "baud": baud}
+        self.frame_loop()
+        self._set_status(f"connected {port} @ {baud}")
+        return True, f"Connected on {port} @ {baud}. Watch the Debug tab for frames."
+
     def action_toggle_record(self) -> None:
         if self._writer is not None:
             self._stop_recording()
@@ -461,4 +644,11 @@ def _encode_analog_payload(value: float) -> bytes:
     return v.to_bytes(2, "little")
 
 
-__all__ = ["AboutButton", "AboutScreen", "DebugLog", "PgntuiApp", "TopBar"]
+__all__ = [
+    "AboutScreen",
+    "ConnectionScreen",
+    "DebugLog",
+    "PgntuiApp",
+    "TopBar",
+    "TopBarButton",
+]
