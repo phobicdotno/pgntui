@@ -57,7 +57,10 @@ follows `platformdirs.user_config_dir("pgntui")`:
 |---------|--------------------------------------------|
 | Linux   | `~/.config/pgntui`                         |
 | macOS   | `~/Library/Application Support/pgntui`     |
-| Windows | `%APPDATA%\pgntui`                         |
+| Windows | `%LOCALAPPDATA%\pgntui\pgntui`             |
+
+(On Windows `platformdirs` nests `<appauthor>\<appname>`, so the path segment
+`pgntui` appears twice — e.g. `C:\Users\you\AppData\Local\pgntui\pgntui`.)
 
 Override with `--workspace <path>` on the command line.
 
