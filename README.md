@@ -12,6 +12,15 @@ The easiest path is `pipx`:
 
     pipx install pgntui
 
+Don't have `pipx`? Install it with pip, then make sure it is on PATH:
+
+    python -m pip install --user pipx
+    python -m pipx ensurepath
+
+Open a new terminal afterwards so the PATH change takes effect. On
+Debian/Ubuntu you can use `sudo apt install pipx` instead, and on macOS
+`brew install pipx`.
+
 If your system Python is older than 3.11, point pipx at a newer interpreter:
 
     pipx install --python python3.12 pgntui
