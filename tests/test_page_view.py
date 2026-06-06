@@ -103,3 +103,52 @@ async def test_expanded_digital_widget_grows_to_two_lines() -> None:
         w.toggle_sparkline()
         await pilot.pause()
         assert w.region.height == 2  # row grew to show the step-wave sparkline
+
+
+class _MultiColHost(App[None]):
+    def compose(self) -> ComposeResult:
+        sigs = {
+            f"s{i}": AnalogIn(
+                id=f"s{i}", type="analog_in", title=f"S{i}", pgn=1, field="x", min=0, max=100
+            )
+            for i in range(6)
+        }
+        page = Page(
+            id="nav",
+            title="Nav",
+            containers=(
+                Container(
+                    title="Heading",
+                    cols=12,
+                    signals=(
+                        SignalPlacement("s0", 0, 0, 6),
+                        SignalPlacement("s1", 0, 6, 6),
+                        SignalPlacement("s2", 1, 0, 6),
+                        SignalPlacement("s3", 1, 6, 6),
+                        SignalPlacement("s4", 2, 0, 6),
+                        SignalPlacement("s5", 2, 6, 6),
+                    ),
+                ),
+            ),
+        )
+        yield PageView(page=page, signals=sigs, write_enabled=False, theme=load_builtin("dark"))
+
+
+@pytest.mark.asyncio
+async def test_multicolumn_rows_stay_tight_and_one_row_expands() -> None:
+    # Regression guard: a 2-column grid must keep collapsed rows tight (an
+    # ``auto`` row track once stretched them apart), and expanding one cell must
+    # grow only that row.
+    async with _MultiColHost().run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        ws = list(pilot.app.query(AnalogInWidget))
+        # 3 rows of 2 cells, each one line, stacked 1 apart (no stretch).
+        assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
+        assert all(w.region.height == 1 for w in ws)
+        # Expand the middle row's first cell -> only that row grows to 2.
+        ws[2].toggle_sparkline()
+        await pilot.pause()
+        assert ws[2].region.height == 2  # expanded row grew
+        assert ws[0].region.height == 1  # row above unchanged
+        assert ws[4].region.y == 4  # row below shifted down by exactly one line
+        assert ws[4].region.height == 1

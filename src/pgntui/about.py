@@ -16,6 +16,7 @@ TAGLINE = "NMEA 2000 reader"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.4.1", "Fix row spacing on multi-column pages (sparkline regression)."),
     ("0.4.0", "Sparklines: press + (or click) a signal for its history."),
     ("0.3.13", "Signals stay dimmed until they report (no-data look)."),
     ("0.3.12", "Switch engine instance with [ and ] (Stb/Port/gens)."),

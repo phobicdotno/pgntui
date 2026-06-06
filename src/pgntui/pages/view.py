@@ -101,16 +101,24 @@ class PageView(Widget):
         overflow-y: auto;
         overflow-x: hidden;
     }
+    /* Rows are FIXED at 1 cell so a multi-column grid stays tight. (An ``auto``
+       row track stretches to fill the box height, which spreads rows apart.)
+       ``_refresh_grid_rows`` bumps just an expanded row to 2 with a fixed value,
+       so only that row grows and nothing stretches. */
     PageView Grid {
-        grid-rows: auto;
+        grid-rows: 1;
         grid-gutter: 0;
         height: auto;
     }
-    /* Inputs can expand to a second line (sparkline), so they size to content;
-       a collapsed widget still measures one line, keeping rows tight. */
+    /* Collapsed inputs are one line; an expanded input gets the ``expanded``
+       class -> two lines (signal row + sparkline). */
     PageView AnalogInWidget,
     PageView DigitalInWidget {
-        height: auto;
+        height: 1;
+    }
+    PageView AnalogInWidget.expanded,
+    PageView DigitalInWidget.expanded {
+        height: 2;
     }
     PageView AnalogOutWidget,
     PageView DigitalOutWidget,
@@ -150,6 +158,10 @@ class PageView(Widget):
         # Ordered (child widget, column_span) pairs, built in compose, applied in
         # on_mount (column_span can't be set before the widget is mounted).
         self._spans: list[tuple[Widget, int]] = []
+        # Per-container grids + each widget's grid-row index, so an expanded
+        # input row can be bumped to height 2 without ``auto`` stretching.
+        self._grids: list[Grid] = []
+        self._row_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
         self.active_index = 0
         self._instance_header: GroupRule | None = None
@@ -201,14 +213,41 @@ class PageView(Widget):
             w = _make_widget(sig, self.write_enabled, theme=self.theme_def)
             self.widgets[placement.ref] = w
             self._spans.append((w, placement.w))
+            self._row_of_widget[w] = placement.row
             children.append(w)
         grid = Grid(*children, id=grid_id)
         grid.styles.grid_size_columns = container.cols
+        self._grids.append(grid)
         return grid
 
     def on_mount(self) -> None:
         for widget, span in self._spans:
             widget.styles.column_span = span
+
+    def _refresh_grid_rows(self) -> None:
+        """Resize each grid's row tracks so an expanded input row is 2 cells tall
+        and every other row stays 1.
+
+        Fixed values are used (never ``auto``): an ``auto`` row track stretches to
+        fill the box height, spreading the rows apart, whereas fixed values keep
+        the grid exactly as tall as its content. Called whenever a signal toggles
+        its sparkline (see ``signals.widgets._notify_layout``).
+        """
+        for grid in self._grids:
+            max_row = -1
+            expanded_rows: set[int] = set()
+            for child in grid.children:
+                row = self._row_of_widget.get(child)
+                if row is None:
+                    continue
+                max_row = max(max_row, row)
+                if getattr(child, "expanded", False):
+                    expanded_rows.add(row)
+            if max_row < 0:
+                continue
+            grid.styles.grid_rows = " ".join(
+                "2" if r in expanded_rows else "1" for r in range(max_row + 1)
+            )
 
     def apply_theme(self, theme: Theme) -> None:
         """Re-theme this view and every child in place (live theme switch).

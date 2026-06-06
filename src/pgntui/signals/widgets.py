@@ -32,6 +32,20 @@ def _glyph(theme: Theme | None, key: str) -> str:
     return _DEFAULT_GLYPHS[key]
 
 
+def _notify_layout(widget: Widget) -> None:
+    """Ask the enclosing PageView to resize grid rows for the new expand state.
+
+    Walks up to the first ancestor exposing ``_refresh_grid_rows`` (duck-typed so
+    this module needn't import PageView, which would be circular). A no-op for an
+    unmounted widget (no parent), so unit tests can toggle freely.
+    """
+    node = widget.parent
+    while node is not None and not hasattr(node, "_refresh_grid_rows"):
+        node = node.parent
+    if node is not None:
+        node._refresh_grid_rows()
+
+
 class AnalogInWidget(Widget):
     can_focus = True
 
@@ -106,7 +120,9 @@ class AnalogInWidget(Widget):
 
     def toggle_sparkline(self) -> None:
         self.expanded = not self.expanded
-        self.refresh(layout=True)  # height changes 1 <-> 2 lines
+        self.set_class(self.expanded, "expanded")
+        _notify_layout(self)
+        self.refresh(layout=True)  # height switches 1 <-> 2 lines
 
     def tick(self, now: float) -> None:
         """Advance the render clock so a stopped signal scrolls into gaps."""
@@ -280,6 +296,8 @@ class DigitalInWidget(Widget):
 
     def toggle_sparkline(self) -> None:
         self.expanded = not self.expanded
+        self.set_class(self.expanded, "expanded")
+        _notify_layout(self)
         self.refresh(layout=True)
 
     def tick(self, now: float) -> None:
