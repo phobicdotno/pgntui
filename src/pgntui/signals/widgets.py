@@ -137,7 +137,8 @@ class AnalogInWidget(Widget):
         unit = f" {s.unit}" if s.unit else ""
         val = f"{self.displayed_value:.{s.decimals}f}"
         bar = self._bar()
-        return f"{s.title:{_TITLE_WIDTH}s} {bar} {val}{unit}"
+        tog = "[-]" if self.expanded else "[+]"
+        return f"{tog} {s.title:{_TITLE_WIDTH - 4}s} {bar} {val}{unit}"
 
     def _bar(self) -> str:
         marker_at = self._marker_at()
@@ -175,7 +176,11 @@ class AnalogInWidget(Widget):
             unit_style = c["fg_dim"]
         marker_at = self._marker_at()
         text = Text()
-        text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
+        # A visible, clickable expand toggle so the sparkline is discoverable.
+        # Dim with the rest of the row until data arrives (the diffuse look).
+        tog_style = c["accent"] if self.has_data else c["fg_dim"]
+        text.append("[-] " if self.expanded else "[+] ", style=tog_style)
+        text.append(f"{s.title:{_TITLE_WIDTH - 4}s} ", style=title_style)
         text.append(_glyph(theme, "bar_left"), style=border_style)
         for i in range(_BAR_WIDTH):
             if i == marker_at:
@@ -315,7 +320,8 @@ class DigitalInWidget(Widget):
         s = self.signal
         glyph = _glyph(self.theme_def, "on" if self.value else "off")
         label = s.on_label if self.value else s.off_label
-        return f"{s.title:{_TITLE_WIDTH}s} {glyph} {label}"
+        tog = "[-]" if self.expanded else "[+]"
+        return f"{tog} {s.title:{_TITLE_WIDTH - 4}s} {glyph} {label}"
 
     def render(self) -> Text | str:
         theme = self.theme_def
@@ -330,7 +336,11 @@ class DigitalInWidget(Widget):
         else:
             title_style = theme.styles.get("title", "") or c["fg"]
         text = Text()
-        text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
+        # A visible, clickable expand toggle so the sparkline is discoverable.
+        # Dim with the rest of the row until data arrives (the diffuse look).
+        tog_style = c["accent"] if self.has_data else c["fg_dim"]
+        text.append("[-] " if self.expanded else "[+] ", style=tog_style)
+        text.append(f"{s.title:{_TITLE_WIDTH - 4}s} ", style=title_style)
         if self.value:
             text.append(_glyph(theme, "on"), style=c["ok"])
             text.append(f" {s.on_label}", style=c["fg"])

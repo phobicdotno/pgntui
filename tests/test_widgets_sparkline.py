@@ -114,3 +114,18 @@ def test_digital_clear_resets_clock() -> None:
 
 def test_digital_is_focusable() -> None:
     assert DigitalInWidget(_dsig()).can_focus is True
+
+
+def test_render_text_shows_expand_toggle() -> None:
+    # The visible [+] / [-] affordance makes the sparkline discoverable.
+    w = AnalogInWidget(_sig())
+    assert w.render_text().startswith("[+]")  # collapsed
+    w.toggle_sparkline()
+    assert w.render_text().startswith("[-]")  # expanded
+
+
+def test_digital_render_text_shows_expand_toggle() -> None:
+    w = DigitalInWidget(_dsig())
+    assert w.render_text().startswith("[+]")
+    w.toggle_sparkline()
+    assert w.render_text().startswith("[-]")
