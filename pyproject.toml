@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pgntui"
-version = "0.5.0"
+version = "0.5.1"
 description = "Cross-platform TUI for NMEA 2000 with canboat decoding and pluggable drivers"
 readme = "README.md"
 requires-python = ">=3.11"

@@ -166,8 +166,9 @@ class PageView(Widget):
         self._row_of_widget: dict[Widget, int] = {}
         # Column-layout toggle: [1] -> one column, [2] -> authored layout. Needs
         # each grid's authored column count and each widget's authored span.
-        self._one_column = False
-        self._cols_of_grid: dict[Grid, int] = {}
+        # Column layout: None = the page's authored layout; 1 = one column;
+        # 2 = two equal (50%) columns. Toggled by [1] / [2].
+        self._layout_cols: int | None = None
         self._span_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
         self.active_index = 0
@@ -226,7 +227,6 @@ class PageView(Widget):
             children.append(w)
         grid = Grid(*children, id=grid_id)
         grid.styles.grid_size_columns = container.cols
-        self._cols_of_grid[grid] = container.cols
         self._grids.append(grid)
         return grid
 
@@ -247,9 +247,12 @@ class PageView(Widget):
             max_row = -1
             expanded_rows: set[int] = set()
             for ordinal, child in enumerate(grid.children):
-                # One-column mode puts each widget on its own row, so the row
-                # index is the child's ordinal; otherwise it's the authored row.
-                row = ordinal if self._one_column else self._row_of_widget.get(child)
+                # Uniform-column modes lay widgets out in order, so the row index
+                # is ordinal // cols; the authored layout uses the authored row.
+                if self._layout_cols is None:
+                    row = self._row_of_widget.get(child)
+                else:
+                    row = ordinal // self._layout_cols
                 if row is None:
                     continue
                 max_row = max(max_row, row)
@@ -262,14 +265,15 @@ class PageView(Widget):
             )
 
     def set_column_mode(self, one_column: bool) -> None:
-        """Switch every container on this page between a single column ([1]) and
-        its authored multi-column layout ([2]). One column makes each signal
-        full width, so nothing crops in a narrow terminal."""
-        self._one_column = one_column
+        """[1] -> one full-width column; [2] -> two equal 50% columns. Both are
+        uniform (each widget spans one column), so [2] tidies any authored
+        arrangement into an even two-column view and [1] avoids narrow-cell crop."""
+        self._layout_cols = 1 if one_column else 2
         for grid in self._grids:
-            grid.styles.grid_size_columns = 1 if one_column else self._cols_of_grid[grid]
-        for widget, span in self._span_of_widget.items():
-            widget.styles.column_span = 1 if one_column else span
+            grid.styles.grid_size_columns = self._layout_cols
+            grid.styles.grid_columns = "1fr"  # equal-width columns (50% each at 2)
+        for widget in self._span_of_widget:
+            widget.styles.column_span = 1
         self._refresh_grid_rows()
 
     def apply_theme(self, theme: Theme) -> None:
