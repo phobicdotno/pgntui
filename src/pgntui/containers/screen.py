@@ -145,6 +145,21 @@ class ContainerView(Widget):
         for widget, span in self._spans:
             widget.styles.column_span = span
 
+    def apply_theme(self, theme: Theme) -> None:
+        """Re-theme this view and every child in place (live theme switch).
+
+        The signal widgets and group rules bake ``theme_def.colors`` into their
+        ``render`` output, so swapping the reference and refreshing is enough —
+        no rebuild needed.
+        """
+        self.theme_def = theme
+        if self._instance_header is not None:
+            self._instance_header.theme_def = theme
+            self._instance_header.refresh()
+        for widget in self.widgets.values():
+            widget.theme_def = theme  # type: ignore[attr-defined]
+            widget.refresh()
+
 
 class GroupRule(Widget):
     """Full-width separator line: ``├── Title ──────────────┤``."""

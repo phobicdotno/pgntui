@@ -109,4 +109,39 @@ def write_driver_settings(path: Path, name: str, port: str, baud: int) -> None:
     path.write_text("\n".join(out) + "\n", encoding="utf-8")
 
 
-__all__ = ["Config", "load_config", "write_driver_settings"]
+def write_theme(path: Path, theme_id: str) -> None:
+    """Persist ``[app]`` ``theme = "<id>"`` into ``path``.
+
+    Line-based so existing comments and other sections are preserved. Any
+    pre-existing (non-commented) ``theme`` key in the ``[app]`` section is
+    replaced; a missing file or missing ``[app]`` section is created.
+    """
+    path = Path(path)
+    text = path.read_text(encoding="utf-8") if path.exists() else ""
+    new_line = f'theme = "{theme_id}"'
+    out: list[str] = []
+    in_app = False
+    app_found = False
+    for line in text.splitlines():
+        stripped = line.strip()
+        is_header = stripped.startswith("[") and not stripped.startswith("#")
+        if is_header and stripped == "[app]":
+            out.append(line)
+            out.append(new_line)
+            in_app = True
+            app_found = True
+            continue
+        if is_header and in_app:
+            in_app = False
+        if in_app and _toml_key(line) == "theme":
+            continue  # drop the old key; the new value is already written
+        out.append(line)
+    if not app_found:
+        if out and out[-1].strip() != "":
+            out.append("")
+        out.append("[app]")
+        out.append(new_line)
+    path.write_text("\n".join(out) + "\n", encoding="utf-8")
+
+
+__all__ = ["Config", "load_config", "write_driver_settings", "write_theme"]

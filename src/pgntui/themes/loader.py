@@ -111,6 +111,27 @@ def load_builtin(name: str) -> Theme:
     return _parse(payload, f"builtin:{name}")
 
 
+def list_builtin() -> list[tuple[str, str]]:
+    """Return ``(title, id)`` pairs for every bundled theme, sorted by title.
+
+    Used by the in-app config menu to populate the theme picker. Reads only the
+    ``id``/``title`` keys leniently so a malformed extra file can't break the
+    whole list; full validation still happens in ``load_builtin`` on selection.
+    """
+    out: list[tuple[str, str]] = []
+    for entry in resources.files("pgntui.themes.builtin").iterdir():
+        name = entry.name
+        if not name.endswith(".json"):
+            continue
+        try:
+            payload = json.loads(entry.read_text(encoding="utf-8"))
+            out.append((str(payload["title"]), str(payload["id"])))
+        except (json.JSONDecodeError, KeyError, OSError):
+            continue
+    out.sort(key=lambda pair: pair[0].lower())
+    return out
+
+
 def to_textual_theme(theme: Theme) -> Any:
     """Build a Textual ``Theme`` from a pgntui theme.
 
@@ -169,6 +190,7 @@ __all__ = [
     "Gradient",
     "Theme",
     "ThemeLoadError",
+    "list_builtin",
     "load_builtin",
     "load_theme",
     "to_textual_css",

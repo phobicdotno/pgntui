@@ -36,7 +36,14 @@ from pgntui.signals.widgets import (
     DigitalInWidget,
     DigitalOutWidget,
 )
-from pgntui.themes.loader import Theme, to_textual_css, to_textual_theme
+from pgntui.themes.loader import (
+    Theme,
+    ThemeLoadError,
+    list_builtin,
+    load_builtin,
+    to_textual_css,
+    to_textual_theme,
+)
 
 
 class DebugLog(RichLog):
@@ -72,17 +79,29 @@ class TopBarButton(Static):
 
 
 class TopBar(Horizontal):
-    """Top title bar: ``PgnTui — NMEA 2000 reader — vX.Y.Z`` with menu buttons."""
+    """One-line title bar: a ``☰ Menu`` (config) on the far left, the centered
+    ``PgnTui — NMEA 2000 reader — vX.Y.Z`` title, and Connection/About on the
+    far right.
+    """
 
     DEFAULT_CSS = """
     TopBar { dock: top; height: 1; background: $surface; }
-    TopBar #app-title { width: 1fr; content-align: left middle; padding: 0 1; text-style: bold; }
+    TopBar #topbar-left { width: auto; height: 1; }
+    TopBar #topbar-right { width: auto; height: 1; }
+    TopBar #app-title { width: 1fr; content-align: center middle; text-style: bold; }
     """
 
     def compose(self) -> ComposeResult:
+        yield Horizontal(
+            TopBarButton("☰ Menu", "config", id="config-button"),
+            id="topbar-left",
+        )
         yield Static(about.header_title(), id="app-title")
-        yield TopBarButton("Connection", "connection", id="connection-button")
-        yield TopBarButton("About", "about", id="about-button")
+        yield Horizontal(
+            TopBarButton("Connection", "connection", id="connection-button"),
+            TopBarButton("About", "about", id="about-button"),
+            id="topbar-right",
+        )
 
 
 class AboutScreen(ModalScreen[None]):
@@ -262,6 +281,106 @@ class ConnectionScreen(ModalScreen[None]):
         self.dismiss()
 
 
+class ConfigScreen(ModalScreen[None]):
+    """The ``☰ Menu`` config panel: switch theme live (and persist it), show
+    the current connection/write state, and jump to the Connection dialog.
+
+    The theme picker applies the selected theme immediately as a live preview.
+    ``Save`` writes it to ``config.toml``; closing without saving reverts to the
+    theme that was active when the menu opened.
+    """
+
+    DEFAULT_CSS = """
+    ConfigScreen { align: center middle; }
+    ConfigScreen #config-dialog {
+        width: 64;
+        height: auto;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+    ConfigScreen #config-title { text-style: bold; margin-bottom: 1; }
+    ConfigScreen .config-label { color: $accent; margin-top: 1; }
+    ConfigScreen #config-info { margin-top: 1; height: auto; min-height: 2; }
+    ConfigScreen #config-buttons { height: auto; margin-top: 1; }
+    ConfigScreen Button { margin: 0 1 0 0; }
+    """
+
+    BINDINGS = [("escape", "cancel", "Close")]
+
+    def __init__(
+        self,
+        *,
+        workspace: Path | None,
+        current_theme: str,
+        themes: list[tuple[str, str]],
+        info_lines: list[str],
+    ) -> None:
+        super().__init__()
+        self._workspace = workspace
+        self._original_theme = current_theme
+        self._current_theme = current_theme
+        self._themes = themes
+        self._info_lines = info_lines
+
+    def compose(self) -> ComposeResult:
+        # If the active theme somehow isn't in the list, leave Select blank so it
+        # doesn't raise on an unknown value.
+        theme_ids = {tid for _, tid in self._themes}
+        select_kwargs: dict[str, Any] = {"allow_blank": False}
+        if self._current_theme in theme_ids:
+            select_kwargs["value"] = self._current_theme
+        yield TextualContainer(
+            Static("Configuration", id="config-title"),
+            Static("Theme", classes="config-label"),
+            Select(
+                [(title, tid) for title, tid in self._themes],
+                id="theme-select",
+                **select_kwargs,
+            ),
+            Static("\n".join(self._info_lines), id="config-info", markup=False),
+            Horizontal(
+                Button("Connection…", id="config-connection", variant="primary"),
+                Button("Save", id="config-save", variant="success"),
+                Button("Close", id="config-close"),
+                id="config-buttons",
+            ),
+            id="config-dialog",
+        )
+
+    @on(Select.Changed, "#theme-select")
+    def _on_theme_changed(self, event: Select.Changed) -> None:
+        value = event.value
+        if value is Select.NULL:
+            return
+        self._current_theme = str(value)
+        # Live preview: re-theme the whole app immediately.
+        self.app.apply_theme(self._current_theme)  # type: ignore[attr-defined]
+
+    @on(Button.Pressed, "#config-connection")
+    def _on_connection(self) -> None:
+        self.app.action_connection()  # type: ignore[attr-defined]
+
+    @on(Button.Pressed, "#config-save")
+    def _on_save(self) -> None:
+        if self._workspace is not None:
+            from pgntui.config import write_theme
+
+            write_theme(self._workspace / "config.toml", self._current_theme)
+        self._original_theme = self._current_theme  # keep the preview on close
+        self.dismiss()
+
+    @on(Button.Pressed, "#config-close")
+    def _on_close(self) -> None:
+        self.action_cancel()
+
+    def action_cancel(self) -> None:
+        # Revert the live preview if the theme was changed but not saved.
+        if self._current_theme != self._original_theme:
+            self.app.apply_theme(self._original_theme)  # type: ignore[attr-defined]
+        self.dismiss()
+
+
 class PgntuiApp(App[None]):
     """Top-level Textual app.
 
@@ -285,6 +404,7 @@ class PgntuiApp(App[None]):
         ("left_square_bracket", "prev_instance", "Inst-"),
         ("right_square_bracket", "next_instance", "Inst+"),
         ("c", "connection", "Connection"),
+        ("s", "config", "Config"),
         ("a", "about", "About"),
         ("q,ctrl+q", "force_quit", "Quit"),
         ("question_mark", "help", "Help"),
@@ -389,7 +509,7 @@ class PgntuiApp(App[None]):
                     yield self._debug_log
             yield Static(
                 "[Tab] Next  [ [ / ] ] Instance  [D] Debug  [R] Rec  "
-                "[C] Connection  [A] About  [Q] Quit",
+                "[C] Connection  [S] Config  [A] About  [Q] Quit",
                 id="hotkey-strip",
                 markup=False,
             )
@@ -579,6 +699,51 @@ class PgntuiApp(App[None]):
             )
         )
 
+    def action_config(self) -> None:
+        if isinstance(self.screen, ConfigScreen):
+            return
+        self.push_screen(
+            ConfigScreen(
+                workspace=self._workspace,
+                current_theme=self._theme.id,
+                themes=list_builtin(),
+                info_lines=self._config_info_lines(),
+            )
+        )
+
+    def _config_info_lines(self) -> list[str]:
+        port = self._driver_options.get("port") or "—"
+        baud = self._driver_options.get("baud") or "—"
+        connected = "yes" if self._n2k_driver is not None else "no"
+        writes = "enabled" if self._write_enabled else "disabled"
+        return [
+            f"Connection: {connected}    Port: {port}    Baud: {baud}",
+            f"Writes: {writes}",
+            "Use the Connection… button to attach an NGT-1.",
+        ]
+
+    def apply_theme(self, theme_id: str) -> None:
+        """Switch the active theme live — chrome, CSS classes, and the signal
+        widgets — without a restart. No-op on an unknown/invalid theme id.
+        """
+        try:
+            new = load_builtin(theme_id)
+        except ThemeLoadError:
+            return
+        self._theme = new
+        textual_theme = to_textual_theme(new)
+        self.register_theme(textual_theme)
+        self.theme = textual_theme.name
+        # Replace the themed-class stylesheet (keyed by the same ``read_from``)
+        # so .signal-*, .bar-*, etc. pick up the new colors, then re-apply CSS.
+        self.stylesheet.add_source(to_textual_css(new), read_from=("theme", "theme"))
+        self.stylesheet.parse()
+        self.refresh_css()
+        # The signal widgets bake theme colors into their render output, so they
+        # need the new theme reference pushed in and a refresh.
+        for _container, view in self._view_pairs:
+            view.apply_theme(new)
+
     def connect_ngt1(self, port: str, baud: int) -> tuple[bool, str]:
         """Open an NGT-1 on ``port`` and start the frame loop. Returns (ok, message).
 
@@ -699,6 +864,7 @@ def _encode_analog_payload(value: float) -> bytes:
 
 __all__ = [
     "AboutScreen",
+    "ConfigScreen",
     "ConnectionScreen",
     "DebugLog",
     "PgntuiApp",
