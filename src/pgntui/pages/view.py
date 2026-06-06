@@ -137,6 +137,8 @@ class PageView(Widget):
         border-title-color: $accent;
         border-title-style: bold;
         border-title-align: left;
+        border-subtitle-color: $accent;
+        border-subtitle-align: right;
         padding: 0 1;
         margin: 0 0 1 0;
     }
@@ -162,6 +164,11 @@ class PageView(Widget):
         # input row can be bumped to height 2 without ``auto`` stretching.
         self._grids: list[Grid] = []
         self._row_of_widget: dict[Widget, int] = {}
+        # Column-layout toggle: [1] -> one column, [2] -> authored layout. Needs
+        # each grid's authored column count and each widget's authored span.
+        self._one_column = False
+        self._cols_of_grid: dict[Grid, int] = {}
+        self._span_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
         self.active_index = 0
         self._instance_header: GroupRule | None = None
@@ -201,6 +208,7 @@ class PageView(Widget):
             grid = self._build_grid(container, f"grid-{self.page.id}-{ci}")
             box = GroupBox(grid, id=f"box-{self.page.id}-{ci}")
             box.border_title = container.title
+            box.border_subtitle = "[1] [2]"  # 1 = one column, 2 = this layout
             yield box
 
     def _build_grid(self, container: Container, grid_id: str) -> Grid:
@@ -214,9 +222,11 @@ class PageView(Widget):
             self.widgets[placement.ref] = w
             self._spans.append((w, placement.w))
             self._row_of_widget[w] = placement.row
+            self._span_of_widget[w] = placement.w
             children.append(w)
         grid = Grid(*children, id=grid_id)
         grid.styles.grid_size_columns = container.cols
+        self._cols_of_grid[grid] = container.cols
         self._grids.append(grid)
         return grid
 
@@ -236,8 +246,10 @@ class PageView(Widget):
         for grid in self._grids:
             max_row = -1
             expanded_rows: set[int] = set()
-            for child in grid.children:
-                row = self._row_of_widget.get(child)
+            for ordinal, child in enumerate(grid.children):
+                # One-column mode puts each widget on its own row, so the row
+                # index is the child's ordinal; otherwise it's the authored row.
+                row = ordinal if self._one_column else self._row_of_widget.get(child)
                 if row is None:
                     continue
                 max_row = max(max_row, row)
@@ -248,6 +260,17 @@ class PageView(Widget):
             grid.styles.grid_rows = " ".join(
                 "2" if r in expanded_rows else "1" for r in range(max_row + 1)
             )
+
+    def set_column_mode(self, one_column: bool) -> None:
+        """Switch every container on this page between a single column ([1]) and
+        its authored multi-column layout ([2]). One column makes each signal
+        full width, so nothing crops in a narrow terminal."""
+        self._one_column = one_column
+        for grid in self._grids:
+            grid.styles.grid_size_columns = 1 if one_column else self._cols_of_grid[grid]
+        for widget, span in self._span_of_widget.items():
+            widget.styles.column_span = 1 if one_column else span
+        self._refresh_grid_rows()
 
     def apply_theme(self, theme: Theme) -> None:
         """Re-theme this view and every child in place (live theme switch).

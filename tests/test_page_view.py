@@ -5,8 +5,13 @@ from textual.app import App, ComposeResult
 
 from pgntui.pages.loader import Container, Page, SignalPlacement
 from pgntui.pages.view import GroupBox, GroupRule, PageView
-from pgntui.signals.base import AnalogIn, DigitalIn
-from pgntui.signals.widgets import AnalogInWidget, DigitalInWidget
+from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut
+from pgntui.signals.widgets import (
+    AnalogInWidget,
+    AnalogOutWidget,
+    DigitalInWidget,
+    DigitalOutWidget,
+)
 from pgntui.themes.loader import load_builtin
 
 
@@ -152,3 +157,51 @@ async def test_multicolumn_rows_stay_tight_and_one_row_expands() -> None:
         assert ws[0].region.height == 1  # row above unchanged
         assert ws[4].region.y == 4  # row below shifted down by exactly one line
         assert ws[4].region.height == 1
+
+
+@pytest.mark.asyncio
+async def test_column_toggle_switches_one_and_multi() -> None:
+    async with _MultiColHost().run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        ws = list(pilot.app.query(AnalogInWidget))
+        # Default 2-column layout: pairs share a row.
+        assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
+        # [1] -> one column: each widget its own row, all in the same column.
+        view.set_column_mode(True)
+        await pilot.pause()
+        assert [w.region.y for w in ws] == [1, 2, 3, 4, 5, 6]
+        assert len({w.region.x for w in ws}) == 1
+        # [2] -> back to the authored layout.
+        view.set_column_mode(False)
+        await pilot.pause()
+        assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
+
+
+def test_output_rows_indented_to_align_with_inputs() -> None:
+    # Outputs have no [+] toggle, so they get a 4-space indent to line up with
+    # the [+]-prefixed input rows.
+    ao = AnalogOutWidget(
+        AnalogOut(
+            id="o",
+            type="analog_out",
+            title="Target Heading",
+            pgn=1,
+            field="f",
+            write_pgn=1,
+            write_field="f",
+        )
+    )
+    do = DigitalOutWidget(
+        DigitalOut(
+            id="d",
+            type="digital_out",
+            title="Anchor Light",
+            pgn=1,
+            field="f",
+            write_pgn=1,
+            write_field="f",
+        )
+    )
+    assert ao.render_text().startswith("    ")
+    assert do.render_text().startswith("    ")

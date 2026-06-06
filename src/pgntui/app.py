@@ -470,6 +470,8 @@ class PgntuiApp(App[None]):
         ("up", "focus_prev_signal", "Up"),
         ("down", "focus_next_signal", "Down"),
         ("plus", "toggle_sparkline", "Spark"),
+        ("1", "columns_one", "1col"),
+        ("2", "columns_default", "Cols"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
@@ -750,6 +752,16 @@ class PgntuiApp(App[None]):
         w = self.focused
         if isinstance(w, (AnalogInWidget, DigitalInWidget)):
             w.toggle_sparkline()
+
+    def action_columns_one(self) -> None:
+        view = self._active_view()
+        if view is not None:
+            view.set_column_mode(True)
+
+    def action_columns_default(self) -> None:
+        view = self._active_view()
+        if view is not None:
+            view.set_column_mode(False)
 
     def action_focus_next_signal(self) -> None:
         self._move_signal_focus(1)

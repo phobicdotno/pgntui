@@ -253,7 +253,8 @@ class AnalogOutWidget(Widget):
         unit = f" {s.unit}" if s.unit else ""
         val = f"{self.value:.{s.decimals}f}"
         tail = "[set]" if self.write_enabled else "[disabled]"
-        return f"{s.title:{_TITLE_WIDTH}s} {val}{unit} {tail}"
+        # 4-space indent to line up with the [+] prefix on input rows.
+        return f"    {s.title:{_TITLE_WIDTH}s} {val}{unit} {tail}"
 
     def render(self) -> Text | str:
         theme = self.theme_def
@@ -262,6 +263,7 @@ class AnalogOutWidget(Widget):
         c = theme.colors
         s = self.signal
         text = Text()
+        text.append("    ")  # align with the [+] indent on input rows
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=theme.styles.get("title", "") or c["fg"])
         val = f"{self.value:.{s.decimals}f}"
         text.append(val, style=f"{theme.styles.get('value', '')} {c['accent']}".strip())
@@ -396,7 +398,8 @@ class DigitalOutWidget(Widget):
         s = self.signal
         glyph = _glyph(self.theme_def, "on" if self.value else "off")
         label = s.on_label if self.value else s.off_label
-        return f"{s.title:{_TITLE_WIDTH}s} [{glyph} {label}]"
+        # 4-space indent to line up with the [+] prefix on input rows.
+        return f"    {s.title:{_TITLE_WIDTH}s} [{glyph} {label}]"
 
     def render(self) -> Text | str:
         theme = self.theme_def
@@ -406,6 +409,7 @@ class DigitalOutWidget(Widget):
         s = self.signal
         body_color = c["fg"] if self.write_enabled else c["fg_dim"]
         text = Text()
+        text.append("    ")  # align with the [+] indent on input rows
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=theme.styles.get("title", "") or c["fg"])
         text.append("[", style=c["border"])
         if self.value:
