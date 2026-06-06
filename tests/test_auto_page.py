@@ -9,7 +9,7 @@ from pgntui.pages.loader import Page
 from pgntui.pages.view import PageView
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget, AutoTextWidget
-from pgntui.themes.loader import load_builtin
+from pgntui.themes.loader import list_builtin, load_builtin
 
 
 class _Host(App[None]):
@@ -68,3 +68,20 @@ def test_analog_widget_hides_bar_when_show_bar_false() -> None:
     rendered = w.render_text()
     assert "├" not in rendered and "┤" not in rendered  # no bar glyphs
     assert "X" in rendered and "5" in rendered
+
+
+@pytest.mark.asyncio
+async def test_auto_rows_retheme_on_theme_switch() -> None:
+    # A live theme switch must reach the Auto page's runtime-built rows, not just
+    # the authored pages.
+    async with _Host().run_test(size=(90, 24)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        builder = AutoPageBuilder(view, theme=load_builtin("dark"))
+        builder.ingest(_frame(100, 0, {"V": 1.0, "S": "x"}, ts=0.0))
+        await pilot.pause()
+        other = load_builtin(list_builtin()[-1][1])  # (display, slug) -> slug
+        view.apply_theme(other)
+        rows = list(pilot.app.query(AnalogInWidget)) + list(pilot.app.query(AutoTextWidget))
+        assert rows
+        assert all(w.theme_def is other for w in rows)

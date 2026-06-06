@@ -305,7 +305,10 @@ class PageView(Widget):
         if self._instance_header is not None:
             self._instance_header.theme_def = theme
             self._instance_header.refresh()
-        for widget in self.widgets.values():
+        # _row_of_widget covers authored AND runtime (Auto-page) rows, whereas
+        # self.widgets has only the authored ones — so a live theme switch
+        # reaches the Auto page's widgets too.
+        for widget in self._row_of_widget:
             widget.theme_def = theme  # type: ignore[attr-defined]
             widget.refresh()
 

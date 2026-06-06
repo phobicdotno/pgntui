@@ -918,6 +918,8 @@ class PgntuiApp(App[None]):
         # need the new theme reference pushed in and a refresh.
         for _page, view in self._page_views:
             view.apply_theme(new)
+        if self._auto_view is not None:
+            self._auto_view.apply_theme(new)
 
     def connect_ngt1(self, port: str, baud: int) -> tuple[bool, str]:
         """Open an NGT-1 on ``port`` and start the frame loop. Returns (ok, message).
