@@ -30,6 +30,7 @@ from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
 from pgntui.decode.router import SignalRouter
 from pgntui.drivers.base import Driver, Frame
+from pgntui.pages.auto import AutoPageBuilder
 from pgntui.pages.loader import Page
 from pgntui.pages.view import PageView
 from pgntui.recording.writer import ActisenseLogWriter
@@ -538,6 +539,9 @@ class PgntuiApp(App[None]):
         # yields each PageView so ``_wire_write_callbacks`` can hook widgets
         # after mount.
         self._page_views: list[tuple[Page, PageView]] = []
+        # Auto page (built at runtime from the live stream) — only with a driver.
+        self._auto_view: PageView | None = None
+        self._auto_builder: AutoPageBuilder | None = None
 
     # ---- Mount / compose ---------------------------------------------------
 
@@ -555,6 +559,8 @@ class PgntuiApp(App[None]):
         self.stylesheet.parse()
         self.refresh_css()
         self._wire_write_callbacks()
+        if self._auto_view is not None:
+            self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
         # Repaint expanded sparklines once a second so a stopped signal scrolls
         # left into trailing gaps even when no new frames arrive for it.
         self.set_interval(1.0, self._tick_sparklines)
@@ -582,6 +588,18 @@ class PgntuiApp(App[None]):
                             # Stash the view so we can hook widgets after mount.
                             self._page_views.append((page, view))
                             yield view
+                    if self._n2k_driver is not None:
+                        # Auto tab: auto-populates from the live stream. Only with
+                        # a driver (skipping it keeps no-driver frame tests clean).
+                        auto_page = Page(id="auto", title="Auto", containers=(), generated=True)
+                        self._auto_view = PageView(
+                            page=auto_page,
+                            signals=self._signals,
+                            write_enabled=self._write_enabled,
+                            theme=self._theme,
+                        )
+                        with TabPane("Auto", id="tab-auto"):
+                            yield self._auto_view
                 with TabPane("Debug", id="debug"):
                     if not self._pages and self._page_titles is None:
                         yield Static(_WELCOME_TEXT, id="welcome", markup=True)
@@ -650,6 +668,8 @@ class PgntuiApp(App[None]):
             self.call_from_thread(self._debug_log.push_decoded, decoded)
         if self._debug_aggregate is not None:
             self.call_from_thread(self._debug_aggregate.push_decoded, decoded)
+        if self._auto_builder is not None:
+            self.call_from_thread(self._auto_builder.ingest, decoded)
         for update in self._router.route(decoded):
             for w in self._widgets_by_signal.get(update.signal_id, []):
                 # Instance-switchable pages show one source at a time, so skip

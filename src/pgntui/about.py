@@ -16,6 +16,7 @@ TAGLINE = "NMEA 2000 reader"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.0", "Auto tab: a live, auto-built view of every PGN/source on the bus."),
     ("0.5.1", "Key 2 lays out two equal 50% columns; key 1 stays one column."),
     ("0.5.0", "Toggle one-column vs multi-column layout (keys 1 and 2)."),
     ("0.4.3", "Keep full signal titles next to the [+] toggle (no truncation)."),

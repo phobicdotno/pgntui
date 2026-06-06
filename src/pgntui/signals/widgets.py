@@ -49,10 +49,13 @@ def _notify_layout(widget: Widget) -> None:
 class AnalogInWidget(Widget):
     can_focus = True
 
-    def __init__(self, signal: AnalogIn, theme: Theme | None = None) -> None:
+    def __init__(self, signal: AnalogIn, theme: Theme | None = None, show_bar: bool = True) -> None:
         super().__init__()
         self.signal = signal
         self.theme_def = theme
+        # Auto-page numeric rows have no curated min/max, so they hide the bar
+        # (show_bar=False) and rely on value + the auto-scaled sparkline.
+        self.show_bar = show_bar
         self.displayed_value: float = signal.min
         self._raw: float | None = None
         self.state_class: str = "state-ok"
@@ -136,9 +139,10 @@ class AnalogInWidget(Widget):
         s = self.signal
         unit = f" {s.unit}" if s.unit else ""
         val = f"{self.displayed_value:.{s.decimals}f}"
-        bar = self._bar()
         tog = "[-]" if self.expanded else "[+]"
-        return f"{tog} {s.title:{_TITLE_WIDTH}s} {bar} {val}{unit}"
+        if self.show_bar:
+            return f"{tog} {s.title:{_TITLE_WIDTH}s} {self._bar()} {val}{unit}"
+        return f"{tog} {s.title:{_TITLE_WIDTH}s} {val}{unit}"
 
     def _bar(self) -> str:
         marker_at = self._marker_at()
@@ -181,13 +185,14 @@ class AnalogInWidget(Widget):
         tog_style = c["accent"] if self.has_data else c["fg_dim"]
         text.append("[-] " if self.expanded else "[+] ", style=tog_style)
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
-        text.append(_glyph(theme, "bar_left"), style=border_style)
-        for i in range(_BAR_WIDTH):
-            if i == marker_at:
-                text.append(_glyph(theme, "bar_marker"), style=marker_color)
-            else:
-                text.append(_glyph(theme, "bar_track"), style=track_style)
-        text.append(_glyph(theme, "bar_right"), style=border_style)
+        if self.show_bar:
+            text.append(_glyph(theme, "bar_left"), style=border_style)
+            for i in range(_BAR_WIDTH):
+                if i == marker_at:
+                    text.append(_glyph(theme, "bar_marker"), style=marker_color)
+                else:
+                    text.append(_glyph(theme, "bar_track"), style=track_style)
+            text.append(_glyph(theme, "bar_right"), style=border_style)
         val = f"{self.displayed_value:.{s.decimals}f}"
         text.append(f" {val}", style=value_style)
         if s.unit:
@@ -419,4 +424,35 @@ class DigitalOutWidget(Widget):
             text.append(_glyph(theme, "off"), style=c["fg_dim"])
             text.append(f" {s.off_label}", style=body_color)
         text.append("]", style=c["border"])
+        return text
+
+
+class AutoTextWidget(Widget):
+    """A read-only Auto-page row for a non-numeric field: ``title  value``.
+
+    No bar, no sparkline, not focusable. Indented 4 to line up with the [+] on
+    numeric Auto rows. ``set_text`` pushes the latest decoded value.
+    """
+
+    def __init__(self, title: str, theme: Theme | None = None) -> None:
+        super().__init__()
+        self.title = title
+        self.theme_def = theme
+        self._text = ""
+
+    def set_text(self, text: str) -> None:
+        self._text = text
+        self.refresh()
+
+    def render(self) -> Text | str:
+        theme = self.theme_def
+        if theme is None:
+            return f"    {self.title:{_TITLE_WIDTH}s} {self._text}"
+        c = theme.colors
+        text = Text()
+        text.append("    ")  # align with the [+] indent on numeric rows
+        text.append(
+            f"{self.title:{_TITLE_WIDTH}s} ", style=theme.styles.get("title", "") or c["fg"]
+        )
+        text.append(self._text, style=c["fg"])
         return text

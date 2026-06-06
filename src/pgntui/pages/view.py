@@ -234,6 +234,24 @@ class PageView(Widget):
         for widget, span in self._spans:
             widget.styles.column_span = span
 
+    def add_generated_container(self, title: str, rows: list[Widget]) -> None:
+        """Mount a runtime-built container (used by the Auto page) and register
+        its grid + rows so the sparkline row-sizing and the [1]/[2] toggle apply.
+        Fields stack one per row by default."""
+        grid = Grid(*rows, id=f"auto-grid-{len(self._grids)}")
+        cols = self._layout_cols if self._layout_cols is not None else 1
+        grid.styles.grid_size_columns = cols
+        if self._layout_cols is not None:
+            grid.styles.grid_columns = "1fr"
+        self._grids.append(grid)
+        for i, w in enumerate(rows):
+            self._row_of_widget[w] = i
+            self._span_of_widget[w] = 1
+        box = GroupBox(grid)
+        box.border_title = title
+        box.border_subtitle = "[1] [2]"
+        self.mount(box)
+
     def _refresh_grid_rows(self) -> None:
         """Resize each grid's row tracks so an expanded input row is 2 cells tall
         and every other row stays 1.
