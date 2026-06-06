@@ -14,6 +14,9 @@ from pgntui.themes.loader import Theme
 
 _BAR_WIDTH = 18
 _TITLE_WIDTH = 20
+# Fixed width reserved after the bar for " value unit", so every bar's right end
+# (┤) lines up across rows regardless of how long each value is.
+_VALUE_AREA = 14
 
 # Fallback glyphs when the theme defines none (or no theme is set).
 _DEFAULT_GLYPHS = {
@@ -117,15 +120,16 @@ class AnalogInWidget(Widget):
         span = max(self.signal.max - self.signal.min, 1e-6)
         return max(0.0, min(1.0, (self.displayed_value - self.signal.min) / span))
 
-    def _bar_inner_width(self, value_len: int) -> int:
-        """Width of the bar's inner track. Fills the row's remaining space so one
-        column ([1]) uses the full width; falls back to the fixed width before the
-        widget has been laid out (content_size unknown)."""
+    def _bar_inner_width(self) -> int:
+        """Width of the bar's inner track. Fills the row's remaining space (so one
+        column [1] uses the full width) while reserving a FIXED value area, so every
+        bar's right end lines up regardless of value length. Falls back to the fixed
+        width before the widget has been laid out (content_size unknown)."""
         avail = self.content_size.width or 0
         if avail <= 0:
             return _BAR_WIDTH
-        # toggle "[+] "(4) + title+space(_TITLE_WIDTH+1) + borders ├┤(2) + space(1) + value
-        reserved = 4 + (_TITLE_WIDTH + 1) + 2 + 1 + value_len
+        # toggle "[+] "(4) + title+space(_TITLE_WIDTH+1) + borders ├┤(2) + value area
+        reserved = 4 + (_TITLE_WIDTH + 1) + 2 + _VALUE_AREA
         return max(avail - reserved, 6)
 
     def sparkline_str(self, width: int) -> str:
@@ -197,9 +201,8 @@ class AnalogInWidget(Widget):
         text.append("[-] " if self.expanded else "[+] ", style=tog_style)
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
         val = f"{self.displayed_value:.{s.decimals}f}"
-        unit = f" {s.unit}" if s.unit else ""
         if self.show_bar:
-            inner = self._bar_inner_width(len(val) + len(unit))
+            inner = self._bar_inner_width()
             marker_at = int(self._pct() * (inner - 1))
             text.append(_glyph(theme, "bar_left"), style=border_style)
             for i in range(inner):

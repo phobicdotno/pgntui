@@ -208,14 +208,18 @@ def test_output_rows_indented_to_align_with_inputs() -> None:
 
 
 @pytest.mark.asyncio
-async def test_bar_fills_remaining_width() -> None:
-    # The analog bar expands to fill the row's remaining space, so one column
-    # ([1]) uses the full width instead of a fixed 18-char bar.
-    async with _Host().run_test(size=(100, 20)) as pilot:
+async def test_bars_fill_and_right_ends_align() -> None:
+    # Bars fill the row's remaining width, and every bar ends at the same column
+    # (fixed value area) regardless of each value's length.
+    async with _MultiColHost().run_test(size=(100, 30)) as pilot:
         await pilot.pause()
-        w = pilot.app.query_one(AnalogInWidget)
-        w.update_value(3000.0)
+        view = pilot.app.query_one(PageView)
+        view.set_column_mode(True)  # one column, full width
         await pilot.pause()
-        width = w.content_size.width
-        assert width > 40  # a wide single column
-        assert len(w.render().plain) >= width - 1  # row fills the width (bar stretched)
+        ws = list(pilot.app.query(AnalogInWidget))
+        ws[0].update_value(5.0)  # short value
+        ws[1].update_value(100.0)  # longer value
+        await pilot.pause()
+        inners = [w._bar_inner_width() for w in ws]
+        assert all(n > 18 for n in inners)  # bars fill (wider than the old fixed 18)
+        assert len(set(inners)) == 1  # equal length -> right ends (┤) align
