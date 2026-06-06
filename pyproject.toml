@@ -65,6 +65,7 @@ packages = ["src/pgntui"]
 "src/pgntui/themes/builtin/dark.json" = "pgntui/themes/builtin/dark.json"
 "src/pgntui/themes/builtin/green-phosphor.json" = "pgntui/themes/builtin/green-phosphor.json"
 "src/pgntui/themes/builtin/light.json" = "pgntui/themes/builtin/light.json"
+"src/pgntui/themes/builtin/matrix.json" = "pgntui/themes/builtin/matrix.json"
 "src/pgntui/themes/builtin/mono-ascii.json" = "pgntui/themes/builtin/mono-ascii.json"
 "src/pgntui/themes/builtin/rainbow-disco.json" = "pgntui/themes/builtin/rainbow-disco.json"
 "src/pgntui/examples/config.toml" = "pgntui/examples/config.toml"
