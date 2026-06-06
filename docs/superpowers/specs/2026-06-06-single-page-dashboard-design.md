@@ -1,5 +1,10 @@
 # Single-Page Dashboard + Diffuse Signals — Design
 
+> **SUPERSEDED (2026-06-06):** the single-page dashboard was rejected — pgntui
+> keeps per-page tabs (Main / custom / Auto / Debug). The **diffuse no-data**
+> design below shipped (0.3.13); the `DashboardView` module remains as dormant,
+> unused groundwork. Sparklines (0.4.x) replaced the need for this.
+
 **Goal:** Collapse the Nav / Engine / Main page tabs into one scrollable,
 multi-column **dashboard** that shows every container at once, and dim signals
 that have not reported ("diffuse" look) so silent inputs read as silent.
