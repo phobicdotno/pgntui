@@ -467,6 +467,9 @@ class PgntuiApp(App[None]):
     BINDINGS = [
         ("tab", "next_container", "Next"),
         ("shift+tab", "prev_container", "Prev"),
+        ("up", "focus_prev_signal", "Up"),
+        ("down", "focus_next_signal", "Down"),
+        ("plus", "toggle_sparkline", "Spark"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
@@ -550,6 +553,9 @@ class PgntuiApp(App[None]):
         self.stylesheet.parse()
         self.refresh_css()
         self._wire_write_callbacks()
+        # Repaint expanded sparklines once a second so a stopped signal scrolls
+        # left into trailing gaps even when no new frames arrive for it.
+        self.set_interval(1.0, self._tick_sparklines)
         if self._n2k_driver is not None and self._decoder is not None and self._router is not None:
             self.frame_loop()
 
@@ -734,6 +740,42 @@ class PgntuiApp(App[None]):
     def action_prev_container(self) -> None:
         tabs = self.query_one(TabbedContent)
         tabs.action_previous_tab()  # type: ignore[attr-defined]  # Textual provides at runtime
+
+    def action_toggle_sparkline(self) -> None:
+        w = self.focused
+        if isinstance(w, (AnalogInWidget, DigitalInWidget)):
+            w.toggle_sparkline()
+
+    def action_focus_next_signal(self) -> None:
+        self._move_signal_focus(1)
+
+    def action_focus_prev_signal(self) -> None:
+        self._move_signal_focus(-1)
+
+    def _move_signal_focus(self, delta: int) -> None:
+        view = self._active_view()
+        if view is None:
+            return
+        widgets = [
+            w
+            for w in view.widgets.values()
+            if isinstance(w, (AnalogInWidget, DigitalInWidget))
+        ]
+        if not widgets:
+            return
+        cur = self.focused
+        if cur in widgets:
+            idx = (widgets.index(cur) + delta) % len(widgets)
+        else:
+            idx = 0 if delta > 0 else len(widgets) - 1
+        widgets[idx].focus()
+
+    def _tick_sparklines(self) -> None:
+        for widgets in self._widgets_by_signal.values():
+            for w in widgets:
+                if isinstance(w, (AnalogInWidget, DigitalInWidget)) and w.expanded:
+                    w.tick(self._clock)
+                    w.refresh()
 
     def action_show_debug(self) -> None:
         tabs = self.query_one(TabbedContent)
