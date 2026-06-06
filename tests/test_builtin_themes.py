@@ -2,7 +2,7 @@ import pytest
 
 from pgntui.themes.loader import load_builtin, to_textual_css
 
-BUILTINS = ["dark", "light", "amber-crt", "green-phosphor", "mono-ascii", "rainbow-disco"]
+BUILTINS = ["dark", "light", "amber-crt", "green-phosphor", "matrix", "mono-ascii", "rainbow-disco"]
 
 
 @pytest.mark.parametrize("name", BUILTINS)
