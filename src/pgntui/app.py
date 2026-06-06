@@ -512,6 +512,9 @@ class PgntuiApp(App[None]):
         self._record_dir = record_dir
         self._debug_buffer = debug_buffer or DebugBuffer()
         self._page_titles = page_titles
+        # Shared sparkline clock — the latest frame timestamp seen. Expanded
+        # sparklines render their window ending at this value.
+        self._clock: float = 0.0
         # Indexed at compose-time so route updates can find widgets fast.
         self._widgets_by_signal: dict[str, list[Widget]] = {}
         # widget -> its PageView, for per-page instance filtering.
@@ -627,6 +630,7 @@ class PgntuiApp(App[None]):
         decoded = self._decoder.decode(frame)
         if decoded is None:
             return
+        self._clock = max(self._clock, decoded.timestamp)
         self._debug_buffer.push(decoded)
         # Feed both Debug views so toggling between them is instant and populated.
         if self._debug_log is not None:
@@ -644,16 +648,16 @@ class PgntuiApp(App[None]):
                     and view.active_instance_id != update.instance
                 ):
                     continue
-                self.call_from_thread(self._apply_update, w, update.value)
+                self.call_from_thread(self._apply_update, w, update.value, update.timestamp)
 
     @staticmethod
-    def _apply_update(widget: Widget, value: object) -> None:
+    def _apply_update(widget: Widget, value: object, ts: float | None = None) -> None:
         if isinstance(widget, AnalogInWidget):
-            widget.update_value(float(value))  # type: ignore[arg-type]
+            widget.update_value(float(value), ts)  # type: ignore[arg-type]
         elif isinstance(widget, DigitalInWidget):
             # Hand over the raw decoded value — the widget may need the full
             # integer bitfield to extract its configured ``bit``.
-            widget.update_value(value)
+            widget.update_value(value, ts)
 
     # ---- Write callbacks ---------------------------------------------------
 
