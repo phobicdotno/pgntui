@@ -5,10 +5,10 @@ from __future__ import annotations
 import pytest
 
 from pgntui.app import PgntuiApp
-from pgntui.containers.loader import Container, SignalPlacement
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalRouter
 from pgntui.drivers.base import Capability, Frame
+from pgntui.pages.loader import Container, Page, SignalPlacement
 from pgntui.signals.base import AnalogOut, DigitalOut
 from pgntui.signals.widgets import AnalogOutWidget, DigitalOutWidget
 from pgntui.themes.loader import load_builtin
@@ -47,11 +47,16 @@ async def test_analog_out_widget_triggers_driver_write_when_enabled() -> None:
         write_pgn=65360,
         write_field="Heading",
     )
-    container = Container(
+    page = Page(
         id="ap",
         title="Autopilot",
-        cols=12,
-        signals=[SignalPlacement(ref=sig.id, row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="Autopilot",
+                cols=12,
+                signals=(SignalPlacement(ref=sig.id, row=0, col=0, w=12),),
+            ),
+        ),
     )
     driver = CollectingDriver()
     app = PgntuiApp(
@@ -60,7 +65,7 @@ async def test_analog_out_widget_triggers_driver_write_when_enabled() -> None:
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
         signals={sig.id: sig},
-        containers=[container],
+        pages=[page],
         write_enabled=True,
     )
     async with app.run_test() as pilot:
@@ -86,11 +91,16 @@ async def test_digital_out_widget_triggers_driver_write_when_enabled() -> None:
         write_pgn=127502,
         write_field="Indicator1",
     )
-    container = Container(
+    page = Page(
         id="lights",
         title="Lights",
-        cols=12,
-        signals=[SignalPlacement(ref=sig.id, row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="Lights",
+                cols=12,
+                signals=(SignalPlacement(ref=sig.id, row=0, col=0, w=12),),
+            ),
+        ),
     )
     driver = CollectingDriver()
     app = PgntuiApp(
@@ -99,7 +109,7 @@ async def test_digital_out_widget_triggers_driver_write_when_enabled() -> None:
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
         signals={sig.id: sig},
-        containers=[container],
+        pages=[page],
         write_enabled=True,
     )
     async with app.run_test() as pilot:
@@ -125,11 +135,16 @@ async def test_write_disabled_does_not_call_driver() -> None:
         write_pgn=127502,
         write_field="Indicator1",
     )
-    container = Container(
+    page = Page(
         id="lights",
         title="Lights",
-        cols=12,
-        signals=[SignalPlacement(ref=sig.id, row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="Lights",
+                cols=12,
+                signals=(SignalPlacement(ref=sig.id, row=0, col=0, w=12),),
+            ),
+        ),
     )
     driver = CollectingDriver()
     app = PgntuiApp(
@@ -138,7 +153,7 @@ async def test_write_disabled_does_not_call_driver() -> None:
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
         signals={sig.id: sig},
-        containers=[container],
+        pages=[page],
         write_enabled=False,
     )
     async with app.run_test() as pilot:

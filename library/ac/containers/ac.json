@@ -1,31 +1,36 @@
 {
   "id": "ac",
   "title": "AC",
-  "cols": 12,
-  "signals": [
+  "containers": [
     {
-      "ref": "ac_voltage",
-      "row": 0,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "ac_current",
-      "row": 0,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "ac_frequency",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "ac_breaker_size",
-      "row": 1,
-      "col": 6,
-      "w": 6
+      "title": "AC",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "ac_voltage",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "ac_current",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "ac_frequency",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "ac_breaker_size",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     }
   ]
 }

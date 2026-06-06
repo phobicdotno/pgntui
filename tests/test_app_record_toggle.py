@@ -8,11 +8,11 @@ from typing import Any
 import pytest
 
 from pgntui.app import PgntuiApp
-from pgntui.containers.loader import Container, SignalPlacement
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalRouter
 from pgntui.drivers.base import Frame
+from pgntui.pages.loader import Container, Page, SignalPlacement
 from pgntui.signals.base import AnalogIn
 from pgntui.themes.loader import load_builtin
 from tests.test_app_frame_loop import FakeDriver
@@ -23,7 +23,7 @@ async def test_r_key_starts_and_stops_recording(tmp_path: Path) -> None:
     record_dir = tmp_path / "rec"
     app = PgntuiApp(
         theme=load_builtin("dark"),
-        containers=[],
+        pages=[],
         record_dir=record_dir,
     )
     async with app.run_test() as pilot:
@@ -58,11 +58,16 @@ async def test_record_writer_receives_frames(tmp_path: Path) -> None:
         min=0,
         max=6000,
     )
-    container = Container(
+    page = Page(
         id="engine",
         title="E",
-        cols=12,
-        signals=[SignalPlacement(ref="rpm", row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="E",
+                cols=12,
+                signals=(SignalPlacement(ref="rpm", row=0, col=0, w=12),),
+            ),
+        ),
     )
     payload = bytes([0, 0x98, 0x21, 0, 0, 0, 0xFF, 0xFF])
     frames = [
@@ -76,7 +81,7 @@ async def test_record_writer_receives_frames(tmp_path: Path) -> None:
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
         signals={"rpm": sig},
-        containers=[container],
+        pages=[page],
         debug_buffer=DebugBuffer(),
         record_dir=tmp_path / "rec",
     )
@@ -122,7 +127,7 @@ async def test_record_write_error_surfaces_to_status(tmp_path: Path) -> None:
 
     app = PgntuiApp(
         theme=load_builtin("dark"),
-        containers=[],
+        pages=[],
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
         record_dir=tmp_path / "rec",

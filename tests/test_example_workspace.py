@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from pgntui.__main__ import main
-from pgntui.containers.loader import load_container
+from pgntui.pages.loader import load_page
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut, load_signals_dir
 
 
@@ -37,10 +37,10 @@ def test_example_creates_expected_files(tmp_path: Path) -> None:
     container_paths = sorted((ws / "containers").glob("*.json"))
     assert [p.name for p in container_paths] == ["1-nav.json", "2-engine.json", "3-main.json"]
     for path in container_paths:
-        container = load_container(path, ids)
-        refs = {p.ref for p in container.signals}
+        page_def = load_page(path, ids)
+        refs = {pl.ref for c in page_def.containers for pl in c.signals}
         assert refs.issubset(ids)
-        assert container.cols == 12
+        assert all(c.cols == 12 for c in page_def.containers)
 
 
 def test_example_includes_all_four_widget_types(tmp_path: Path) -> None:

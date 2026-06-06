@@ -35,7 +35,7 @@ async def test_topbar_button_hover_text_contrasts_with_fill() -> None:
     # Regression: mono-ascii has accent == foreground (#ffffff), so a hover that
     # only set background painted white-on-white. The hover label must invert to
     # the theme background color and never match the (accent) fill.
-    app = PgntuiApp(theme=load_builtin("mono-ascii"), containers=[])
+    app = PgntuiApp(theme=load_builtin("mono-ascii"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.hover("#config-button")
@@ -47,7 +47,7 @@ async def test_topbar_button_hover_text_contrasts_with_fill() -> None:
 
 @pytest.mark.asyncio
 async def test_top_bar_shows_title_with_version() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         bar = app.query_one(TopBar)
@@ -60,7 +60,7 @@ async def test_top_bar_shows_title_with_version() -> None:
 
 @pytest.mark.asyncio
 async def test_about_opens_via_key_and_closes() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.press("a")
@@ -77,7 +77,7 @@ async def test_about_opens_via_key_and_closes() -> None:
 
 @pytest.mark.asyncio
 async def test_about_opens_via_button_click() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.click("#about-button")
@@ -87,7 +87,7 @@ async def test_about_opens_via_button_click() -> None:
 
 @pytest.mark.asyncio
 async def test_about_does_not_stack_duplicates() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         app.action_about()

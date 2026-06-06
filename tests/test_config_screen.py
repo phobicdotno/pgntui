@@ -50,7 +50,7 @@ def test_write_theme_replaces_existing_key_and_keeps_other_sections(tmp_path: Pa
 
 @pytest.mark.asyncio
 async def test_config_opens_via_button_and_key() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.click("#config-button")
@@ -66,7 +66,7 @@ async def test_config_opens_via_button_and_key() -> None:
 
 @pytest.mark.asyncio
 async def test_theme_switch_is_live_and_reverts_on_close() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         assert app._theme.id == "dark"
@@ -85,7 +85,7 @@ async def test_save_persists_theme_and_keeps_preview(tmp_path: Path) -> None:
     workspace = tmp_path / "ws"
     workspace.mkdir()
     (workspace / "config.toml").write_text('[app]\ntheme = "dark"\n', encoding="utf-8")
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[], workspace=workspace)
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[], workspace=workspace)
     async with app.run_test() as pilot:
         await pilot.pause()
         await pilot.press("s")
@@ -109,11 +109,11 @@ async def test_apply_theme_repaints_container_views(tmp_path: Path) -> None:
     app = _build_app(cfg=cfg, workspace=workspace, driver=None)
     async with app.run_test(size=(110, 38)) as pilot:
         await pilot.pause()
-        assert app._view_pairs
+        assert app._page_views
         app.apply_theme("amber-crt")
         await pilot.pause()
         assert app._theme.id == "amber-crt"
-        for _container, view in app._view_pairs:
+        for _container, view in app._page_views:
             assert view.theme_def is not None
             assert view.theme_def.id == "amber-crt"
             for w in view.widgets.values():

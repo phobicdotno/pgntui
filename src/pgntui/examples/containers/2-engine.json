@@ -1,109 +1,126 @@
 {
   "id": "engine",
   "title": "Engine",
-  "cols": 12,
-  "instances": [
-    {"id": 0, "label": "Engine Stb"},
-    {"id": 1, "label": "Engine Port"},
-    {"id": 2, "label": "Generator Stb"},
-    {"id": 3, "label": "Generator Port"}
-  ],
-  "groups": [
+  "containers": [
     {
       "title": "Drive",
-      "row": 1
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "engine_rpm",
+          "row": 0,
+          "col": 0,
+          "w": 12
+        },
+        {
+          "ref": "boost_pressure",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "tilt_trim",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Oil & temperature",
-      "row": 3
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "oil_pressure",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "oil_temperature",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "engine_temp",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "alternator_voltage",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Fuel & hours",
-      "row": 6
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "fuel_rate",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "total_hours",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "coolant_pressure",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "fuel_pressure",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Output",
-      "row": 9
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "engine_load",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "engine_torque",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        }
+      ]
     }
   ],
-  "signals": [
+  "instances": [
     {
-      "ref": "engine_rpm",
-      "row": 0,
-      "col": 0,
-      "w": 12
+      "id": 0,
+      "label": "Engine Stb"
     },
     {
-      "ref": "boost_pressure",
-      "row": 2,
-      "col": 0,
-      "w": 6
+      "id": 1,
+      "label": "Engine Port"
     },
     {
-      "ref": "tilt_trim",
-      "row": 2,
-      "col": 6,
-      "w": 6
+      "id": 2,
+      "label": "Generator Stb"
     },
     {
-      "ref": "oil_pressure",
-      "row": 4,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "oil_temperature",
-      "row": 4,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "engine_temp",
-      "row": 5,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "alternator_voltage",
-      "row": 5,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "fuel_rate",
-      "row": 7,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "total_hours",
-      "row": 7,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "coolant_pressure",
-      "row": 8,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "fuel_pressure",
-      "row": 8,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "engine_load",
-      "row": 10,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "engine_torque",
-      "row": 10,
-      "col": 6,
-      "w": 6
+      "id": 3,
+      "label": "Generator Port"
     }
   ]
 }

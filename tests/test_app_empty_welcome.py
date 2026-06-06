@@ -11,7 +11,7 @@ from pgntui.themes.loader import load_builtin
 
 @pytest.mark.asyncio
 async def test_empty_workspace_shows_welcome_panel() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         welcome = app.query_one("#welcome", Static)
@@ -26,7 +26,7 @@ async def test_empty_workspace_shows_welcome_panel() -> None:
 async def test_welcome_panel_hidden_when_containers_are_present() -> None:
     """With at least one container, the welcome panel must not appear — the user
     already has a working workspace."""
-    app = PgntuiApp(theme=load_builtin("dark"), container_titles=["Engine"])
+    app = PgntuiApp(theme=load_builtin("dark"), page_titles=["Engine"])
     async with app.run_test() as pilot:
         await pilot.pause()
         # query() returns DOMQuery — len == 0 means not mounted.
@@ -37,7 +37,7 @@ async def test_welcome_panel_hidden_when_containers_are_present() -> None:
 async def test_bottom_strips_visible_on_empty_workspace() -> None:
     """Hotkey strip and status bar must still be reachable when the workspace is
     empty (the original bug had TabbedContent absorbing all vertical space)."""
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         hotkeys = app.query_one("#hotkey-strip", Static)

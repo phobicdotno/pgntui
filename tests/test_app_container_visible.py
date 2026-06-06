@@ -1,6 +1,6 @@
 """Regression: example-workspace signal widgets must be visible on screen.
 
-The scaffolded example workspace produced a blank Main tab: ``ContainerView``
+The scaffolded example workspace produced a blank Main tab: ``PageView``
 set no height, so its child ``Grid`` (``height: 1fr``) collapsed inside the
 auto-height parent — the grid got 1 screen line for 3 rows and the row-0
 widgets rendered at height 0. Existing tests only asserted widgets were
@@ -29,11 +29,11 @@ async def test_example_workspace_widgets_have_nonzero_screen_area(tmp_path: Path
     async with app.run_test(size=(110, 38)) as pilot:
         await pilot.pause()
         tabs = app.query_one(TabbedContent)
-        assert app._view_pairs, "example workspace produced no container views"
-        for container, view in app._view_pairs:
-            tabs.active = f"tab-{container.id}"
+        assert app._page_views, "example workspace produced no page views"
+        for page, view in app._page_views:
+            tabs.active = f"tab-{page.id}"
             await pilot.pause()
-            assert view.widgets, f"container {container.id} has no widgets"
+            assert view.widgets, f"page {page.id} has no widgets"
             for ref, w in view.widgets.items():
-                assert w.region.height > 0, f"{container.id}/{ref} collapsed to zero height"
-                assert w.region.width > 0, f"{container.id}/{ref} collapsed to zero width"
+                assert w.region.height > 0, f"{page.id}/{ref} collapsed to zero height"
+                assert w.region.width > 0, f"{page.id}/{ref} collapsed to zero width"

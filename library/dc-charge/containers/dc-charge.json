@@ -1,49 +1,54 @@
 {
   "id": "dc_charge",
   "title": "DC and Charge",
-  "cols": 12,
-  "signals": [
+  "containers": [
     {
-      "ref": "dc_soc",
-      "row": 0,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "dc_soh",
-      "row": 0,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "dc_time_remaining",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "dc_ripple_voltage",
-      "row": 1,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "dc_remaining_capacity",
-      "row": 2,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "chg_enabled",
-      "row": 2,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "chg_eq_time_remaining",
-      "row": 3,
-      "col": 0,
-      "w": 6
+      "title": "DC and Charge",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "dc_soc",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "dc_soh",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "dc_time_remaining",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "dc_ripple_voltage",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "dc_remaining_capacity",
+          "row": 2,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "chg_enabled",
+          "row": 2,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "chg_eq_time_remaining",
+          "row": 3,
+          "col": 0,
+          "w": 6
+        }
+      ]
     }
   ]
 }

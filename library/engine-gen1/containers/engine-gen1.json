@@ -1,103 +1,114 @@
 {
   "id": "engine_gen1",
   "title": "Generator 1",
-  "cols": 12,
-  "groups": [
+  "containers": [
+    {
+      "title": "Generator 1",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "gen1_speed",
+          "row": 0,
+          "col": 0,
+          "w": 12
+        }
+      ]
+    },
     {
       "title": "Drive",
-      "row": 1
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "gen1_boost",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "gen1_tilt",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Oil & temperature",
-      "row": 3
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "gen1_oilp",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "gen1_oilt",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "gen1_temp",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "gen1_alt",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Fuel & hours",
-      "row": 6
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "gen1_fuel",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "gen1_hours",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "gen1_coolp",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "gen1_fuelp",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Output",
-      "row": 9
-    }
-  ],
-  "signals": [
-    {
-      "ref": "gen1_speed",
-      "row": 0,
-      "col": 0,
-      "w": 12
-    },
-    {
-      "ref": "gen1_boost",
-      "row": 2,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "gen1_tilt",
-      "row": 2,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "gen1_oilp",
-      "row": 4,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "gen1_oilt",
-      "row": 4,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "gen1_temp",
-      "row": 5,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "gen1_alt",
-      "row": 5,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "gen1_fuel",
-      "row": 7,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "gen1_hours",
-      "row": 7,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "gen1_coolp",
-      "row": 8,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "gen1_fuelp",
-      "row": 8,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "gen1_load",
-      "row": 10,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "gen1_torque",
-      "row": 10,
-      "col": 6,
-      "w": 6
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "gen1_load",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "gen1_torque",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        }
+      ]
     }
   ]
 }

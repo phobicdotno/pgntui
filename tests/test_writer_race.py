@@ -31,7 +31,7 @@ def _make_app(record_dir: Path) -> PgntuiApp:
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
         signals={},
-        containers=[],
+        pages=[],
         debug_buffer=DebugBuffer(),
         record_dir=record_dir,
     )

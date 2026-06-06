@@ -1,55 +1,60 @@
 {
   "id": "environmental",
   "title": "Environmental",
-  "cols": 12,
-  "signals": [
+  "containers": [
     {
-      "ref": "env_water_temp",
-      "row": 0,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "env_outside_temp",
-      "row": 0,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "env_outside_humidity",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "env_atm_pressure",
-      "row": 1,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "env_cabin_temp",
-      "row": 2,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "env_cabin_set_temp",
-      "row": 2,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "env_ext_temp_1",
-      "row": 3,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "env_ext_temp_2",
-      "row": 3,
-      "col": 6,
-      "w": 6
+      "title": "Environmental",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "env_water_temp",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "env_outside_temp",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "env_outside_humidity",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "env_atm_pressure",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "env_cabin_temp",
+          "row": 2,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "env_cabin_set_temp",
+          "row": 2,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "env_ext_temp_1",
+          "row": 3,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "env_ext_temp_2",
+          "row": 3,
+          "col": 6,
+          "w": 6
+        }
+      ]
     }
   ]
 }

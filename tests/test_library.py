@@ -12,8 +12,8 @@ from pathlib import Path
 
 import pytest
 
-from pgntui.containers.loader import load_container
 from pgntui.decode.canboat import _FIELD_ALIASES, CanboatDecoder
+from pgntui.pages.loader import load_page
 from pgntui.signals.base import DigitalIn, load_signals_dir
 
 LIBRARY = Path(__file__).parent.parent / "library"
@@ -59,9 +59,9 @@ def test_page_signals_load_and_containers_resolve(page: str) -> None:
     containers = sorted(c_dir.glob("*.json"))
     assert containers, f"{page}: no containers"
     for path in containers:
-        container = load_container(path, ids)
-        refs = {p.ref for p in container.signals}
-        assert refs == ids, f"{page}: container does not place every signal"
+        page_def = load_page(path, ids)
+        refs = {pl.ref for c in page_def.containers for pl in c.signals}
+        assert refs == ids, f"{page}: page does not place every signal"
 
 
 @pytest.mark.parametrize("page", PAGES)

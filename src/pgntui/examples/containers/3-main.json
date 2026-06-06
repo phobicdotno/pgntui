@@ -1,14 +1,54 @@
 {
   "id": "main",
   "title": "Main",
-  "cols": 12,
-  "signals": [
-    {"ref": "engine_rpm",     "row": 0, "col": 0,  "w": 3},
-    {"ref": "speed",          "row": 0, "col": 3,  "w": 3},
-    {"ref": "depth",          "row": 0, "col": 6,  "w": 3},
-    {"ref": "water_temp",     "row": 0, "col": 9,  "w": 3},
-    {"ref": "target_heading", "row": 1, "col": 0,  "w": 12},
-    {"ref": "bilge_alarm",    "row": 2, "col": 0,  "w": 6},
-    {"ref": "anchor_light",   "row": 2, "col": 6,  "w": 6}
+  "containers": [
+    {
+      "title": "Main",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "engine_rpm",
+          "row": 0,
+          "col": 0,
+          "w": 3
+        },
+        {
+          "ref": "speed",
+          "row": 0,
+          "col": 3,
+          "w": 3
+        },
+        {
+          "ref": "depth",
+          "row": 0,
+          "col": 6,
+          "w": 3
+        },
+        {
+          "ref": "water_temp",
+          "row": 0,
+          "col": 9,
+          "w": 3
+        },
+        {
+          "ref": "target_heading",
+          "row": 1,
+          "col": 0,
+          "w": 12
+        },
+        {
+          "ref": "bilge_alarm",
+          "row": 2,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "anchor_light",
+          "row": 2,
+          "col": 6,
+          "w": 6
+        }
+      ]
+    }
   ]
 }

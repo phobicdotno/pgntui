@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from pgntui.containers.loader import load_container
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.replay import FileReplayDriver
 from pgntui.logging.csv import CSVSignalLogger
+from pgntui.pages.loader import load_page
 from pgntui.signals.base import AnalogIn, load_signals_dir
 
 FX = Path(__file__).parent / "fixtures"
@@ -14,8 +14,8 @@ def test_e2e_replay_drives_signals_and_csv(tmp_path: Path) -> None:
     signals = {s.id: s for s in load_signals_dir(FX / "e2e_signals")}
     assert set(signals) == {"engine_rpm", "wind_speed"}
     containers = [
-        load_container(FX / "e2e_containers" / "engine.json", set(signals)),
-        load_container(FX / "e2e_containers" / "nav.json", set(signals)),
+        load_page(FX / "e2e_containers" / "engine.json", set(signals)),
+        load_page(FX / "e2e_containers" / "nav.json", set(signals)),
     ]
     assert {c.id for c in containers} == {"engine", "nav"}
 

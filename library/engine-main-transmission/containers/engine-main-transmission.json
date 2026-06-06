@@ -1,59 +1,60 @@
 {
   "id": "engine_main_transmission",
   "title": "Engine port transmission",
-  "cols": 12,
-  "groups": [
+  "containers": [
     {
       "title": "Gear",
-      "row": 0
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "engp_t_oilt",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "engp_t_oilp",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Discrete status",
-      "row": 2
-    }
-  ],
-  "signals": [
-    {
-      "ref": "engp_t_oilt",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "engp_t_oilp",
-      "row": 1,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "engp_t_00",
-      "row": 3,
-      "col": 0,
-      "w": 12
-    },
-    {
-      "ref": "engp_t_01",
-      "row": 4,
-      "col": 0,
-      "w": 12
-    },
-    {
-      "ref": "engp_t_02",
-      "row": 5,
-      "col": 0,
-      "w": 12
-    },
-    {
-      "ref": "engp_t_03",
-      "row": 6,
-      "col": 0,
-      "w": 12
-    },
-    {
-      "ref": "engp_t_04",
-      "row": 7,
-      "col": 0,
-      "w": 12
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "engp_t_00",
+          "row": 0,
+          "col": 0,
+          "w": 12
+        },
+        {
+          "ref": "engp_t_01",
+          "row": 1,
+          "col": 0,
+          "w": 12
+        },
+        {
+          "ref": "engp_t_02",
+          "row": 2,
+          "col": 0,
+          "w": 12
+        },
+        {
+          "ref": "engp_t_03",
+          "row": 3,
+          "col": 0,
+          "w": 12
+        },
+        {
+          "ref": "engp_t_04",
+          "row": 4,
+          "col": 0,
+          "w": 12
+        }
+      ]
     }
   ]
 }

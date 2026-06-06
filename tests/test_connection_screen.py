@@ -19,7 +19,7 @@ PORTS = [("COM4", "USB Serial Port"), ("COM7", "Actisense NGT-1")]
 
 
 def _app(**kw) -> PgntuiApp:  # type: ignore[no-untyped-def]
-    return PgntuiApp(theme=load_builtin("dark"), containers=[], debug_buffer=DebugBuffer(), **kw)
+    return PgntuiApp(theme=load_builtin("dark"), pages=[], debug_buffer=DebugBuffer(), **kw)
 
 
 @pytest.mark.asyncio
@@ -119,7 +119,7 @@ async def test_connect_ngt1_wires_driver(monkeypatch) -> None:  # type: ignore[n
     monkeypatch.setattr("pgntui.drivers.actisense.NGT1Driver", lambda: fake)
     app = PgntuiApp(
         theme=load_builtin("dark"),
-        containers=[],
+        pages=[],
         debug_buffer=DebugBuffer(),
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),
@@ -150,7 +150,7 @@ async def test_connect_button_auto_closes_without_screen_error(monkeypatch) -> N
     monkeypatch.setattr(ConnectionScreen, "AUTO_CLOSE_SECONDS", 0.05)
     app = PgntuiApp(
         theme=load_builtin("dark"),
-        containers=[],
+        pages=[],
         debug_buffer=DebugBuffer(),
         decoder=CanboatDecoder.load_bundled(),
         router=SignalRouter(),

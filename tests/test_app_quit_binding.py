@@ -10,7 +10,7 @@ from pgntui.themes.loader import load_builtin
 
 @pytest.mark.asyncio
 async def test_q_key_quits_app_immediately() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         assert app.is_running
@@ -25,7 +25,7 @@ async def test_q_key_quits_app_immediately() -> None:
 
 @pytest.mark.asyncio
 async def test_ctrl_q_key_also_quits_app() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         assert app.is_running
@@ -40,7 +40,7 @@ async def test_ctrl_q_key_also_quits_app() -> None:
 @pytest.mark.asyncio
 async def test_force_quit_action_directly() -> None:
     """The action_force_quit method should bypass any quit confirmation."""
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         app.action_force_quit()

@@ -19,7 +19,7 @@ def _frame(pgn: int, src: int, value: int, ts: float = 1.0) -> DecodedFrame:
 
 @pytest.mark.asyncio
 async def test_debug_starts_on_stream_and_toggles() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         log = app.query_one(DebugLog)
@@ -39,7 +39,7 @@ async def test_debug_starts_on_stream_and_toggles() -> None:
 
 @pytest.mark.asyncio
 async def test_aggregate_coalesces_repeated_pgns() -> None:
-    app = PgntuiApp(theme=load_builtin("dark"), containers=[])
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
         table = app.query_one(DebugAggregate)

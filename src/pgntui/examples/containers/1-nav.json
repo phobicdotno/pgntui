@@ -1,117 +1,120 @@
 {
   "id": "nav",
   "title": "Nav",
-  "cols": 12,
-  "groups": [
+  "containers": [
     {
       "title": "Heading & attitude",
-      "row": 0
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "heading_mag",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "true_heading",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "deviation",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "variation",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Position & speed",
-      "row": 3
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "latitude",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "longitude",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "speed",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "speed_sog",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "course_cog",
+          "row": 2,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "rate_of_turn",
+          "row": 2,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "depth",
+          "row": 3,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "rudder",
+          "row": 3,
+          "col": 6,
+          "w": 6
+        }
+      ]
     },
     {
       "title": "Wind & current",
-      "row": 8
-    }
-  ],
-  "signals": [
-    {
-      "ref": "heading_mag",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "true_heading",
-      "row": 1,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "deviation",
-      "row": 2,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "variation",
-      "row": 2,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "latitude",
-      "row": 4,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "longitude",
-      "row": 4,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "speed",
-      "row": 5,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "speed_sog",
-      "row": 5,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "course_cog",
-      "row": 6,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "rate_of_turn",
-      "row": 6,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "depth",
-      "row": 7,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "rudder",
-      "row": 7,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "wind_direction",
-      "row": 9,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "wind_speed",
-      "row": 9,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "current_direction",
-      "row": 10,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "current_speed",
-      "row": 10,
-      "col": 6,
-      "w": 6
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "wind_direction",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "wind_speed",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "current_direction",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "current_speed",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        }
+      ]
     }
   ]
 }

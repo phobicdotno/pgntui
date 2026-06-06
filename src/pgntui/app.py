@@ -26,12 +26,12 @@ from textual.widgets import (
 from textual.worker import Worker
 
 from pgntui import about
-from pgntui.containers.loader import Container
-from pgntui.containers.screen import ContainerView
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
 from pgntui.decode.router import SignalRouter
 from pgntui.drivers.base import Driver, Frame
+from pgntui.pages.loader import Page
+from pgntui.pages.view import PageView
 from pgntui.recording.writer import ActisenseLogWriter
 from pgntui.signals.base import (
     AnalogOut,
@@ -486,16 +486,16 @@ class PgntuiApp(App[None]):
         decoder: CanboatDecoder | None = None,
         router: SignalRouter | None = None,
         signals: dict[str, Signal] | None = None,
-        containers: list[Container] | None = None,
+        pages: list[Page] | None = None,
         write_enabled: bool = False,
         record_dir: Path | None = None,
         debug_buffer: DebugBuffer | None = None,
         workspace: Path | None = None,
         driver_options: dict[str, Any] | None = None,
-        # Back-compat: older callers (and tests) construct with container_titles=[...].
-        # When present, containers + signals are ignored and the app renders title-only
+        # Back-compat: older callers (and tests) construct with page_titles=[...].
+        # When present, pages + signals are ignored and the app renders title-only
         # placeholder tabs. New callers should prefer the structured args.
-        container_titles: list[str] | None = None,
+        page_titles: list[str] | None = None,
     ) -> None:
         super().__init__()
         self._theme = theme
@@ -507,15 +507,15 @@ class PgntuiApp(App[None]):
         self._decoder = decoder
         self._router = router
         self._signals: dict[str, Signal] = signals or {}
-        self._containers: list[Container] = containers or []
+        self._pages: list[Page] = pages or []
         self._write_enabled = write_enabled
         self._record_dir = record_dir
         self._debug_buffer = debug_buffer or DebugBuffer()
-        self._container_titles = container_titles
+        self._page_titles = page_titles
         # Indexed at compose-time so route updates can find widgets fast.
         self._widgets_by_signal: dict[str, list[Widget]] = {}
-        # widget -> its ContainerView, for per-container instance filtering.
-        self._view_of_widget: dict[Widget, ContainerView] = {}
+        # widget -> its PageView, for per-page instance filtering.
+        self._view_of_widget: dict[Widget, PageView] = {}
         # Recording state. ``_writer_lock`` guards the atomic swap between the
         # event-loop thread (which opens/closes the writer) and the frame-loop
         # worker thread (which calls ``writer.write``).
@@ -526,10 +526,10 @@ class PgntuiApp(App[None]):
         # time — the streaming log by default, the aggregated table on toggle.
         self._debug_log: DebugLog | None = None
         self._debug_aggregate: DebugAggregate | None = None
-        # Compose-time storage for (container, view) pairs. Populated as
-        # ``compose()`` yields each ContainerView so ``_wire_write_callbacks``
-        # can hook widgets after mount.
-        self._view_pairs: list[tuple[Container, ContainerView]] = []
+        # Compose-time storage for (page, view) pairs. Populated as ``compose()``
+        # yields each PageView so ``_wire_write_callbacks`` can hook widgets
+        # after mount.
+        self._page_views: list[tuple[Page, PageView]] = []
 
     # ---- Mount / compose ---------------------------------------------------
 
@@ -554,25 +554,25 @@ class PgntuiApp(App[None]):
         yield TopBar()
         with Vertical():
             with TabbedContent(id="tabs"):
-                if self._container_titles is not None:
+                if self._page_titles is not None:
                     # Legacy path: title-only placeholder tabs (older callers / tests).
-                    for title in self._container_titles:
+                    for title in self._page_titles:
                         with TabPane(title):
                             yield Static(title, classes="signal-title")
                 else:
-                    for container in self._containers:
-                        with TabPane(container.title, id=f"tab-{container.id}"):
-                            view = ContainerView(
-                                container=container,
+                    for page in self._pages:
+                        with TabPane(page.title, id=f"tab-{page.id}"):
+                            view = PageView(
+                                page=page,
                                 signals=self._signals,
                                 write_enabled=self._write_enabled,
                                 theme=self._theme,
                             )
                             # Stash the view so we can hook widgets after mount.
-                            self._view_pairs.append((container, view))
+                            self._page_views.append((page, view))
                             yield view
                 with TabPane("Debug", id="debug"):
-                    if not self._containers and self._container_titles is None:
+                    if not self._pages and self._page_titles is None:
                         yield Static(_WELCOME_TEXT, id="welcome", markup=True)
                     self._debug_log = DebugLog(
                         highlight=False, markup=False, wrap=False, id="debug-log"
@@ -584,7 +584,7 @@ class PgntuiApp(App[None]):
                     self._debug_aggregate.display = False
                     yield self._debug_aggregate
             yield Static(
-                "[Tab] Next  [ [ / ] ] Instance  [D] Debug  [G] Group  [R] Rec  "
+                "[Tab] Page  [ [ / ] ] Instance  [D] Debug  [G] Group  [R] Rec  "
                 "[C] Connection  [S] Config  [A] About  [Q] Quit",
                 id="hotkey-strip",
                 markup=False,
@@ -635,12 +635,12 @@ class PgntuiApp(App[None]):
             self.call_from_thread(self._debug_aggregate.push_decoded, decoded)
         for update in self._router.route(decoded):
             for w in self._widgets_by_signal.get(update.signal_id, []):
-                # Instance-switchable containers show one source at a time, so
-                # skip frames whose Instance isn't the one this view is showing.
+                # Instance-switchable pages show one source at a time, so skip
+                # frames whose Instance isn't the one this view is showing.
                 view = self._view_of_widget.get(w)
                 if (
                     view is not None
-                    and view.container_def.instances
+                    and view.page.instances
                     and view.active_instance_id != update.instance
                 ):
                     continue
@@ -661,11 +661,11 @@ class PgntuiApp(App[None]):
         """Index widgets by signal id and bind write callbacks for outputs.
 
         Called from ``on_mount`` so widgets are already attached and accessible
-        via ``ContainerView.widgets``.
+        via ``PageView.widgets``.
         """
         self._widgets_by_signal.clear()
         self._view_of_widget.clear()
-        for _container, view in self._view_pairs:
+        for _page, view in self._page_views:
             for ref, widget in view.widgets.items():
                 self._widgets_by_signal.setdefault(ref, []).append(widget)
                 self._view_of_widget[widget] = view
@@ -750,13 +750,13 @@ class PgntuiApp(App[None]):
             "debug: aggregated (per-PGN)" if show_aggregate else "debug: stream (trace)"
         )
 
-    def _active_view(self) -> ContainerView | None:
+    def _active_view(self) -> PageView | None:
         try:
             active = self.query_one(TabbedContent).active
         except Exception:  # pragma: no cover — pre-mount
             return None
-        for container, view in self._view_pairs:
-            if f"tab-{container.id}" == active:
+        for page, view in self._page_views:
+            if f"tab-{page.id}" == active:
                 return view
         return None
 
@@ -768,11 +768,11 @@ class PgntuiApp(App[None]):
 
     def _cycle_instance(self, delta: int) -> None:
         view = self._active_view()
-        if view is None or not view.container_def.instances:
-            self._set_status("this tab has no instances to switch")
+        if view is None or not view.page.instances:
+            self._set_status("this page has no instances to switch")
             return
         view.set_active_instance(view.active_index + delta)
-        label = view.container_def.instances[view.active_index].label
+        label = view.page.instances[view.active_index].label
         self._set_status(f"showing {label}")
 
     def action_about(self) -> None:
@@ -835,7 +835,7 @@ class PgntuiApp(App[None]):
         self.refresh_css()
         # The signal widgets bake theme colors into their render output, so they
         # need the new theme reference pushed in and a refresh.
-        for _container, view in self._view_pairs:
+        for _page, view in self._page_views:
             view.apply_theme(new)
 
     def connect_ngt1(self, port: str, baud: int) -> tuple[bool, str]:

@@ -11,12 +11,12 @@ from pathlib import Path
 
 from pgntui.app import PgntuiApp
 from pgntui.config import Config, _default_workspace, load_config
-from pgntui.containers.loader import Container, load_container
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.base import Driver
 from pgntui.drivers.replay import FileReplayDriver
+from pgntui.pages.loader import Page, load_page
 from pgntui.signals.base import Signal, load_signals_dir
 from pgntui.themes.loader import ThemeLoadError, load_builtin
 
@@ -35,6 +35,11 @@ def build_parser() -> argparse.ArgumentParser:
         "--list-ports",
         action="store_true",
         help="list available serial ports (for the actisense-ngt1 driver) and exit",
+    )
+    p.add_argument(
+        "--migrate-workspace",
+        action="store_true",
+        help="convert old-format container files in --workspace to the new schema and exit",
     )
     sub = p.add_subparsers(dest="command")
     replay = sub.add_parser("replay", help="replay a .pgnlog file")
@@ -156,14 +161,11 @@ def discover_signals(workspace: Path) -> dict[str, Signal]:
     return {s.id: s for s in load_signals_dir(sig_dir)}
 
 
-def discover_containers(workspace: Path, signal_ids: set[str]) -> list[Container]:
+def discover_pages(workspace: Path, signal_ids: set[str]) -> list[Page]:
     c_dir = workspace / "containers"
     if not c_dir.is_dir():
         return []
-    out: list[Container] = []
-    for p in sorted(c_dir.glob("*.json")):
-        out.append(load_container(p, signal_ids))
-    return out
+    return [load_page(p, signal_ids) for p in sorted(c_dir.glob("*.json"))]
 
 
 def make_router(signals: dict[str, Signal]) -> SignalRouter:
@@ -241,7 +243,7 @@ def _build_app(
     except ThemeLoadError:
         theme = load_builtin("dark")
     signals = discover_signals(workspace)
-    containers = discover_containers(workspace, set(signals))
+    pages = discover_pages(workspace, set(signals))
     decoder = CanboatDecoder.load_bundled()
     router = make_router(signals)
     debug_buffer = DebugBuffer()
@@ -252,7 +254,7 @@ def _build_app(
         decoder=decoder,
         router=router,
         signals=signals,
-        containers=containers,
+        pages=pages,
         write_enabled=cfg.write_enabled,
         record_dir=record_dir,
         debug_buffer=debug_buffer,
@@ -264,6 +266,13 @@ def _build_app(
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv if argv is not None else sys.argv[1:])
     workspace = resolve_workspace(args.workspace)
+
+    if args.migrate_workspace:
+        from pgntui.pages.migrate import migrate_workspace
+
+        n = migrate_workspace(workspace)
+        print(f"migrated {n} container file(s) under {workspace}")
+        return 0
 
     if args.list_ports:
         return _list_ports()

@@ -10,12 +10,12 @@ from pathlib import Path
 import pytest
 
 from pgntui.app import PgntuiApp
-from pgntui.containers.loader import Container, InstanceOption, SignalPlacement, load_container
-from pgntui.containers.screen import ContainerView, GroupRule
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.base import Frame
+from pgntui.pages.loader import Container, InstanceOption, Page, SignalPlacement, load_page
+from pgntui.pages.view import GroupRule, PageView
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget
 from pgntui.themes.loader import load_builtin
@@ -29,17 +29,22 @@ def test_loader_parses_instances() -> None:
                 {
                     "id": "engine",
                     "title": "Engine",
-                    "cols": 12,
                     "instances": [
                         {"id": 0, "label": "Engine Stb"},
                         {"id": 1, "label": "Engine Port"},
                     ],
-                    "signals": [{"ref": "rpm", "row": 0, "col": 0, "w": 12}],
+                    "containers": [
+                        {
+                            "title": "Engine",
+                            "cols": 12,
+                            "signals": [{"ref": "rpm", "row": 0, "col": 0, "w": 12}],
+                        }
+                    ],
                 }
             ),
             encoding="utf-8",
         )
-        c = load_container(p, {"rpm"})
+        c = load_page(p, {"rpm"})
     assert c.instances == (
         InstanceOption(id=0, label="Engine Stb"),
         InstanceOption(id=1, label="Engine Port"),
@@ -76,12 +81,17 @@ def _rpm_signal() -> AnalogIn:
     )
 
 
-def _engine_container() -> Container:
-    return Container(
+def _engine_page() -> Page:
+    return Page(
         id="engine",
         title="Engine",
-        cols=12,
-        signals=[SignalPlacement(ref="rpm", row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="Engine",
+                cols=12,
+                signals=(SignalPlacement(ref="rpm", row=0, col=0, w=12),),
+            ),
+        ),
         instances=(
             InstanceOption(id=0, label="Engine Stb"),
             InstanceOption(id=1, label="Engine Port"),
@@ -101,7 +111,7 @@ def _app() -> PgntuiApp:
     return PgntuiApp(
         theme=load_builtin("dark"),
         signals={"rpm": _rpm_signal()},
-        containers=[_engine_container()],
+        pages=[_engine_page()],
         decoder=CanboatDecoder.load_bundled(),
         router=router,
         debug_buffer=DebugBuffer(),
@@ -113,7 +123,7 @@ async def test_view_shows_instance_header_line() -> None:
     app = _app()
     async with app.run_test(size=(90, 20)) as pilot:
         await pilot.pause()
-        view = app.query_one(ContainerView)
+        view = app.query_one(PageView)
         header = view._instance_header
         assert isinstance(header, GroupRule)
         plain = header.render().plain  # type: ignore[union-attr]
@@ -127,7 +137,7 @@ async def test_switching_instance_filters_frames() -> None:
     app = _app()
     async with app.run_test(size=(90, 20)) as pilot:
         await pilot.pause()
-        view = app.query_one(ContainerView)
+        view = app.query_one(PageView)
         rpm = view.widgets["rpm"]
         assert isinstance(rpm, AnalogInWidget)
         loop = asyncio.get_running_loop()

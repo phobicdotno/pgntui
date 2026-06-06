@@ -44,7 +44,7 @@ def test_main_replay_runs_app_with_containers(tmp_path: Path) -> None:
     captured: dict[str, Any] = {}
 
     def fake_run(self: PgntuiApp, *_args: object, **_kwargs: object) -> None:
-        captured["containers"] = [c.id for c in self._containers]
+        captured["containers"] = [p.id for p in self._pages]
         captured["signals"] = sorted(self._signals.keys())
         captured["driver_type"] = type(self._n2k_driver).__name__
 

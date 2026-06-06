@@ -7,11 +7,11 @@ import asyncio
 import pytest
 
 from pgntui.app import PgntuiApp
-from pgntui.containers.loader import Container, SignalPlacement
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.base import Capability, Frame
+from pgntui.pages.loader import Container, Page, SignalPlacement
 from pgntui.signals.base import AnalogIn
 from pgntui.themes.loader import load_builtin
 
@@ -54,12 +54,17 @@ def _engine_rpm_signal() -> AnalogIn:
     )
 
 
-def _engine_container() -> Container:
-    return Container(
+def _engine_page() -> Page:
+    return Page(
         id="engine",
         title="Engine",
-        cols=12,
-        signals=[SignalPlacement(ref="engine_rpm", row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="Engine",
+                cols=12,
+                signals=(SignalPlacement(ref="engine_rpm", row=0, col=0, w=12),),
+            ),
+        ),
     )
 
 
@@ -92,7 +97,7 @@ async def test_frame_loop_pushes_to_debug_buffer_and_updates_widgets() -> None:
         decoder=CanboatDecoder.load_bundled(),
         router=router,
         signals={"engine_rpm": sig},
-        containers=[_engine_container()],
+        pages=[_engine_page()],
         debug_buffer=debug,
     )
     async with app.run_test() as pilot:

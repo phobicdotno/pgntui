@@ -1,2 +1,18 @@
-{"id": "nav", "title": "Nav", "cols": 12,
- "signals": [{"ref": "wind_speed", "row": 0, "col": 0, "w": 12}]}
+{
+  "id": "nav",
+  "title": "Nav",
+  "containers": [
+    {
+      "title": "Nav",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "wind_speed",
+          "row": 0,
+          "col": 0,
+          "w": 12
+        }
+      ]
+    }
+  ]
+}

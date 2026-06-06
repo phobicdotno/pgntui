@@ -15,11 +15,11 @@ import pytest
 from textual.worker import WorkerState
 
 from pgntui.app import PgntuiApp
-from pgntui.containers.loader import Container, SignalPlacement
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.base import Capability, Frame
+from pgntui.pages.loader import Container, Page, SignalPlacement
 from pgntui.signals.base import AnalogIn
 from pgntui.themes.loader import load_builtin
 
@@ -72,12 +72,17 @@ def _engine_signal() -> AnalogIn:
     )
 
 
-def _engine_container() -> Container:
-    return Container(
+def _engine_page() -> Page:
+    return Page(
         id="engine",
         title="Engine",
-        cols=12,
-        signals=[SignalPlacement(ref="engine_rpm", row=0, col=0, w=12)],
+        containers=(
+            Container(
+                title="Engine",
+                cols=12,
+                signals=(SignalPlacement(ref="engine_rpm", row=0, col=0, w=12),),
+            ),
+        ),
     )
 
 
@@ -93,7 +98,7 @@ def _build_app_with_slow_driver() -> tuple[PgntuiApp, SlowDriver]:
         decoder=CanboatDecoder.load_bundled(),
         router=router,
         signals={"engine_rpm": sig},
-        containers=[_engine_container()],
+        pages=[_engine_page()],
         debug_buffer=DebugBuffer(),
     )
     return app, driver

@@ -1,43 +1,48 @@
 {
   "id": "boat",
   "title": "Boat",
-  "cols": 12,
-  "signals": [
+  "containers": [
     {
-      "ref": "boat_yaw",
-      "row": 0,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "boat_pitch",
-      "row": 0,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "boat_roll",
-      "row": 1,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "boat_heave",
-      "row": 1,
-      "col": 6,
-      "w": 6
-    },
-    {
-      "ref": "boat_trim_tab_stbd",
-      "row": 2,
-      "col": 0,
-      "w": 6
-    },
-    {
-      "ref": "boat_trim_tab_port",
-      "row": 2,
-      "col": 6,
-      "w": 6
+      "title": "Boat",
+      "cols": 12,
+      "signals": [
+        {
+          "ref": "boat_yaw",
+          "row": 0,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "boat_pitch",
+          "row": 0,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "boat_roll",
+          "row": 1,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "boat_heave",
+          "row": 1,
+          "col": 6,
+          "w": 6
+        },
+        {
+          "ref": "boat_trim_tab_stbd",
+          "row": 2,
+          "col": 0,
+          "w": 6
+        },
+        {
+          "ref": "boat_trim_tab_port",
+          "row": 2,
+          "col": 6,
+          "w": 6
+        }
+      ]
     }
   ]
 }
