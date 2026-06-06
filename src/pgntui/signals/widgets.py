@@ -111,10 +111,22 @@ class AnalogInWidget(Widget):
         return "ok"
 
     def _marker_at(self) -> int:
+        return int(self._pct() * (_BAR_WIDTH - 1))
+
+    def _pct(self) -> float:
         span = max(self.signal.max - self.signal.min, 1e-6)
-        pct = (self.displayed_value - self.signal.min) / span
-        pct = max(0.0, min(1.0, pct))
-        return int(pct * (_BAR_WIDTH - 1))
+        return max(0.0, min(1.0, (self.displayed_value - self.signal.min) / span))
+
+    def _bar_inner_width(self, value_len: int) -> int:
+        """Width of the bar's inner track. Fills the row's remaining space so one
+        column ([1]) uses the full width; falls back to the fixed width before the
+        widget has been laid out (content_size unknown)."""
+        avail = self.content_size.width or 0
+        if avail <= 0:
+            return _BAR_WIDTH
+        # toggle "[+] "(4) + title+space(_TITLE_WIDTH+1) + borders ├┤(2) + space(1) + value
+        reserved = 4 + (_TITLE_WIDTH + 1) + 2 + 1 + value_len
+        return max(avail - reserved, 6)
 
     def sparkline_str(self, width: int) -> str:
         """The analog sparkline glyph string for ``width`` columns, rendered
@@ -178,22 +190,24 @@ class AnalogInWidget(Widget):
             track_style = c["bar_track"]
             value_style = f"{theme.styles.get('value', '')} {value_color}".strip()
             unit_style = c["fg_dim"]
-        marker_at = self._marker_at()
         text = Text()
         # A visible, clickable expand toggle so the sparkline is discoverable.
         # Dim with the rest of the row until data arrives (the diffuse look).
         tog_style = c["accent"] if self.has_data else c["fg_dim"]
         text.append("[-] " if self.expanded else "[+] ", style=tog_style)
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
-        if self.show_bar:
-            text.append(_glyph(theme, "bar_left"), style=border_style)
-            for i in range(_BAR_WIDTH):
-                if i == marker_at:
-                    text.append(_glyph(theme, "bar_marker"), style=marker_color)
-                else:
-                    text.append(_glyph(theme, "bar_track"), style=track_style)
-            text.append(_glyph(theme, "bar_right"), style=border_style)
         val = f"{self.displayed_value:.{s.decimals}f}"
+        unit = f" {s.unit}" if s.unit else ""
+        if self.show_bar:
+            inner = self._bar_inner_width(len(val) + len(unit))
+            marker_at = int(self._pct() * (inner - 1))
+            text.append(_glyph(theme, "bar_left"), style=border_style)
+            for i in range(inner):
+                glyph = "bar_marker" if i == marker_at else "bar_track"
+                text.append(
+                    _glyph(theme, glyph), style=marker_color if i == marker_at else track_style
+                )
+            text.append(_glyph(theme, "bar_right"), style=border_style)
         text.append(f" {val}", style=value_style)
         if s.unit:
             text.append(f" {s.unit}", style=unit_style)

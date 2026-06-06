@@ -205,3 +205,17 @@ def test_output_rows_indented_to_align_with_inputs() -> None:
     )
     assert ao.render_text().startswith("    ")
     assert do.render_text().startswith("    ")
+
+
+@pytest.mark.asyncio
+async def test_bar_fills_remaining_width() -> None:
+    # The analog bar expands to fill the row's remaining space, so one column
+    # ([1]) uses the full width instead of a fixed 18-char bar.
+    async with _Host().run_test(size=(100, 20)) as pilot:
+        await pilot.pause()
+        w = pilot.app.query_one(AnalogInWidget)
+        w.update_value(3000.0)
+        await pilot.pause()
+        width = w.content_size.width
+        assert width > 40  # a wide single column
+        assert len(w.render().plain) >= width - 1  # row fills the width (bar stretched)
