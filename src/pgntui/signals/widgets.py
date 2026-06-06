@@ -8,6 +8,8 @@ from rich.text import Text
 from textual.widget import Widget
 
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut
+from pgntui.signals.history import History
+from pgntui.signals.sparkline import render_analog
 from pgntui.themes.loader import Theme
 
 _BAR_WIDTH = 18
@@ -31,6 +33,8 @@ def _glyph(theme: Theme | None, key: str) -> str:
 
 
 class AnalogInWidget(Widget):
+    can_focus = True
+
     def __init__(self, signal: AnalogIn, theme: Theme | None = None) -> None:
         super().__init__()
         self.signal = signal
@@ -41,15 +45,24 @@ class AnalogInWidget(Widget):
         # ``False`` until the first reading arrives; drives the diffuse (dimmed)
         # render so a signal that has never reported reads as "no signal".
         self.has_data: bool = False
+        # Sparkline state: per-signal time-bucketed history, an expand flag, and
+        # the latest clock value the window is rendered against.
+        self._history = History()
+        self.expanded: bool = False
+        self._now: float = 0.0
 
-    def update_value(self, value: float) -> None:
+    def update_value(self, value: float, ts: float | None = None) -> None:
         """Apply ``value`` to the widget and schedule a redraw.
+
+        ``ts`` is the reading's frame timestamp; when given, the displayed value
+        is appended to the per-signal history for the sparkline. Legacy callers
+        that omit ``ts`` still update the live display but record no history.
 
         Thread-safety: must be called from the Textual event-loop thread.
         Mutates ``displayed_value`` and ``state_class`` without a lock and then
         calls ``refresh()`` which queues a render message; both are unsafe from
         other threads. From a worker thread (e.g. the frame loop) hop via
-        ``App.call_from_thread(widget.update_value, value)``.
+        ``App.call_from_thread(widget.update_value, value, ts)``.
         """
         self.has_data = True
         # Convert decoded (SI) value into display units before smoothing so
@@ -62,6 +75,10 @@ class AnalogInWidget(Widget):
             self.displayed_value = float(value)
         self._raw = float(value)
         self.state_class = f"state-{self.compute_state(self.displayed_value)}"
+        if ts is not None:
+            self._now = max(self._now, ts)
+            # The sparkline is the bar's history, so record the display value.
+            self._history.add(self.displayed_value, ts)
         self.refresh()
 
     def compute_state(self, v: float) -> str:
@@ -81,6 +98,23 @@ class AnalogInWidget(Widget):
         pct = (self.displayed_value - self.signal.min) / span
         pct = max(0.0, min(1.0, pct))
         return int(pct * (_BAR_WIDTH - 1))
+
+    def sparkline_str(self, width: int) -> str:
+        """The analog sparkline glyph string for ``width`` columns, rendered
+        against the current clock (``_now``)."""
+        return render_analog(self._history.columns(self._now, width))
+
+    def toggle_sparkline(self) -> None:
+        self.expanded = not self.expanded
+        self.refresh(layout=True)  # height changes 1 <-> 2 lines
+
+    def tick(self, now: float) -> None:
+        """Advance the render clock so a stopped signal scrolls into gaps."""
+        self._now = max(self._now, now)
+
+    def on_click(self) -> None:
+        self.focus()
+        self.toggle_sparkline()
 
     def render_text(self) -> str:
         s = self.signal
@@ -137,18 +171,28 @@ class AnalogInWidget(Widget):
         text.append(f" {val}", style=value_style)
         if s.unit:
             text.append(f" {s.unit}", style=unit_style)
+        if self.expanded:
+            width = max((self.content_size.width or 0) - 2, 0)
+            spark = self.sparkline_str(width) if width >= 4 else ""
+            if spark:
+                text.append("\n  ")
+                text.append(spark, style=c["bar_fill"])
         return text
 
     def clear(self) -> None:
         """Reset to the no-data (diffuse) state.
 
         Used when the page switches NMEA instance so the previous instance's
-        readings don't linger as if they were the new instance's data.
+        readings don't linger as if they were the new instance's data. The
+        sparkline history is a different data series per instance, so it is
+        cleared too; the expand flag is kept so the row stays open and refills
+        from gaps.
         """
         self.has_data = False
         self._raw = None
         self.displayed_value = self.signal.min
         self.state_class = "state-ok"
+        self._history.clear()
         self.refresh()
 
 
