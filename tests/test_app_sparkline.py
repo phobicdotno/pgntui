@@ -16,22 +16,39 @@ from pgntui.themes.loader import load_builtin
 
 
 def _rpm() -> AnalogIn:
-    return AnalogIn(id="rpm", type="analog_in", title="RPM", pgn=127488,
-                    field="Engine Speed", min=0, max=6000, smoothing=0.0)
+    return AnalogIn(
+        id="rpm",
+        type="analog_in",
+        title="RPM",
+        pgn=127488,
+        field="Engine Speed",
+        min=0,
+        max=6000,
+        smoothing=0.0,
+    )
 
 
 def _page() -> Page:
-    return Page(id="eng", title="Engine",
-                containers=(Container(title="Drive", cols=12,
-                            signals=(SignalPlacement("rpm", 0, 0, 12),)),))
+    return Page(
+        id="eng",
+        title="Engine",
+        containers=(
+            Container(title="Drive", cols=12, signals=(SignalPlacement("rpm", 0, 0, 12),)),
+        ),
+    )
 
 
 def _app() -> PgntuiApp:
     router = SignalRouter()
     router.bind("rpm", SignalKey(pgn=127488, field="Engine Speed"))
-    return PgntuiApp(theme=load_builtin("dark"), signals={"rpm": _rpm()},
-                     pages=[_page()], decoder=CanboatDecoder.load_bundled(),
-                     router=router, debug_buffer=DebugBuffer())
+    return PgntuiApp(
+        theme=load_builtin("dark"),
+        signals={"rpm": _rpm()},
+        pages=[_page()],
+        decoder=CanboatDecoder.load_bundled(),
+        router=router,
+        debug_buffer=DebugBuffer(),
+    )
 
 
 def _frame(rpm: float, ts: float) -> Frame:
@@ -92,3 +109,60 @@ async def test_repaint_tick_advances_expanded_widget_clock() -> None:
         app._tick_sparklines()
         await pilot.pause()
         assert w._now == 5.0
+
+
+@pytest.mark.asyncio
+async def test_up_down_wrap_around_two_signals() -> None:
+    # Two signals on one page, so the modular wrap in both directions is exercised
+    # (the single-signal tests can't distinguish wrap from no-op).
+    rpm = _rpm()
+    temp = AnalogIn(
+        id="temp",
+        type="analog_in",
+        title="Temp",
+        pgn=130312,
+        field="Temperature",
+        min=0,
+        max=150,
+        smoothing=0.0,
+    )
+    page = Page(
+        id="eng",
+        title="Engine",
+        containers=(
+            Container(
+                title="Drive",
+                cols=12,
+                signals=(
+                    SignalPlacement("rpm", 0, 0, 12),
+                    SignalPlacement("temp", 1, 0, 12),
+                ),
+            ),
+        ),
+    )
+    router = SignalRouter()
+    router.bind("rpm", SignalKey(pgn=127488, field="Engine Speed"))
+    app = PgntuiApp(
+        theme=load_builtin("dark"),
+        signals={"rpm": rpm, "temp": temp},
+        pages=[page],
+        decoder=CanboatDecoder.load_bundled(),
+        router=router,
+        debug_buffer=DebugBuffer(),
+    )
+    async with app.run_test(size=(90, 24)) as pilot:
+        await pilot.pause()
+        ws = list(app.query(AnalogInWidget))
+        assert len(ws) == 2
+        ws[0].focus()  # start from a known row, independent of auto-focus
+        await pilot.pause()
+        assert app.focused is ws[0]
+        await pilot.press("down")  # -> second row
+        await pilot.pause()
+        assert app.focused is ws[1]
+        await pilot.press("down")  # wrap forward -> first row
+        await pilot.pause()
+        assert app.focused is ws[0]
+        await pilot.press("up")  # wrap backward -> last row
+        await pilot.pause()
+        assert app.focused is ws[1]

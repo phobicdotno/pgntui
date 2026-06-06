@@ -593,7 +593,8 @@ class PgntuiApp(App[None]):
                     self._debug_aggregate.display = False
                     yield self._debug_aggregate
             yield Static(
-                "[Tab] Page  [ [ / ] ] Instance  [D] Debug  [G] Group  [R] Rec  "
+                "[Tab] Page  [ [ / ] ] Instance  [↑/↓] Signal  [+] Spark  "
+                "[D] Debug  [G] Group  [R] Rec  "
                 "[C] Connection  [S] Config  [A] About  [Q] Quit",
                 id="hotkey-strip",
                 markup=False,
@@ -636,6 +637,10 @@ class PgntuiApp(App[None]):
         decoded = self._decoder.decode(frame)
         if decoded is None:
             return
+        # Worker-thread write of a plain float, read by the UI-thread repaint
+        # timer. Safe under CPython (a single attribute store is atomic) and the
+        # value only moves forward (max), so the worst case on a race is a
+        # one-frame-stale sparkline window.
         self._clock = max(self._clock, decoded.timestamp)
         self._debug_buffer.push(decoded)
         # Feed both Debug views so toggling between them is instant and populated.
@@ -757,9 +762,7 @@ class PgntuiApp(App[None]):
         if view is None:
             return
         widgets = [
-            w
-            for w in view.widgets.values()
-            if isinstance(w, (AnalogInWidget, DigitalInWidget))
+            w for w in view.widgets.values() if isinstance(w, (AnalogInWidget, DigitalInWidget))
         ]
         if not widgets:
             return

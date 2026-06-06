@@ -11,8 +11,8 @@ def test_add_buckets_by_timestamp_last_wins() -> None:
 
 def test_columns_right_edge_is_now_and_gaps_are_none() -> None:
     h = History(bucket_seconds=1.0, capacity=10)
-    h.add(3.0, ts=0.0)   # bucket 0
-    h.add(7.0, ts=2.0)   # bucket 2  (bucket 1 never written -> gap)
+    h.add(3.0, ts=0.0)  # bucket 0
+    h.add(7.0, ts=2.0)  # bucket 2  (bucket 1 never written -> gap)
     assert h.columns(now=2.5, width=3) == [3.0, None, 7.0]
     assert h.columns(now=4.5, width=3) == [7.0, None, None]
 

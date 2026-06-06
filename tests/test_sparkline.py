@@ -5,7 +5,7 @@ RAMP = "▁▂▃▄▅▆▇█"
 
 def test_analog_maps_low_and_high_to_ramp_ends() -> None:
     out = render_analog([0.0, 10.0])
-    assert out[0] == RAMP[0]   # lowest -> first ramp glyph
+    assert out[0] == RAMP[0]  # lowest -> first ramp glyph
     assert out[-1] == RAMP[-1]  # highest -> last ramp glyph
 
 

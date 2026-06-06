@@ -3,8 +3,17 @@ from pgntui.signals.widgets import AnalogInWidget, DigitalInWidget
 
 
 def _sig(**kw) -> AnalogIn:
-    base = dict(id="rpm", type="analog_in", title="RPM", pgn=127488,
-                field="Engine Speed", unit="rpm", min=0.0, max=6000.0, smoothing=0.0)
+    base = dict(
+        id="rpm",
+        type="analog_in",
+        title="RPM",
+        pgn=127488,
+        field="Engine Speed",
+        unit="rpm",
+        min=0.0,
+        max=6000.0,
+        smoothing=0.0,
+    )
     base.update(kw)
     return AnalogIn(**base)
 
@@ -66,8 +75,15 @@ def test_clear_resets_clock_so_new_data_shows_after_switch() -> None:
 
 
 def _dsig(**kw) -> DigitalIn:
-    base = dict(id="run", type="digital_in", title="Bilge", pgn=127501,
-                field="Indicator1", on_label="RUN", off_label="OFF")
+    base = dict(
+        id="run",
+        type="digital_in",
+        title="Bilge",
+        pgn=127501,
+        field="Indicator1",
+        on_label="RUN",
+        off_label="OFF",
+    )
     base.update(kw)
     return DigitalIn(**base)
 
