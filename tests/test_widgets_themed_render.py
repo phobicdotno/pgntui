@@ -82,3 +82,43 @@ def test_digital_render_uses_theme_colors() -> None:
     out = w.render()
     assert isinstance(out, Text)
     assert any(THEME.colors["ok"] in s for s in _styles(out)), "ON glyph not ok colored"
+
+
+def test_analog_render_diffuse_before_data() -> None:
+    """A signal with no reading yet renders entirely in the dimmed look."""
+    w = AnalogInWidget(_rpm(warn_above=2000.0), theme=THEME)
+    assert not w.has_data
+    styles = _styles(w.render())
+    dim = THEME.colors["fg_dim"]
+    assert all(dim in s for s in styles), f"not all diffuse: {styles}"
+    # No live colors leak through before data arrives.
+    assert not any(THEME.colors["bar_fill"] in s for s in styles)
+    assert not any(THEME.colors["warn"] in s for s in styles)
+
+
+def test_analog_brightens_after_data() -> None:
+    w = AnalogInWidget(_rpm(), theme=THEME)
+    w.update_value(3000.0)
+    assert w.has_data
+    assert any(THEME.colors["bar_fill"] in s for s in _styles(w.render())), "not live after data"
+
+
+def test_analog_clear_returns_to_diffuse() -> None:
+    w = AnalogInWidget(_rpm(), theme=THEME)
+    w.update_value(3000.0)
+    w.clear()
+    assert not w.has_data
+    assert all(THEME.colors["fg_dim"] in s for s in _styles(w.render()))
+
+
+def test_digital_title_diffuse_before_data() -> None:
+    sig = DigitalIn(
+        id="bilge", type="digital_in", title="Bilge Alarm", pgn=127501, field="Indicator1"
+    )
+    w = DigitalInWidget(sig, theme=THEME)
+    assert not w.has_data
+    title_before = str(w.render().spans[0].style)  # type: ignore[union-attr]
+    assert THEME.colors["fg_dim"] in title_before, f"title not diffuse: {title_before}"
+    w.update_value(False)  # a real OFF reading
+    title_after = str(w.render().spans[0].style)  # type: ignore[union-attr]
+    assert THEME.colors["fg_dim"] not in title_after, f"still diffuse after data: {title_after}"

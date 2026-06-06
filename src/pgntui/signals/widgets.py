@@ -38,6 +38,9 @@ class AnalogInWidget(Widget):
         self.displayed_value: float = signal.min
         self._raw: float | None = None
         self.state_class: str = "state-ok"
+        # ``False`` until the first reading arrives; drives the diffuse (dimmed)
+        # render so a signal that has never reported reads as "no signal".
+        self.has_data: bool = False
 
     def update_value(self, value: float) -> None:
         """Apply ``value`` to the widget and schedule a redraw.
@@ -48,6 +51,7 @@ class AnalogInWidget(Widget):
         other threads. From a worker thread (e.g. the frame loop) hop via
         ``App.call_from_thread(widget.update_value, value)``.
         """
+        self.has_data = True
         # Convert decoded (SI) value into display units before smoothing so
         # min/max, thresholds, and the bar all operate in display units.
         value = float(value) * self.signal.scale + self.signal.offset
@@ -100,26 +104,52 @@ class AnalogInWidget(Widget):
             return self.render_text()
         c = theme.colors
         s = self.signal
-        state = self.compute_state(self.displayed_value)
-        value_color = {"ok": c["fg"], "warn": c["warn"], "alarm": c["alarm"]}[state]
-        marker_color = {"ok": c["bar_fill"], "warn": c["bar_warn"], "alarm": c["bar_alarm"]}[state]
+        if not self.has_data:
+            # No reading yet: render the whole row in the diffuse (dimmed) look
+            # so a silent signal is visibly distinct from a live one.
+            dim = c["fg_dim"]
+            title_style = border_style = track_style = marker_color = value_style = dim
+            unit_style = dim
+        else:
+            state = self.compute_state(self.displayed_value)
+            value_color = {"ok": c["fg"], "warn": c["warn"], "alarm": c["alarm"]}[state]
+            marker_color = {
+                "ok": c["bar_fill"],
+                "warn": c["bar_warn"],
+                "alarm": c["bar_alarm"],
+            }[state]
+            title_style = theme.styles.get("title", "") or c["fg"]
+            border_style = c["border"]
+            track_style = c["bar_track"]
+            value_style = f"{theme.styles.get('value', '')} {value_color}".strip()
+            unit_style = c["fg_dim"]
         marker_at = self._marker_at()
-        track_style = c["bar_track"]
         text = Text()
-        text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=theme.styles.get("title", "") or c["fg"])
-        text.append(_glyph(theme, "bar_left"), style=c["border"])
+        text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
+        text.append(_glyph(theme, "bar_left"), style=border_style)
         for i in range(_BAR_WIDTH):
             if i == marker_at:
                 text.append(_glyph(theme, "bar_marker"), style=marker_color)
             else:
                 text.append(_glyph(theme, "bar_track"), style=track_style)
-        text.append(_glyph(theme, "bar_right"), style=c["border"])
+        text.append(_glyph(theme, "bar_right"), style=border_style)
         val = f"{self.displayed_value:.{s.decimals}f}"
-        value_style = f"{theme.styles.get('value', '')} {value_color}".strip()
         text.append(f" {val}", style=value_style)
         if s.unit:
-            text.append(f" {s.unit}", style=c["fg_dim"])
+            text.append(f" {s.unit}", style=unit_style)
         return text
+
+    def clear(self) -> None:
+        """Reset to the no-data (diffuse) state.
+
+        Used when the page switches NMEA instance so the previous instance's
+        readings don't linger as if they were the new instance's data.
+        """
+        self.has_data = False
+        self._raw = None
+        self.displayed_value = self.signal.min
+        self.state_class = "state-ok"
+        self.refresh()
 
 
 class AnalogOutWidget(Widget):
@@ -177,8 +207,11 @@ class DigitalInWidget(Widget):
         self.signal = signal
         self.theme_def = theme
         self.value: bool = False
+        # ``False`` until the first reading arrives — see AnalogInWidget.has_data.
+        self.has_data: bool = False
 
     def update_value(self, value: object) -> None:
+        self.has_data = True
         if self.signal.bit is not None:
             self.value = bool((int(value) >> self.signal.bit) & 1)  # type: ignore[call-overload]
         else:
@@ -197,8 +230,14 @@ class DigitalInWidget(Widget):
             return self.render_text()
         c = theme.colors
         s = self.signal
+        # No reading yet: dim the title too, so a silent input is distinct from a
+        # live input that happens to read OFF (which keeps a bright title).
+        if not self.has_data:
+            title_style = c["fg_dim"]
+        else:
+            title_style = theme.styles.get("title", "") or c["fg"]
         text = Text()
-        text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=theme.styles.get("title", "") or c["fg"])
+        text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
         if self.value:
             text.append(_glyph(theme, "on"), style=c["ok"])
             text.append(f" {s.on_label}", style=c["fg"])
@@ -206,6 +245,12 @@ class DigitalInWidget(Widget):
             text.append(_glyph(theme, "off"), style=c["fg_dim"])
             text.append(f" {s.off_label}", style=c["fg_dim"])
         return text
+
+    def clear(self) -> None:
+        """Reset to the no-data (diffuse) state on instance switch."""
+        self.has_data = False
+        self.value = False
+        self.refresh()
 
 
 class DigitalOutWidget(Widget):

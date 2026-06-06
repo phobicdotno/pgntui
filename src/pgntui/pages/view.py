@@ -164,12 +164,11 @@ class PageView(Widget):
         self.active_index = index % len(self.page.instances)
         if self._instance_header is not None:
             self._instance_header.set_title(self._instance_label(self.active_index))
-        # Clear stale readings so the previous instance's values don't linger.
+        # Reset readings to the diffuse (no-data) state so the previous
+        # instance's values don't linger as if they belonged to the new one.
         for widget in self.widgets.values():
-            if isinstance(widget, AnalogInWidget):
-                widget.update_value(widget.signal.min)
-            elif isinstance(widget, DigitalInWidget):
-                widget.update_value(0)
+            if isinstance(widget, (AnalogInWidget, DigitalInWidget)):
+                widget.clear()
 
     def compose(self) -> ComposeResult:
         # A page with instances gets a header line showing the active source.
