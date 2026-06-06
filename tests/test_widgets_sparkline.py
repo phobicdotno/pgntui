@@ -34,9 +34,11 @@ def test_toggle_sparkline_flips_expanded() -> None:
 def test_tick_advances_window_into_gaps() -> None:
     w = AnalogInWidget(_sig())
     w.update_value(3000.0, ts=0.0)
-    assert w.sparkline_str(3)[-1] != " "  # data at the right edge
-    w.tick(10.0)  # far enough that bucket 0 scrolls outside the 3-col window
-    assert w.sparkline_str(3) == "   "  # all gaps: old data scrolled out
+    assert w.sparkline_str(3) == "  ▄"  # newest reading sits at the right edge
+    w.tick(2.0)  # 2 s later, no new data: the point scrolls left, still visible
+    assert w.sparkline_str(3) == "▄  "  # shifted left with trailing gaps
+    w.tick(10.0)  # long silence: the point ages out of the 3-col window entirely
+    assert w.sparkline_str(3) == "   "
 
 
 def test_clear_empties_history_keeps_expanded() -> None:
