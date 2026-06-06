@@ -193,6 +193,10 @@ class AnalogInWidget(Widget):
         self.displayed_value = self.signal.min
         self.state_class = "state-ok"
         self._history.clear()
+        # Reset the render clock to the initial state too, so the next
+        # instance's readings anchor the window at their own timestamps rather
+        # than a stale clock left over from the previous instance.
+        self._now = 0.0
         self.refresh()
 
 

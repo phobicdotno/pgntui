@@ -52,3 +52,14 @@ def test_clear_empties_history_keeps_expanded() -> None:
 
 def test_is_focusable() -> None:
     assert AnalogInWidget(_sig()).can_focus is True
+
+
+def test_clear_resets_clock_so_new_data_shows_after_switch() -> None:
+    # Instance switch: clear() must reset the render clock, otherwise a new
+    # instance whose first reading has a lower timestamp stays hidden until the
+    # stale clock catches up.
+    w = AnalogInWidget(_sig())
+    w.update_value(1000.0, ts=100.0)  # old instance, clock far ahead
+    w.clear()  # instance switch
+    w.update_value(2000.0, ts=0.5)  # new instance, lower timestamp
+    assert w.sparkline_str(2)[-1] != " "  # new reading visible at the right edge
