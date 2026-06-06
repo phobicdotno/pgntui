@@ -1,8 +1,9 @@
 """Container group headers and one-line rows.
 
-Containers may declare ``groups`` — full-width separator rules rendered as
-``├── Title ──────┤`` between signal rows. Signal rows are one line tall so
-dense pages (engine status, binary) fit on screen.
+Containers may declare ``groups``; each is rendered as a ``GroupBox`` — a
+titled border around that group's signals, with the group name in the top
+border line. Signal rows stay one line tall so dense pages (engine status,
+binary) fit on screen.
 """
 
 from __future__ import annotations
@@ -15,7 +16,7 @@ import pytest
 
 from pgntui.app import PgntuiApp
 from pgntui.containers.loader import Container, ContainerLoadError, GroupHeader, load_container
-from pgntui.containers.screen import GroupRule
+from pgntui.containers.screen import GroupBox, GroupRule
 from pgntui.debug.tab import DebugBuffer
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget
@@ -97,7 +98,7 @@ def _sig() -> dict:
 
 
 @pytest.mark.asyncio
-async def test_rows_are_single_line_and_group_renders() -> None:
+async def test_rows_are_single_line_and_group_renders_as_titled_box() -> None:
     container = _load(
         {
             "id": "eng",
@@ -118,4 +119,7 @@ async def test_rows_are_single_line_and_group_renders() -> None:
         await pilot.pause()
         w = app.query_one(AnalogInWidget)
         assert w.region.height == 1, "analog row should be one line tall"
-        assert len(list(app.query(GroupRule))) == 1
+        boxes = list(app.query(GroupBox))
+        assert len(boxes) == 1
+        assert str(boxes[0].border_title) == "Engine"  # title shown in the border
+        assert w in boxes[0].walk_children(), "signal must live inside its group box"

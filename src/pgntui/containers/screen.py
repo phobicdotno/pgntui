@@ -10,11 +10,12 @@ from __future__ import annotations
 
 from rich.text import Text
 from textual.app import ComposeResult
+from textual.containers import Container as TextualContainer
 from textual.containers import Grid
 from textual.screen import Screen
 from textual.widget import Widget
 
-from pgntui.containers.loader import Container
+from pgntui.containers.loader import Container, SignalPlacement
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut, Signal
 from pgntui.signals.widgets import (
     AnalogInWidget,
@@ -53,10 +54,13 @@ class ContainerView(Widget):
     ContainerView {
         height: 1fr;
         layout: vertical;
+        overflow-y: auto;
+        overflow-x: hidden;
     }
     ContainerView Grid {
         grid-rows: 1;
         grid-gutter: 0;
+        height: auto;
     }
     ContainerView AnalogInWidget,
     ContainerView AnalogOutWidget,
@@ -64,6 +68,17 @@ class ContainerView(Widget):
     ContainerView DigitalOutWidget,
     ContainerView GroupRule {
         height: 1;
+    }
+    /* Each signal group is framed in a titled border — the group name sits in
+       the top border line (e.g. ``┌─ Heading & attitude ──────┐``). */
+    ContainerView GroupBox {
+        height: auto;
+        border: solid $accent;
+        border-title-color: $accent;
+        border-title-style: bold;
+        border-title-align: left;
+        padding: 0 1;
+        margin: 0 0 1 0;
     }
     """
 
@@ -122,24 +137,47 @@ class ContainerView(Widget):
                 self._instance_label(self.active_index), theme=self.theme_def
             )
             yield self._instance_header
-        # Interleave group rules and signals in row-major order so the grid's
-        # left-to-right auto-flow lands each on the right row. A full-width
-        # group rule forces a fresh row (the previous row is already full).
         cols = self.container_def.cols
-        items: list[tuple[int, int, Widget, int]] = []
-        for g in self.container_def.groups:
-            items.append((g.row, 0, GroupRule(g.title, theme=self.theme_def), cols))
+        groups = sorted(self.container_def.groups, key=lambda g: g.row)
+        # Bucket each signal under the group whose header row is the nearest one
+        # at or above it. ``None`` collects signals that sit above the first
+        # group (or every signal when the container declares no groups).
+        buckets: dict[int | None, list[SignalPlacement]] = {}
         for placement in self.container_def.signals:
+            idx: int | None = None
+            for i, g in enumerate(groups):
+                if g.row <= placement.row:
+                    idx = i
+                else:
+                    break
+            buckets.setdefault(idx, []).append(placement)
+        # Leading, group-less signals render in a plain grid (no frame).
+        leading = buckets.get(None)
+        if leading:
+            yield self._build_grid(leading, cols, f"container-grid-{self.container_def.id}")
+        # Every declared group becomes a titled border box around its own grid.
+        for i, g in enumerate(groups):
+            grid = self._build_grid(
+                buckets.get(i, []), cols, f"group-grid-{self.container_def.id}-{i}"
+            )
+            box = GroupBox(grid, id=f"group-box-{self.container_def.id}-{i}")
+            box.border_title = g.title
+            yield box
+
+    def _build_grid(self, placements: list[SignalPlacement], cols: int, grid_id: str) -> Grid:
+        """Build one auto-flow Grid from ``placements`` (registering each widget
+        and recording its column span for ``on_mount``)."""
+        ordered = sorted(placements, key=lambda p: (p.row, p.col))
+        children: list[Widget] = []
+        for placement in ordered:
             sig = self.signals[placement.ref]
             w = _make_widget(sig, self.write_enabled, theme=self.theme_def)
             self.widgets[placement.ref] = w
-            items.append((placement.row, placement.col, w, placement.w))
-        items.sort(key=lambda it: (it[0], it[1]))
-        children = [w for _, _, w, _ in items]
-        self._spans = [(w, span) for _, _, w, span in items]
-        grid = Grid(*children, id=f"container-grid-{self.container_def.id}")
+            self._spans.append((w, placement.w))
+            children.append(w)
+        grid = Grid(*children, id=grid_id)
         grid.styles.grid_size_columns = cols
-        yield grid
+        return grid
 
     def on_mount(self) -> None:
         for widget, span in self._spans:
@@ -161,8 +199,22 @@ class ContainerView(Widget):
             widget.refresh()
 
 
+class GroupBox(TextualContainer):
+    """A signal group framed in a titled border — the group name sits in the
+    top border line, e.g. ``┌─ Heading & attitude ─────────┐``.
+
+    Styling (border glyphs, colors, padding) lives in ``ContainerView``'s CSS;
+    the border color tracks the active Textual theme via ``$accent``, so it
+    repaints automatically on a live theme switch.
+    """
+
+
 class GroupRule(Widget):
-    """Full-width separator line: ``├── Title ──────────────┤``."""
+    """Full-width separator line: ``├── Title ──────────────┤``.
+
+    Still used for the instance-switch header (``◀ Engine Stb (0) ▶``); signal
+    groups now render as :class:`GroupBox` titled borders instead.
+    """
 
     def __init__(self, title: str, theme: Theme | None = None) -> None:
         super().__init__()
@@ -230,4 +282,4 @@ class ContainerScreen(Screen[None]):
         yield self._view
 
 
-__all__ = ["ContainerScreen", "ContainerView", "GroupRule"]
+__all__ = ["ContainerScreen", "ContainerView", "GroupBox", "GroupRule"]
