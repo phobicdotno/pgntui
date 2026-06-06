@@ -19,8 +19,11 @@ class History:
         self.bucket_seconds = bucket_seconds
         self.capacity = capacity
         # Insertion-ordered (dict preserves order); key = bucket index, value =
-        # last sample in that bucket. Re-writing a key keeps its position, so the
-        # front is always the oldest bucket.
+        # last sample in that bucket. Re-writing a bucket keeps its position, so
+        # for chronologically-arriving samples the front is the oldest bucket and
+        # eviction drops it. (NMEA 2000 per-signal data arrives in timestamp
+        # order; a rare out-of-order sample evicts slightly imprecisely, which is
+        # acceptable for a sparkline.)
         self._buckets: dict[int, float] = {}
 
     def add(self, value: float, ts: float) -> None:

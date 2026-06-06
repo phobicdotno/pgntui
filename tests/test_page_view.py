@@ -5,8 +5,8 @@ from textual.app import App, ComposeResult
 
 from pgntui.pages.loader import Container, Page, SignalPlacement
 from pgntui.pages.view import GroupBox, GroupRule, PageView
-from pgntui.signals.base import AnalogIn
-from pgntui.signals.widgets import AnalogInWidget
+from pgntui.signals.base import AnalogIn, DigitalIn
+from pgntui.signals.widgets import AnalogInWidget, DigitalInWidget
 from pgntui.themes.loader import load_builtin
 
 
@@ -73,3 +73,33 @@ async def test_expanded_widget_grows_to_two_lines() -> None:
         w.toggle_sparkline()
         await pilot.pause()
         assert w.region.height == 2  # row grew to show the sparkline
+
+
+class _DigitalHost(App[None]):
+    def compose(self) -> ComposeResult:
+        sig = DigitalIn(
+            id="bilge", type="digital_in", title="Bilge", pgn=127501, field="Indicator1"
+        )
+        page = Page(
+            id="p",
+            title="P",
+            containers=(
+                Container(title="Pumps", cols=12, signals=(SignalPlacement("bilge", 0, 0, 12),)),
+            ),
+        )
+        yield PageView(
+            page=page, signals={"bilge": sig}, write_enabled=False, theme=load_builtin("dark")
+        )
+
+
+@pytest.mark.asyncio
+async def test_expanded_digital_widget_grows_to_two_lines() -> None:
+    async with _DigitalHost().run_test(size=(80, 20)) as pilot:
+        await pilot.pause()
+        w = pilot.app.query_one(DigitalInWidget)
+        assert w.region.height == 1  # collapsed stays tight
+        w.update_value(True, ts=0.0)
+        w.update_value(False, ts=1.0)
+        w.toggle_sparkline()
+        await pilot.pause()
+        assert w.region.height == 2  # row grew to show the step-wave sparkline
