@@ -60,3 +60,16 @@ async def test_pageview_renders_container_as_titled_box() -> None:
         w = pilot.app.query_one(AnalogInWidget)
         assert w.region.height == 1 and w.region.width > 0
         assert w in boxes[0].walk_children()
+
+
+@pytest.mark.asyncio
+async def test_expanded_widget_grows_to_two_lines() -> None:
+    async with _Host().run_test(size=(80, 20)) as pilot:
+        await pilot.pause()
+        w = pilot.app.query_one(AnalogInWidget)
+        assert w.region.height == 1  # collapsed stays tight
+        w.update_value(1000.0, ts=0.0)
+        w.update_value(5000.0, ts=1.0)
+        w.toggle_sparkline()
+        await pilot.pause()
+        assert w.region.height == 2  # row grew to show the sparkline

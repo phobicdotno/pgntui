@@ -102,16 +102,24 @@ class PageView(Widget):
         overflow-x: hidden;
     }
     PageView Grid {
-        grid-rows: 1;
+        grid-rows: auto;
         grid-gutter: 0;
         height: auto;
     }
+    /* Inputs can expand to a second line (sparkline), so they size to content;
+       a collapsed widget still measures one line, keeping rows tight. */
     PageView AnalogInWidget,
+    PageView DigitalInWidget {
+        height: auto;
+    }
     PageView AnalogOutWidget,
-    PageView DigitalInWidget,
     PageView DigitalOutWidget,
     PageView GroupRule {
         height: 1;
+    }
+    PageView AnalogInWidget:focus,
+    PageView DigitalInWidget:focus {
+        background: $boost;
     }
     /* Each container is framed in a titled border — the container name sits in
        the top border line (e.g. ``┌─ Heading & attitude ──────┐``). */
