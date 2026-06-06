@@ -14,7 +14,15 @@ from textual.containers import Container as TextualContainer
 from textual.containers import Horizontal, Vertical
 from textual.screen import ModalScreen
 from textual.widget import Widget
-from textual.widgets import Button, RichLog, Select, Static, TabbedContent, TabPane
+from textual.widgets import (
+    Button,
+    DataTable,
+    RichLog,
+    Select,
+    Static,
+    TabbedContent,
+    TabPane,
+)
 from textual.worker import Worker
 
 from pgntui import about
@@ -46,15 +54,72 @@ from pgntui.themes.loader import (
 )
 
 
+def _frame_fields(df: DecodedFrame) -> str:
+    """Compact ``k=v, k=v`` summary of a decoded frame's first few fields."""
+    return ", ".join(f"{k}={v}" for k, v in list(df.fields.items())[:6])
+
+
+def _frame_time(df: DecodedFrame) -> str:
+    return datetime.fromtimestamp(df.timestamp, tz=UTC).strftime("%H:%M:%S.%f")[:-3]
+
+
 class DebugLog(RichLog):
-    """RichLog wrapper that knows how to render a DecodedFrame summary."""
+    """Streaming (trace) view: every decoded frame appended as a new line, in
+    arrival order — the chronological scrollback."""
 
     def push_decoded(self, df: DecodedFrame) -> None:
-        ts = datetime.fromtimestamp(df.timestamp, tz=UTC).strftime("%H:%M:%S.%f")[:-3]
         name = df.name or "?"
         # Keep the line tight so it fits a typical terminal width.
-        fields = ", ".join(f"{k}={v}" for k, v in list(df.fields.items())[:6])
-        self.write(f"{ts}  pgn={df.pgn:>6}  src={df.source_addr:>3}  {name}  {fields}")
+        self.write(
+            f"{_frame_time(df)}  pgn={df.pgn:>6}  src={df.source_addr:>3}  "
+            f"{name}  {_frame_fields(df)}"
+        )
+
+
+class DebugAggregate(DataTable[str]):
+    """Aggregated (coalesced) view: one row per ``(PGN, source)``, updated in
+    place with the latest values, last-seen time, and a hit count — so repeated
+    frames stack onto a single line instead of scrolling. The counterpart to
+    :class:`DebugLog`'s streaming trace.
+    """
+
+    DEFAULT_CSS = """
+    DebugAggregate { height: 1fr; }
+    """
+
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        # Row keys (``"<pgn>:<src>"``) already present, so we know update vs add.
+        self._seen: set[str] = set()
+
+    def on_mount(self) -> None:
+        self.cursor_type = "row"
+        self.zebra_stripes = True
+        self.add_column("Time", key="time")
+        self.add_column("PGN", key="pgn")
+        self.add_column("Src", key="src")
+        self.add_column("Name", key="name")
+        self.add_column("Count", key="count")
+        self.add_column("Fields", key="fields")
+
+    def push_decoded(self, df: DecodedFrame) -> None:
+        key = f"{df.pgn}:{df.source_addr}"
+        name = df.name or "?"
+        fields = _frame_fields(df)
+        ts = _frame_time(df)
+        if key in self._seen:
+            count = int(str(self.get_cell(key, "count"))) + 1
+            self.update_cell(key, "time", ts)
+            self.update_cell(key, "name", name)
+            self.update_cell(key, "count", str(count))
+            self.update_cell(key, "fields", fields)
+        else:
+            self._seen.add(key)
+            self.add_row(ts, str(df.pgn), str(df.source_addr), name, "1", fields, key=key)
+
+    def clear_frames(self) -> None:
+        self.clear()
+        self._seen.clear()
 
 
 class TopBarButton(Static):
@@ -400,6 +465,7 @@ class PgntuiApp(App[None]):
         ("tab", "next_container", "Next"),
         ("shift+tab", "prev_container", "Prev"),
         ("d", "show_debug", "Debug"),
+        ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
         ("left_square_bracket", "prev_instance", "Inst-"),
         ("right_square_bracket", "next_instance", "Inst+"),
@@ -453,8 +519,10 @@ class PgntuiApp(App[None]):
         self._writer: ActisenseLogWriter | None = None
         self._writer_path: Path | None = None
         self._writer_lock: threading.Lock = threading.Lock()
-        # Debug pane log instance; populated in compose.
+        # Debug pane widgets; populated in compose. The Debug tab shows one at a
+        # time — the streaming log by default, the aggregated table on toggle.
         self._debug_log: DebugLog | None = None
+        self._debug_aggregate: DebugAggregate | None = None
         # Compose-time storage for (container, view) pairs. Populated as
         # ``compose()`` yields each ContainerView so ``_wire_write_callbacks``
         # can hook widgets after mount.
@@ -507,8 +575,13 @@ class PgntuiApp(App[None]):
                         highlight=False, markup=False, wrap=False, id="debug-log"
                     )
                     yield self._debug_log
+                    self._debug_aggregate = DebugAggregate(id="debug-aggregate")
+                    # Stream view is the default; the aggregate starts hidden and
+                    # is revealed by the [G] toggle.
+                    self._debug_aggregate.display = False
+                    yield self._debug_aggregate
             yield Static(
-                "[Tab] Next  [ [ / ] ] Instance  [D] Debug  [R] Rec  "
+                "[Tab] Next  [ [ / ] ] Instance  [D] Debug  [G] Group  [R] Rec  "
                 "[C] Connection  [S] Config  [A] About  [Q] Quit",
                 id="hotkey-strip",
                 markup=False,
@@ -552,8 +625,11 @@ class PgntuiApp(App[None]):
         if decoded is None:
             return
         self._debug_buffer.push(decoded)
+        # Feed both Debug views so toggling between them is instant and populated.
         if self._debug_log is not None:
             self.call_from_thread(self._debug_log.push_decoded, decoded)
+        if self._debug_aggregate is not None:
+            self.call_from_thread(self._debug_aggregate.push_decoded, decoded)
         for update in self._router.route(decoded):
             for w in self._widgets_by_signal.get(update.signal_id, []):
                 # Instance-switchable containers show one source at a time, so
@@ -655,6 +731,21 @@ class PgntuiApp(App[None]):
     def action_show_debug(self) -> None:
         tabs = self.query_one(TabbedContent)
         tabs.active = "debug"
+
+    def action_toggle_debug_view(self) -> None:
+        """Switch the Debug tab between the streaming trace (default) and the
+        aggregated per-PGN monitor. Also brings the Debug tab forward so the
+        toggle is visible from any tab.
+        """
+        if self._debug_log is None or self._debug_aggregate is None:
+            return
+        self.query_one(TabbedContent).active = "debug"
+        show_aggregate = not self._debug_aggregate.display
+        self._debug_aggregate.display = show_aggregate
+        self._debug_log.display = not show_aggregate
+        self._set_status(
+            "debug: aggregated (per-PGN)" if show_aggregate else "debug: stream (trace)"
+        )
 
     def _active_view(self) -> ContainerView | None:
         try:
@@ -866,6 +957,7 @@ __all__ = [
     "AboutScreen",
     "ConfigScreen",
     "ConnectionScreen",
+    "DebugAggregate",
     "DebugLog",
     "PgntuiApp",
     "TopBar",
