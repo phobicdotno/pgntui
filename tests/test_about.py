@@ -31,6 +31,21 @@ def test_changelog_lines_are_short_and_versioned() -> None:
 
 
 @pytest.mark.asyncio
+async def test_topbar_button_hover_text_contrasts_with_fill() -> None:
+    # Regression: mono-ascii has accent == foreground (#ffffff), so a hover that
+    # only set background painted white-on-white. The hover label must invert to
+    # the theme background color and never match the (accent) fill.
+    app = PgntuiApp(theme=load_builtin("mono-ascii"), containers=[])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.hover("#config-button")
+        await pilot.pause()
+        btn = app.query_one("#config-button")
+        assert btn.styles.color.rgb != btn.styles.background.rgb, "hover text invisible on fill"
+        assert btn.styles.color.rgb == (0, 0, 0), "mono-ascii hover label should be black"
+
+
+@pytest.mark.asyncio
 async def test_top_bar_shows_title_with_version() -> None:
     app = PgntuiApp(theme=load_builtin("dark"), containers=[])
     async with app.run_test() as pilot:

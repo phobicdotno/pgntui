@@ -127,7 +127,10 @@ class TopBarButton(Static):
 
     DEFAULT_CSS = """
     TopBarButton { width: auto; padding: 0 2; }
-    TopBarButton:hover { background: $accent; text-style: bold; }
+    /* Paint the hover label in the theme background color so it inverts against
+       the accent fill. Without this, themes whose accent equals their
+       foreground (mono-ascii: white on white) render an unreadable box. */
+    TopBarButton:hover { background: $accent; color: $background; text-style: bold; }
     """
 
     def __init__(self, label: str, action: str, **kwargs: Any) -> None:
