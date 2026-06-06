@@ -191,6 +191,10 @@ class AnalogInWidget(Widget):
             width = max((self.content_size.width or 0) - 2, 0)
             spark = self.sparkline_str(width) if width >= 4 else ""
             if spark:
+                # Crop the signal line to exactly one cell-width so it can't wrap
+                # and shove the sparkline onto a clipped third line in a narrow
+                # multi-column cell.
+                text.truncate(self.content_size.width, overflow="crop")
                 text.append("\n  ")
                 text.append(spark, style=c["bar_fill"])
         return text
@@ -337,6 +341,9 @@ class DigitalInWidget(Widget):
             width = max((self.content_size.width or 0) - 2, 0)
             spark = self.sparkline_str(width) if width >= 4 else ""
             if spark:
+                # Crop to one cell-width so the sparkline stays line two even in
+                # a narrow multi-column cell.
+                text.truncate(self.content_size.width, overflow="crop")
                 text.append("\n  ")
                 text.append(spark, style=c["bar_fill"])
         return text
