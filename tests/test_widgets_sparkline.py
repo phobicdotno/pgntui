@@ -1,5 +1,5 @@
-from pgntui.signals.base import AnalogIn
-from pgntui.signals.widgets import AnalogInWidget
+from pgntui.signals.base import AnalogIn, DigitalIn
+from pgntui.signals.widgets import AnalogInWidget, DigitalInWidget
 
 
 def _sig(**kw) -> AnalogIn:
@@ -63,3 +63,38 @@ def test_clear_resets_clock_so_new_data_shows_after_switch() -> None:
     w.clear()  # instance switch
     w.update_value(2000.0, ts=0.5)  # new instance, lower timestamp
     assert w.sparkline_str(2)[-1] != " "  # new reading visible at the right edge
+
+
+def _dsig(**kw) -> DigitalIn:
+    base = dict(id="run", type="digital_in", title="Bilge", pgn=127501,
+                field="Indicator1", on_label="RUN", off_label="OFF")
+    base.update(kw)
+    return DigitalIn(**base)
+
+
+def test_digital_update_value_with_ts_feeds_step_history() -> None:
+    w = DigitalInWidget(_dsig())
+    w.update_value(False, ts=0.0)
+    w.update_value(True, ts=1.0)
+    w.update_value(True, ts=2.0)
+    assert w.sparkline_str(3) == "▁██"
+
+
+def test_digital_clear_empties_history() -> None:
+    w = DigitalInWidget(_dsig())
+    w.update_value(True, ts=0.0)
+    w.clear()
+    assert w.sparkline_str(2) == "  "
+
+
+def test_digital_clear_resets_clock() -> None:
+    # Same instance-switch clock-reset guard as AnalogInWidget.
+    w = DigitalInWidget(_dsig())
+    w.update_value(True, ts=100.0)
+    w.clear()
+    w.update_value(True, ts=0.5)
+    assert w.sparkline_str(2)[-1] != " "
+
+
+def test_digital_is_focusable() -> None:
+    assert DigitalInWidget(_dsig()).can_focus is True

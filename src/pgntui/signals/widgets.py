@@ -9,7 +9,7 @@ from textual.widget import Widget
 
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut
 from pgntui.signals.history import History
-from pgntui.signals.sparkline import render_analog
+from pgntui.signals.sparkline import render_analog, render_digital
 from pgntui.themes.loader import Theme
 
 _BAR_WIDTH = 18
@@ -250,6 +250,8 @@ class AnalogOutWidget(Widget):
 
 
 class DigitalInWidget(Widget):
+    can_focus = True
+
     def __init__(self, signal: DigitalIn, theme: Theme | None = None) -> None:
         super().__init__()
         self.signal = signal
@@ -257,14 +259,35 @@ class DigitalInWidget(Widget):
         self.value: bool = False
         # ``False`` until the first reading arrives — see AnalogInWidget.has_data.
         self.has_data: bool = False
+        self._history = History()
+        self.expanded: bool = False
+        self._now: float = 0.0
 
-    def update_value(self, value: object) -> None:
+    def update_value(self, value: object, ts: float | None = None) -> None:
         self.has_data = True
         if self.signal.bit is not None:
             self.value = bool((int(value) >> self.signal.bit) & 1)  # type: ignore[call-overload]
         else:
             self.value = bool(value)
+        if ts is not None:
+            self._now = max(self._now, ts)
+            self._history.add(1.0 if self.value else 0.0, ts)
         self.refresh()
+
+    def sparkline_str(self, width: int) -> str:
+        """The digital step-wave glyph string for ``width`` columns."""
+        return render_digital(self._history.columns(self._now, width))
+
+    def toggle_sparkline(self) -> None:
+        self.expanded = not self.expanded
+        self.refresh(layout=True)
+
+    def tick(self, now: float) -> None:
+        self._now = max(self._now, now)
+
+    def on_click(self) -> None:
+        self.focus()
+        self.toggle_sparkline()
 
     def render_text(self) -> str:
         s = self.signal
@@ -292,12 +315,22 @@ class DigitalInWidget(Widget):
         else:
             text.append(_glyph(theme, "off"), style=c["fg_dim"])
             text.append(f" {s.off_label}", style=c["fg_dim"])
+        if self.expanded:
+            width = max((self.content_size.width or 0) - 2, 0)
+            spark = self.sparkline_str(width) if width >= 4 else ""
+            if spark:
+                text.append("\n  ")
+                text.append(spark, style=c["bar_fill"])
         return text
 
     def clear(self) -> None:
         """Reset to the no-data (diffuse) state on instance switch."""
         self.has_data = False
         self.value = False
+        self._history.clear()
+        # Reset the render clock too (see AnalogInWidget.clear) so a new
+        # instance's readings anchor the window at their own timestamps.
+        self._now = 0.0
         self.refresh()
 
 
