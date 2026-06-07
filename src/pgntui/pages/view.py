@@ -155,6 +155,12 @@ class PageView(Widget):
            not a margin — a margin eats into the grid cell and clips the box. */
         margin: 0;
     }
+    /* Section (page) boxes use a different border tone ($secondary) so they stand
+       out from the container boxes ($accent) nested inside them. */
+    PageView GroupBox.section {
+        border: solid $secondary;
+        border-title-color: $secondary;
+    }
     """
 
     def __init__(
@@ -170,10 +176,11 @@ class PageView(Widget):
         self.signals = signals
         self.write_enabled = write_enabled
         self.theme_def = theme
-        # When several pages are stacked under one tab, each renders a full-width
-        # ``├── Title ──┤`` rule above its content so the sections stay labelled.
+        # When several pages are stacked under one tab, each is wrapped in its own
+        # titled box (``┌─ Nav ─┐ … └──┘``) labelled with this, enclosing the
+        # page's container boxes.
         self.section_title = section_title
-        self._section_header: GroupRule | None = None
+        self._section_box: GroupBox | None = None
         self.widgets: dict[str, Widget] = {}
         # Ordered (child widget, column_span) pairs, built in compose, applied in
         # on_mount (column_span can't be set before the widget is mounted).
@@ -188,6 +195,9 @@ class PageView(Widget):
         # Each box's pinned height (signal rows + border) so the box grid's row
         # tracks can be sized explicitly — its ``auto`` rows under-measure boxes.
         self._box_height: dict[GroupBox, int] = {}
+        # This view's total content height, pinned in _size_box_grid_rows so the
+        # section measures correctly inside a page-grid cell (Ctrl+1/2/3).
+        self._content_height: int = 0
         self._row_of_widget: dict[Widget, int] = {}
         # Signal-column layout: None = the page's authored layout; 1/2/3 = that
         # many equal columns within each box. Toggled by [1] / [2] / [3].
@@ -225,37 +235,37 @@ class PageView(Widget):
                 widget.clear()
 
     def compose(self) -> ComposeResult:
-        # Optional section header — a labelled rule above this page's content,
-        # used when several pages share one tab (Nav / Engine / Main sections).
-        if self.section_title:
-            self._section_header = GroupRule(self.section_title, theme=self.theme_def)
-            yield self._section_header
-        # A page with instances gets a header line showing the active source.
+        # Inner content: the optional instance header, then one Grid holding every
+        # container box (so Shift+1/2/3 can lay the boxes out in 1/2/3 columns).
+        inner: list[Widget] = []
         if self.page.instances:
             self._instance_header = GroupRule(
                 self._instance_label(self.active_index), theme=self.theme_def
             )
-            yield self._instance_header
+            inner.append(self._instance_header)
         boxes: list[GroupBox] = []
         for ci, container in enumerate(self.page.containers):
             grid = self._build_grid(container, f"grid-{self.page.id}-{ci}")
             box = GroupBox(grid, id=f"box-{self.page.id}-{ci}")
             box.border_title = container.title
-            box.border_subtitle = "[1] [2]"  # real hint set by _update_hints on mount
             self._boxes.append(box)
             boxes.append(box)
-        # Every container box shares one Grid so Shift+1/2/3 can lay the boxes out
-        # in 1/2/3 columns across the page. height:auto keeps the grid exactly
-        # content-tall so its rows never stretch (Grid defaults to height:1fr).
+        # height:auto keeps the grid exactly content-tall so its rows never stretch
+        # (Grid defaults to height:1fr); gutters give 1-cell gaps between boxes.
         self._box_grid = Grid(*boxes, id=f"boxgrid-{self.page.id}")
         self._box_grid.styles.grid_size_columns = self._group_cols
         self._box_grid.styles.height = "auto"
-        # 1-cell gaps between boxes via the gutter (not box margins, which would
-        # shrink the cell under the box). Row tracks are pinned in
-        # _size_box_grid_rows so the box grid's own ``auto`` rows never clip a box.
         self._box_grid.styles.grid_gutter_vertical = 1
         self._box_grid.styles.grid_gutter_horizontal = 1
-        yield self._box_grid
+        inner.append(self._box_grid)
+        if self.section_title:
+            # Enclose the whole section in its own titled box (┌─ Nav ─┐ … └──┘),
+            # nesting the container boxes inside it.
+            self._section_box = GroupBox(*inner, id=f"section-{self.page.id}", classes="section")
+            self._section_box.border_title = self.section_title
+            yield self._section_box
+        else:
+            yield from inner
 
     def _build_grid(self, container: Container, grid_id: str) -> Grid:
         """Build one auto-flow Grid from a container's placements (registering
@@ -278,13 +288,8 @@ class PageView(Widget):
     def on_mount(self) -> None:
         for widget, span in self._spans:
             widget.styles.column_span = span
-        self._update_hints()
         # Pin box + box-grid heights from the start (auto rows clip them otherwise).
         self._refresh_grid_rows()
-
-    def on_resize(self) -> None:
-        # Show/hide the [3] hint as the terminal crosses the width threshold.
-        self._update_hints()
 
     def _three_col_allowed(self) -> bool:
         """True when the screen is wide enough for three usable signal columns."""
@@ -303,21 +308,6 @@ class PageView(Widget):
         except Exception:  # pragma: no cover - not mounted
             return False
 
-    def _update_hints(self) -> None:
-        """Refresh each box's bottom-right hint: signal columns via [1]/[2]/[3]
-        and group columns via Shift+[1]/[2]/[3] (shown with a ``Shift+`` prefix),
-        each offered only as wide as the screen allows."""
-        sig = "[1] [2] [3]" if self._three_col_allowed() else "[1] [2]"
-        if self._group_cols_allowed(3):
-            grp = "[1] [2] [3]"
-        elif self._group_cols_allowed(2):
-            grp = "[1] [2]"
-        else:
-            grp = "[1]"
-        hint = f"{sig}  Shift+{grp}"
-        for box in self._boxes:
-            box.border_subtitle = hint
-
     def add_generated_container(self, title: str, rows: list[Widget]) -> None:
         """Mount a runtime-built container (used by the Auto page) and register
         its grid + rows so the sparkline row-sizing and the [1]/[2] toggle apply.
@@ -333,7 +323,6 @@ class PageView(Widget):
             self._span_of_widget[w] = 1
         box = GroupBox(grid)
         box.border_title = title
-        box.border_subtitle = "[1] [2]"
         self._boxes.append(box)
         # Pin this box's height now (its grid isn't mounted yet, so _refresh can't
         # read grid.parent): rows = signals / current signal-column count.
@@ -349,7 +338,6 @@ class PageView(Widget):
         else:  # pragma: no cover - the box grid is always built in compose
             self.mount(box)
         self._size_box_grid_rows()
-        self._update_hints()
 
     def _refresh_grid_rows(self) -> None:
         """Resize each grid's row tracks so an expanded input row is 2 cells tall
@@ -393,16 +381,26 @@ class PageView(Widget):
 
     def _size_box_grid_rows(self) -> None:
         """Pin the box grid's row tracks to the boxes' real heights so each page
-        row is as tall as the tallest box in it. (The box grid's ``auto`` rows
-        under-measure once there are several rows.)"""
+        row is as tall as the tallest box in it (its ``auto`` rows under-measure
+        once there are several rows), then pin this view's own height so a section
+        measures correctly inside a page-grid cell (Ctrl+1/2/3)."""
         if self._box_grid is None:
             return
         n = max(self._group_cols, 1)
         heights = [self._box_height[b] for b in self._boxes if b in self._box_height]
         if not heights:
             return
-        rows = [str(max(heights[i : i + n])) for i in range(0, len(heights), n)]
-        self._box_grid.styles.grid_rows = " ".join(rows)
+        row_sizes = [max(heights[i : i + n]) for i in range(0, len(heights), n)]
+        self._box_grid.styles.grid_rows = " ".join(str(h) for h in row_sizes)
+        # box-grid rows + 1-cell gutters between them, + instance header, + the
+        # section box border (when this view is a titled section).
+        total = sum(row_sizes) + max(len(row_sizes) - 1, 0)
+        if self._instance_header is not None:
+            total += 1
+        if self.section_title:
+            total += 2
+            self.styles.height = total
+        self._content_height = total
 
     def set_columns(self, n: int) -> None:
         """Lay the page out in ``n`` equal columns: [1] one full-width column,
@@ -442,9 +440,8 @@ class PageView(Widget):
         enough — no rebuild needed.
         """
         self.theme_def = theme
-        if self._section_header is not None:
-            self._section_header.theme_def = theme
-            self._section_header.refresh()
+        # The section box is a GroupBox — its border tracks $accent via CSS, so it
+        # re-themes automatically; only the GroupRule instance header bakes colors.
         if self._instance_header is not None:
             self._instance_header.theme_def = theme
             self._instance_header.refresh()

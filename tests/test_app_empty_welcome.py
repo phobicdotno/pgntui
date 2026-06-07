@@ -44,7 +44,7 @@ async def test_bottom_strips_visible_on_empty_workspace() -> None:
         status = app.query_one("#status-bar", Static)
         assert hotkeys is not None
         assert status is not None
-        # Sanity: hotkey strip text matches the actual bindings.
+        # Sanity: hotkey strip shows the navigation + layout-toggle hints.
         rendered = str(hotkeys.render())
         assert "[Tab]" in rendered
-        assert "[Q]" in rendered
+        assert "[Ctrl+1/2/3]" in rendered

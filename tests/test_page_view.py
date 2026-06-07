@@ -232,9 +232,6 @@ async def test_three_column_layout_on_wide_screen() -> None:
     async with _MultiColHost().run_test(size=(120, 40)) as pilot:
         await pilot.pause()
         view = pilot.app.query_one(PageView)
-        box = pilot.app.query_one(GroupBox)
-        # Hint carries both axes: signal columns then group columns (Shift+).
-        assert str(box.border_subtitle) == "[1] [2] [3]  Shift+[1] [2] [3]"
         view.set_columns(3)
         await pilot.pause()
         ws = list(pilot.app.query(AnalogInWidget))
@@ -249,9 +246,6 @@ async def test_three_column_hidden_and_noop_on_narrow_screen() -> None:
     async with _MultiColHost().run_test(size=(100, 30)) as pilot:
         await pilot.pause()
         view = pilot.app.query_one(PageView)
-        box = pilot.app.query_one(GroupBox)
-        # Narrow: signal [3] and group [3] both drop off the hint.
-        assert str(box.border_subtitle) == "[1] [2]  Shift+[1] [2]"
         ws = list(pilot.app.query(AnalogInWidget))
         assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
         view.set_columns(3)  # refused — screen too narrow for three columns

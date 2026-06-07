@@ -11,7 +11,7 @@ from typing import Any
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Container as TextualContainer
-from textual.containers import Horizontal, Vertical, VerticalScroll
+from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widget import Widget
 from textual.widgets import (
@@ -464,8 +464,12 @@ class PgntuiApp(App[None]):
 
     CSS = """
     TabbedContent { height: 1fr; }
-    #hotkey-strip { height: 1; dock: bottom; background: $primary; }
-    #status-bar { height: 1; dock: bottom; }
+    /* Footer is one docked bar: the hotkey hints fill the left, the status sits at
+       the right. A single row so they share the bar (two separate ``dock: bottom``
+       widgets would land on the same row and overlap, hiding the hints). */
+    #footer { dock: bottom; height: 1; background: $primary; }
+    #hotkey-strip { width: 1fr; height: 1; }
+    #status-bar { width: auto; height: 1; padding: 0 1; }
     #welcome { padding: 1 2; }
     """
 
@@ -484,11 +488,16 @@ class PgntuiApp(App[None]):
         ("exclamation_mark", "group_columns_one", "Grp1"),
         ("at,quotation_mark", "group_columns_two", "Grp2"),
         ("number_sign", "group_columns_three", "Grp3"),
+        ("ctrl+1", "page_columns_one", "Pg1"),
+        ("ctrl+2", "page_columns_two", "Pg2"),
+        ("ctrl+3", "page_columns_three", "Pg3"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
-        ("left_square_bracket", "prev_instance", "Inst-"),
-        ("right_square_bracket", "next_instance", "Inst+"),
+        # Instance switch: , / . work on every keyboard (the [ ] aliases need
+        # AltGr on Nordic layouts, so keep both).
+        ("comma,left_square_bracket", "prev_instance", "Inst-"),
+        ("full_stop,right_square_bracket", "next_instance", "Inst+"),
         ("c", "connection", "Connection"),
         ("s", "config", "Config"),
         ("a", "about", "About"),
@@ -550,6 +559,9 @@ class PgntuiApp(App[None]):
         # yields each PageView so ``_wire_write_callbacks`` can hook widgets
         # after mount.
         self._page_views: list[tuple[Page, PageView]] = []
+        # The grid that arranges the content sections; Ctrl+1/2/3 set its columns.
+        self._page_grid: Grid | None = None
+        self._page_cols: int = 1
         # Auto page (built at runtime from the live stream) — only with a driver.
         self._auto_view: PageView | None = None
         self._auto_builder: AutoPageBuilder | None = None
@@ -589,12 +601,20 @@ class PgntuiApp(App[None]):
                             yield Static(title, classes="signal-title")
                 else:
                     if self._pages:
-                        # One "Main" tab stacks every source page as a labelled
-                        # section (Nav / Engine / Main) in a single scroll, rather
-                        # than one tab per page.
+                        # One "Main" tab holds every source page as a labelled
+                        # section in a grid, so Ctrl+1/2/3 can lay the sections out
+                        # in 1/2/3 page-columns (the box & signal column toggles
+                        # nest inside each section).
+                        self._page_grid = Grid(id="page-grid")
+                        self._page_grid.styles.grid_size_columns = self._page_cols
+                        self._page_grid.styles.grid_rows = "auto"
+                        self._page_grid.styles.height = "auto"
+                        self._page_grid.styles.grid_gutter_vertical = 1
+                        self._page_grid.styles.grid_gutter_horizontal = 1
                         with (
                             TabPane("Main", id=_CONTENT_TAB_ID),
                             VerticalScroll(id="content-scroll"),
+                            self._page_grid,
                         ):
                             for page in self._pages:
                                 view = PageView(
@@ -604,10 +624,8 @@ class PgntuiApp(App[None]):
                                     theme=self._theme,
                                     section_title=page.title,
                                 )
-                                # Size to content so the sections flow in one
-                                # scroll instead of each taking an equal share.
-                                view.styles.height = "auto"
-                                # Stash the view so we can hook widgets after mount.
+                                # PageView pins its own height (_size_box_grid_rows)
+                                # so it measures right inside a page-grid cell.
                                 self._page_views.append((page, view))
                                 yield view
                     if self._n2k_driver is not None:
@@ -634,14 +652,14 @@ class PgntuiApp(App[None]):
                     # is revealed by the [G] toggle.
                     self._debug_aggregate.display = False
                     yield self._debug_aggregate
-            yield Static(
-                "[Tab] Page  [ [ / ] ] Instance  [↑/↓] Signal  [+] Spark  "
-                "[D] Debug  [G] Group  [R] Rec  "
-                "[C] Connection  [S] Config  [A] About  [Q] Quit",
-                id="hotkey-strip",
-                markup=False,
-            )
-            yield Static("status: idle", id="status-bar", markup=False)
+            with Horizontal(id="footer"):
+                yield Static(
+                    "[Tab] Page  [,/.] Inst  [↑/↓] Sig  [+] Spark  "
+                    "[1/2/3] Cols  [Shift+1/2/3] Box cols  [Ctrl+1/2/3] Pages",
+                    id="hotkey-strip",
+                    markup=False,
+                )
+                yield Static("status: idle", id="status-bar", markup=False)
 
     # ---- Frame loop --------------------------------------------------------
 
@@ -818,6 +836,24 @@ class PgntuiApp(App[None]):
     def action_group_columns_three(self) -> None:
         for view in self._active_views():
             view.set_group_columns(3)
+
+    def action_page_columns_one(self) -> None:
+        self._set_page_columns(1)
+
+    def action_page_columns_two(self) -> None:
+        self._set_page_columns(2)
+
+    def action_page_columns_three(self) -> None:
+        self._set_page_columns(3)
+
+    def _set_page_columns(self, n: int) -> None:
+        """Lay the content sections out in ``n`` columns across the page (Ctrl+N).
+        Sections pin their own height, so the grid's auto rows size correctly."""
+        if self._page_grid is None:
+            return
+        self._page_cols = n
+        self._page_grid.styles.grid_size_columns = n
+        self._page_grid.styles.grid_columns = "1fr"
 
     def action_focus_next_signal(self) -> None:
         self._move_signal_focus(1)
