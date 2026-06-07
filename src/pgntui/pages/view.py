@@ -295,8 +295,8 @@ class PageView(Widget):
 
     def _update_hints(self) -> None:
         """Refresh each box's bottom-right hint: signal columns via [1]/[2]/[3]
-        and group columns via Shift+[1]/[2]/[3] (shown as ``G:``), each offered
-        only as wide as the screen allows."""
+        and group columns via Shift+[1]/[2]/[3] (shown with a ``Shift+`` prefix),
+        each offered only as wide as the screen allows."""
         sig = "[1] [2] [3]" if self._three_col_allowed() else "[1] [2]"
         if self._group_cols_allowed(3):
             grp = "[1] [2] [3]"
@@ -304,7 +304,7 @@ class PageView(Widget):
             grp = "[1] [2]"
         else:
             grp = "[1]"
-        hint = f"{sig}  G:{grp}"
+        hint = f"{sig}  Shift+{grp}"
         for box in self._boxes:
             box.border_subtitle = hint
 
