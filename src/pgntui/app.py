@@ -472,7 +472,8 @@ class PgntuiApp(App[None]):
         ("down", "focus_next_signal", "Down"),
         ("plus", "toggle_sparkline", "Spark"),
         ("1", "columns_one", "1col"),
-        ("2", "columns_default", "Cols"),
+        ("2", "columns_default", "2col"),
+        ("3", "columns_three", "3col"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
@@ -776,12 +777,17 @@ class PgntuiApp(App[None]):
     def action_columns_one(self) -> None:
         view = self._active_view()
         if view is not None:
-            view.set_column_mode(True)
+            view.set_columns(1)
 
     def action_columns_default(self) -> None:
         view = self._active_view()
         if view is not None:
-            view.set_column_mode(False)
+            view.set_columns(2)
+
+    def action_columns_three(self) -> None:
+        view = self._active_view()
+        if view is not None:
+            view.set_columns(3)
 
     def action_focus_next_signal(self) -> None:
         self._move_signal_focus(1)

@@ -168,12 +168,12 @@ async def test_column_toggle_switches_one_and_multi() -> None:
         # Default 2-column layout: pairs share a row.
         assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
         # [1] -> one column: each widget its own row, all in the same column.
-        view.set_column_mode(True)
+        view.set_columns(1)
         await pilot.pause()
         assert [w.region.y for w in ws] == [1, 2, 3, 4, 5, 6]
         assert len({w.region.x for w in ws}) == 1
-        # [2] -> back to the authored layout.
-        view.set_column_mode(False)
+        # [2] -> two equal columns: pairs share a row again.
+        view.set_columns(2)
         await pilot.pause()
         assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
 
@@ -214,7 +214,7 @@ async def test_bars_fill_and_right_ends_align() -> None:
     async with _MultiColHost().run_test(size=(100, 30)) as pilot:
         await pilot.pause()
         view = pilot.app.query_one(PageView)
-        view.set_column_mode(True)  # one column, full width
+        view.set_columns(1)  # one column, full width
         await pilot.pause()
         ws = list(pilot.app.query(AnalogInWidget))
         ws[0].update_value(5.0)  # short value
@@ -223,3 +223,35 @@ async def test_bars_fill_and_right_ends_align() -> None:
         inners = [w._bar_inner_width() for w in ws]
         assert all(n > 18 for n in inners)  # bars fill (wider than the old fixed 18)
         assert len(set(inners)) == 1  # equal length -> right ends (┤) align
+
+
+@pytest.mark.asyncio
+async def test_three_column_layout_on_wide_screen() -> None:
+    # On a wide enough terminal the [3] option is offered and lays the six
+    # signals out three-per-row (y = [1,1,1,2,2,2], three distinct columns).
+    async with _MultiColHost().run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        box = pilot.app.query_one(GroupBox)
+        assert str(box.border_subtitle) == "[1] [2] [3]"  # hint offered when wide
+        view.set_columns(3)
+        await pilot.pause()
+        ws = list(pilot.app.query(AnalogInWidget))
+        assert [w.region.y for w in ws] == [1, 1, 1, 2, 2, 2]
+        assert len({w.region.x for w in ws}) == 3  # three distinct columns
+
+
+@pytest.mark.asyncio
+async def test_three_column_hidden_and_noop_on_narrow_screen() -> None:
+    # On a narrow terminal [3] is not offered and set_columns(3) is a no-op:
+    # the authored two-column layout is left untouched.
+    async with _MultiColHost().run_test(size=(100, 30)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        box = pilot.app.query_one(GroupBox)
+        assert str(box.border_subtitle) == "[1] [2]"  # [3] not offered when narrow
+        ws = list(pilot.app.query(AnalogInWidget))
+        assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
+        view.set_columns(3)  # refused — screen too narrow for three columns
+        await pilot.pause()
+        assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]  # unchanged

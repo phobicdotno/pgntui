@@ -90,6 +90,11 @@ class GroupRule(Widget):
         return text
 
 
+# Screen width (columns) at/above which the three-column layout [3] is offered,
+# so each of the three columns stays wide enough to be usable.
+_THREE_COL_MIN = 120
+
+
 class PageView(Widget):
     """Renders one Page: an optional page-level instance header, then a vertical
     scroll of its Containers, each a titled :class:`GroupBox` wrapping a grid."""
@@ -163,11 +168,10 @@ class PageView(Widget):
         # Per-container grids + each widget's grid-row index, so an expanded
         # input row can be bumped to height 2 without ``auto`` stretching.
         self._grids: list[Grid] = []
+        self._boxes: list[GroupBox] = []
         self._row_of_widget: dict[Widget, int] = {}
-        # Column-layout toggle: [1] -> one column, [2] -> authored layout. Needs
-        # each grid's authored column count and each widget's authored span.
-        # Column layout: None = the page's authored layout; 1 = one column;
-        # 2 = two equal (50%) columns. Toggled by [1] / [2].
+        # Column layout: None = the page's authored layout; 1/2/3 = that many
+        # equal columns. Toggled by [1] / [2] / [3].
         self._layout_cols: int | None = None
         self._span_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
@@ -209,7 +213,8 @@ class PageView(Widget):
             grid = self._build_grid(container, f"grid-{self.page.id}-{ci}")
             box = GroupBox(grid, id=f"box-{self.page.id}-{ci}")
             box.border_title = container.title
-            box.border_subtitle = "[1] [2]"  # 1 = one column, 2 = this layout
+            box.border_subtitle = "[1] [2]"  # [3] added on mount/resize when wide
+            self._boxes.append(box)
             yield box
 
     def _build_grid(self, container: Container, grid_id: str) -> Grid:
@@ -233,6 +238,23 @@ class PageView(Widget):
     def on_mount(self) -> None:
         for widget, span in self._spans:
             widget.styles.column_span = span
+        self._update_hints()
+
+    def on_resize(self) -> None:
+        # Show/hide the [3] hint as the terminal crosses the width threshold.
+        self._update_hints()
+
+    def _three_col_allowed(self) -> bool:
+        """True when the screen is wide enough for three usable columns."""
+        try:
+            return self.app.size.width >= _THREE_COL_MIN
+        except Exception:  # pragma: no cover - not mounted
+            return False
+
+    def _update_hints(self) -> None:
+        hint = "[1] [2] [3]" if self._three_col_allowed() else "[1] [2]"
+        for box in self._boxes:
+            box.border_subtitle = hint
 
     def add_generated_container(self, title: str, rows: list[Widget]) -> None:
         """Mount a runtime-built container (used by the Auto page) and register
@@ -250,7 +272,9 @@ class PageView(Widget):
         box = GroupBox(grid)
         box.border_title = title
         box.border_subtitle = "[1] [2]"
+        self._boxes.append(box)
         self.mount(box)
+        self._update_hints()
 
     def _refresh_grid_rows(self) -> None:
         """Resize each grid's row tracks so an expanded input row is 2 cells tall
@@ -282,14 +306,17 @@ class PageView(Widget):
                 "2" if r in expanded_rows else "1" for r in range(max_row + 1)
             )
 
-    def set_column_mode(self, one_column: bool) -> None:
-        """[1] -> one full-width column; [2] -> two equal 50% columns. Both are
-        uniform (each widget spans one column), so [2] tidies any authored
-        arrangement into an even two-column view and [1] avoids narrow-cell crop."""
-        self._layout_cols = 1 if one_column else 2
+    def set_columns(self, n: int) -> None:
+        """Lay the page out in ``n`` equal columns: [1] one full-width column,
+        [2] two 50% columns, [3] three (only when the screen is wide enough).
+        Uniform — each widget spans one column — so columns fill evenly and bars
+        line up."""
+        if n == 3 and not self._three_col_allowed():
+            return  # three columns only on a wide enough screen
+        self._layout_cols = n
         for grid in self._grids:
-            grid.styles.grid_size_columns = self._layout_cols
-            grid.styles.grid_columns = "1fr"  # equal-width columns (50% each at 2)
+            grid.styles.grid_size_columns = n
+            grid.styles.grid_columns = "1fr"  # equal-width columns
         for widget in self._span_of_widget:
             widget.styles.column_span = 1
         self._refresh_grid_rows()
