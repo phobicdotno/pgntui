@@ -82,3 +82,28 @@ async def test_replay_app_composes_one_content_tab(tmp_path: Path) -> None:
     # Allow the background worker to wind down before closing the driver.
     await asyncio.sleep(0)
     drv.close()
+
+
+@pytest.mark.asyncio
+async def test_f_keys_set_page_columns(tmp_path: Path) -> None:
+    """F1/F2/F3 lay the content sections out in 1/2/3 page-columns. Ctrl+digit is
+    not delivered by legacy terminals, so the F-keys are the reliable binding."""
+    from textual.widgets import TabbedContent
+
+    ws = _make_workspace(tmp_path)
+    cfg = Config(theme="dark", workspace=ws)
+    app = _build_app(cfg=cfg, workspace=ws, driver=None)
+    async with app.run_test(size=(150, 40)) as pilot:
+        await pilot.pause()
+        app.query_one(TabbedContent).active = "tab-content"
+        await pilot.pause()
+        assert app._page_cols == 1
+        await pilot.press("f3")
+        await pilot.pause()
+        assert app._page_cols == 3
+        await pilot.press("f2")
+        await pilot.pause()
+        assert app._page_cols == 2
+        await pilot.press("f1")
+        await pilot.pause()
+        assert app._page_cols == 1

@@ -47,4 +47,4 @@ async def test_bottom_strips_visible_on_empty_workspace() -> None:
         # Sanity: hotkey strip shows the navigation + layout-toggle hints.
         rendered = str(hotkeys.render())
         assert "[Tab]" in rendered
-        assert "[Ctrl+1/2/3]" in rendered
+        assert "[F1/F2/F3]" in rendered

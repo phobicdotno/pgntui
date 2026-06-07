@@ -488,9 +488,12 @@ class PgntuiApp(App[None]):
         ("exclamation_mark", "group_columns_one", "Grp1"),
         ("at,quotation_mark", "group_columns_two", "Grp2"),
         ("number_sign", "group_columns_three", "Grp3"),
-        ("ctrl+1", "page_columns_one", "Pg1"),
-        ("ctrl+2", "page_columns_two", "Pg2"),
-        ("ctrl+3", "page_columns_three", "Pg3"),
+        # Page columns: F1/F2/F3 work even on terminals that don't report
+        # Ctrl+digit (legacy mode only sends control codes for Ctrl+letter); the
+        # ctrl+digit aliases still fire where the enhanced keyboard protocol is on.
+        ("f1,ctrl+1", "page_columns_one", "Pg1"),
+        ("f2,ctrl+2", "page_columns_two", "Pg2"),
+        ("f3,ctrl+3", "page_columns_three", "Pg3"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
@@ -655,7 +658,7 @@ class PgntuiApp(App[None]):
             with Horizontal(id="footer"):
                 yield Static(
                     "[Tab] Page  [,/.] Inst  [↑/↓] Sig  [+] Spark  "
-                    "[1/2/3] Cols  [Shift+1/2/3] Box cols  [Ctrl+1/2/3] Pages",
+                    "[1/2/3] Cols  [Shift+1/2/3] Box cols  [F1/F2/F3] Pages",
                     id="hotkey-strip",
                     markup=False,
                 )
