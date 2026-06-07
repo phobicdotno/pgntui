@@ -474,6 +474,12 @@ class PgntuiApp(App[None]):
         ("1", "columns_one", "1col"),
         ("2", "columns_default", "2col"),
         ("3", "columns_three", "3col"),
+        # Shift+1/2/3 arrange the group boxes into 1/2/3 columns. Terminals report
+        # shifted digits as their symbol, and the symbol is keyboard-layout
+        # dependent, so bind both the US (@) and Nordic (") forms of Shift+2.
+        ("exclamation_mark", "group_columns_one", "Grp1"),
+        ("at,quotation_mark", "group_columns_two", "Grp2"),
+        ("number_sign", "group_columns_three", "Grp3"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
@@ -788,6 +794,21 @@ class PgntuiApp(App[None]):
         view = self._active_view()
         if view is not None:
             view.set_columns(3)
+
+    def action_group_columns_one(self) -> None:
+        view = self._active_view()
+        if view is not None:
+            view.set_group_columns(1)
+
+    def action_group_columns_two(self) -> None:
+        view = self._active_view()
+        if view is not None:
+            view.set_group_columns(2)
+
+    def action_group_columns_three(self) -> None:
+        view = self._active_view()
+        if view is not None:
+            view.set_group_columns(3)
 
     def action_focus_next_signal(self) -> None:
         self._move_signal_focus(1)

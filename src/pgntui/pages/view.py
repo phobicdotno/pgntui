@@ -94,6 +94,11 @@ class GroupRule(Widget):
 # so each of the three columns stays wide enough to be usable.
 _THREE_COL_MIN = 120
 
+# Minimum width (columns) budgeted per group box when arranging the container
+# boxes into side-by-side columns with Shift+1/2/3: two group columns need ~80
+# cols, three need ~120 — mirroring the per-signal-column budget above.
+_GROUP_COL_MIN_WIDTH = 40
+
 
 class PageView(Widget):
     """Renders one Page: an optional page-level instance header, then a vertical
@@ -106,11 +111,12 @@ class PageView(Widget):
         overflow-y: auto;
         overflow-x: hidden;
     }
-    /* Rows are FIXED at 1 cell so a multi-column grid stays tight. (An ``auto``
-       row track stretches to fill the box height, which spreads rows apart.)
-       ``_refresh_grid_rows`` bumps just an expanded row to 2 with a fixed value,
-       so only that row grows and nothing stretches. */
-    PageView Grid {
+    /* Signal grids live INSIDE each GroupBox. Rows are FIXED at 1 cell so a
+       multi-column grid stays tight. (An ``auto`` row track stretches to fill the
+       box height, which spreads rows apart.) ``_refresh_grid_rows`` bumps just an
+       expanded row to 2 with a fixed value, so only that row grows and nothing
+       stretches. The outer box-wrapping grid is styled in code, not here. */
+    PageView GroupBox Grid {
         grid-rows: 1;
         grid-gutter: 0;
         height: auto;
@@ -145,7 +151,9 @@ class PageView(Widget):
         border-subtitle-color: $accent;
         border-subtitle-align: right;
         padding: 0 1;
-        margin: 0 0 1 0;
+        /* Spacing between boxes comes from the box grid's gutter (set in code),
+           not a margin — a margin eats into the grid cell and clips the box. */
+        margin: 0;
     }
     """
 
@@ -169,10 +177,19 @@ class PageView(Widget):
         # input row can be bumped to height 2 without ``auto`` stretching.
         self._grids: list[Grid] = []
         self._boxes: list[GroupBox] = []
+        # The single Grid that holds every container box, so Shift+1/2/3 can
+        # arrange the boxes into 1/2/3 columns across the page. Built in compose.
+        self._box_grid: Grid | None = None
+        # Each box's pinned height (signal rows + border) so the box grid's row
+        # tracks can be sized explicitly — its ``auto`` rows under-measure boxes.
+        self._box_height: dict[GroupBox, int] = {}
         self._row_of_widget: dict[Widget, int] = {}
-        # Column layout: None = the page's authored layout; 1/2/3 = that many
-        # equal columns. Toggled by [1] / [2] / [3].
+        # Signal-column layout: None = the page's authored layout; 1/2/3 = that
+        # many equal columns within each box. Toggled by [1] / [2] / [3].
         self._layout_cols: int | None = None
+        # Group-column layout: how many container boxes sit side by side across
+        # the page (Shift+1/2/3). 1 = the classic single stacked column.
+        self._group_cols: int = 1
         self._span_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
         self.active_index = 0
@@ -209,13 +226,26 @@ class PageView(Widget):
                 self._instance_label(self.active_index), theme=self.theme_def
             )
             yield self._instance_header
+        boxes: list[GroupBox] = []
         for ci, container in enumerate(self.page.containers):
             grid = self._build_grid(container, f"grid-{self.page.id}-{ci}")
             box = GroupBox(grid, id=f"box-{self.page.id}-{ci}")
             box.border_title = container.title
-            box.border_subtitle = "[1] [2]"  # [3] added on mount/resize when wide
+            box.border_subtitle = "[1] [2]"  # real hint set by _update_hints on mount
             self._boxes.append(box)
-            yield box
+            boxes.append(box)
+        # Every container box shares one Grid so Shift+1/2/3 can lay the boxes out
+        # in 1/2/3 columns across the page. height:auto keeps the grid exactly
+        # content-tall so its rows never stretch (Grid defaults to height:1fr).
+        self._box_grid = Grid(*boxes, id=f"boxgrid-{self.page.id}")
+        self._box_grid.styles.grid_size_columns = self._group_cols
+        self._box_grid.styles.height = "auto"
+        # 1-cell gaps between boxes via the gutter (not box margins, which would
+        # shrink the cell under the box). Row tracks are pinned in
+        # _size_box_grid_rows so the box grid's own ``auto`` rows never clip a box.
+        self._box_grid.styles.grid_gutter_vertical = 1
+        self._box_grid.styles.grid_gutter_horizontal = 1
+        yield self._box_grid
 
     def _build_grid(self, container: Container, grid_id: str) -> Grid:
         """Build one auto-flow Grid from a container's placements (registering
@@ -239,20 +269,42 @@ class PageView(Widget):
         for widget, span in self._spans:
             widget.styles.column_span = span
         self._update_hints()
+        # Pin box + box-grid heights from the start (auto rows clip them otherwise).
+        self._refresh_grid_rows()
 
     def on_resize(self) -> None:
         # Show/hide the [3] hint as the terminal crosses the width threshold.
         self._update_hints()
 
     def _three_col_allowed(self) -> bool:
-        """True when the screen is wide enough for three usable columns."""
+        """True when the screen is wide enough for three usable signal columns."""
         try:
             return self.app.size.width >= _THREE_COL_MIN
         except Exception:  # pragma: no cover - not mounted
             return False
 
+    def _group_cols_allowed(self, n: int) -> bool:
+        """True when the screen is wide enough to put ``n`` group boxes side by
+        side (each kept at least ``_GROUP_COL_MIN_WIDTH`` columns wide)."""
+        if n <= 1:
+            return True
+        try:
+            return self.app.size.width >= n * _GROUP_COL_MIN_WIDTH
+        except Exception:  # pragma: no cover - not mounted
+            return False
+
     def _update_hints(self) -> None:
-        hint = "[1] [2] [3]" if self._three_col_allowed() else "[1] [2]"
+        """Refresh each box's bottom-right hint: signal columns via [1]/[2]/[3]
+        and group columns via Shift+[1]/[2]/[3] (shown as ``G:``), each offered
+        only as wide as the screen allows."""
+        sig = "[1] [2] [3]" if self._three_col_allowed() else "[1] [2]"
+        if self._group_cols_allowed(3):
+            grp = "[1] [2] [3]"
+        elif self._group_cols_allowed(2):
+            grp = "[1] [2]"
+        else:
+            grp = "[1]"
+        hint = f"{sig}  G:{grp}"
         for box in self._boxes:
             box.border_subtitle = hint
 
@@ -273,17 +325,33 @@ class PageView(Widget):
         box.border_title = title
         box.border_subtitle = "[1] [2]"
         self._boxes.append(box)
-        self.mount(box)
+        # Pin this box's height now (its grid isn't mounted yet, so _refresh can't
+        # read grid.parent): rows = signals / current signal-column count.
+        effective_cols = self._layout_cols or 1
+        n_rows = (len(rows) + effective_cols - 1) // effective_cols
+        height = n_rows + 2  # + top/bottom border
+        box.styles.height = height
+        self._box_height[box] = height
+        # Mount into the shared box grid so the Auto page's boxes also follow the
+        # current Shift+1/2/3 group-column arrangement.
+        if self._box_grid is not None:
+            self._box_grid.mount(box)
+        else:  # pragma: no cover - the box grid is always built in compose
+            self.mount(box)
+        self._size_box_grid_rows()
         self._update_hints()
 
     def _refresh_grid_rows(self) -> None:
         """Resize each grid's row tracks so an expanded input row is 2 cells tall
-        and every other row stays 1.
+        and every other row stays 1, then pin each box and the box grid to match.
 
         Fixed values are used (never ``auto``): an ``auto`` row track stretches to
         fill the box height, spreading the rows apart, whereas fixed values keep
-        the grid exactly as tall as its content. Called whenever a signal toggles
-        its sparkline (see ``signals.widgets._notify_layout``).
+        the grid exactly as tall as its content. The box grid's ``auto`` rows have
+        the opposite failure — they under-measure a box to its first signal row,
+        clipping the rest — so its tracks are pinned here too. Called whenever a
+        signal toggles its sparkline (see ``signals.widgets._notify_layout``), on
+        mount, and on a layout change.
         """
         for grid in self._grids:
             max_row = -1
@@ -302,9 +370,29 @@ class PageView(Widget):
                     expanded_rows.add(row)
             if max_row < 0:
                 continue
-            grid.styles.grid_rows = " ".join(
-                "2" if r in expanded_rows else "1" for r in range(max_row + 1)
-            )
+            sizes = ["2" if r in expanded_rows else "1" for r in range(max_row + 1)]
+            grid.styles.grid_rows = " ".join(sizes)
+            # Pin the wrapping box to its exact content height (signal rows + the
+            # top/bottom border) so the box grid's cell can't clip it.
+            box = grid.parent
+            if isinstance(box, GroupBox):
+                height = sum(int(s) for s in sizes) + 2
+                box.styles.height = height
+                self._box_height[box] = height
+        self._size_box_grid_rows()
+
+    def _size_box_grid_rows(self) -> None:
+        """Pin the box grid's row tracks to the boxes' real heights so each page
+        row is as tall as the tallest box in it. (The box grid's ``auto`` rows
+        under-measure once there are several rows.)"""
+        if self._box_grid is None:
+            return
+        n = max(self._group_cols, 1)
+        heights = [self._box_height[b] for b in self._boxes if b in self._box_height]
+        if not heights:
+            return
+        rows = [str(max(heights[i : i + n])) for i in range(0, len(heights), n)]
+        self._box_grid.styles.grid_rows = " ".join(rows)
 
     def set_columns(self, n: int) -> None:
         """Lay the page out in ``n`` equal columns: [1] one full-width column,
@@ -320,6 +408,21 @@ class PageView(Widget):
         for widget in self._span_of_widget:
             widget.styles.column_span = 1
         self._refresh_grid_rows()
+
+    def set_group_columns(self, n: int) -> None:
+        """Arrange the container boxes into ``n`` columns across the page
+        (Shift+1/2/3) and auto-pick the signal density inside each box so it stays
+        readable as the boxes narrow: 1 group column -> 3 signal columns, 2 -> 2,
+        3 -> 1. No-op when the screen is too narrow for ``n`` group columns."""
+        if not self._group_cols_allowed(n):
+            return
+        self._group_cols = n
+        if self._box_grid is not None:
+            self._box_grid.styles.grid_size_columns = n
+            self._box_grid.styles.grid_columns = "1fr"  # equal-width group columns
+        # More group columns -> fewer signal columns. Routed through set_columns so
+        # the three-signal-column case still respects its own width gate.
+        self.set_columns(4 - n)
 
     def apply_theme(self, theme: Theme) -> None:
         """Re-theme this view and every child in place (live theme switch).

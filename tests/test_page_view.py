@@ -233,7 +233,8 @@ async def test_three_column_layout_on_wide_screen() -> None:
         await pilot.pause()
         view = pilot.app.query_one(PageView)
         box = pilot.app.query_one(GroupBox)
-        assert str(box.border_subtitle) == "[1] [2] [3]"  # hint offered when wide
+        # Hint carries both axes: signal columns then group columns (G:).
+        assert str(box.border_subtitle) == "[1] [2] [3]  G:[1] [2] [3]"
         view.set_columns(3)
         await pilot.pause()
         ws = list(pilot.app.query(AnalogInWidget))
@@ -249,9 +250,83 @@ async def test_three_column_hidden_and_noop_on_narrow_screen() -> None:
         await pilot.pause()
         view = pilot.app.query_one(PageView)
         box = pilot.app.query_one(GroupBox)
-        assert str(box.border_subtitle) == "[1] [2]"  # [3] not offered when narrow
+        # Narrow: signal [3] and group [3] both drop off the hint.
+        assert str(box.border_subtitle) == "[1] [2]  G:[1] [2]"
         ws = list(pilot.app.query(AnalogInWidget))
         assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]
         view.set_columns(3)  # refused — screen too narrow for three columns
         await pilot.pause()
         assert [w.region.y for w in ws] == [1, 1, 2, 2, 3, 3]  # unchanged
+
+
+class _MultiBoxHost(App[None]):
+    """Three separate container boxes, so the Shift+1/2/3 group-column layout has
+    something to arrange side by side."""
+
+    def compose(self) -> ComposeResult:
+        sigs = {
+            f"s{i}": AnalogIn(
+                id=f"s{i}", type="analog_in", title=f"S{i}", pgn=1, field="x", min=0, max=100
+            )
+            for i in range(6)
+        }
+        containers = tuple(
+            Container(
+                title=f"Box{b}",
+                cols=12,
+                signals=(
+                    SignalPlacement(f"s{2 * b}", 0, 0, 6),
+                    SignalPlacement(f"s{2 * b + 1}", 0, 6, 6),
+                ),
+            )
+            for b in range(3)
+        )
+        page = Page(id="multi", title="Multi", containers=containers)
+        yield PageView(page=page, signals=sigs, write_enabled=False, theme=load_builtin("dark"))
+
+
+@pytest.mark.asyncio
+async def test_group_columns_arrange_boxes_side_by_side() -> None:
+    # Shift+1/2/3 lay the three container boxes out in 1/2/3 columns across the
+    # page, and the signal density inside each box auto-shifts inversely.
+    async with _MultiBoxHost().run_test(size=(130, 40)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        boxes = list(pilot.app.query(GroupBox))
+        assert len(boxes) == 3
+        # Default: one group column -> boxes stack (one column, three rows).
+        assert len({b.region.x for b in boxes}) == 1
+        assert len({b.region.y for b in boxes}) == 3
+        # Shift+2 -> two group columns; signals inside auto-shift to 2 columns.
+        view.set_group_columns(2)
+        await pilot.pause()
+        assert len({b.region.x for b in boxes}) == 2  # two side-by-side columns
+        assert boxes[0].region.y == boxes[1].region.y  # first two share a row
+        assert boxes[2].region.y > boxes[0].region.y  # third wraps below
+        assert view._layout_cols == 2
+        # Shift+3 -> three group columns; signals inside collapse to 1 column.
+        view.set_group_columns(3)
+        await pilot.pause()
+        assert len({b.region.y for b in boxes}) == 1  # all three on one row
+        assert len({b.region.x for b in boxes}) == 3
+        assert view._layout_cols == 1
+        # Shift+1 -> back to a single stacked column; signals back to 3-wide.
+        view.set_group_columns(1)
+        await pilot.pause()
+        assert len({b.region.x for b in boxes}) == 1
+        assert view._layout_cols == 3  # 1 group column -> 3 signal columns (wide screen)
+
+
+@pytest.mark.asyncio
+async def test_group_columns_gated_by_width() -> None:
+    # Group columns need ~40 cols each: 2 cols need >=80, 3 need >=120.
+    async with _MultiBoxHost().run_test(size=(90, 40)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        boxes = list(pilot.app.query(GroupBox))
+        view.set_group_columns(3)  # refused at 90 cols (needs >=120)
+        await pilot.pause()
+        assert len({b.region.x for b in boxes}) == 1  # unchanged, still stacked
+        view.set_group_columns(2)  # allowed at 90 cols (needs >=80)
+        await pilot.pause()
+        assert len({b.region.x for b in boxes}) == 2
