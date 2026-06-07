@@ -11,7 +11,7 @@ from typing import Any
 from textual import on, work
 from textual.app import App, ComposeResult
 from textual.containers import Container as TextualContainer
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal, Vertical, VerticalScroll
 from textual.screen import ModalScreen
 from textual.widget import Widget
 from textual.widgets import (
@@ -450,6 +450,10 @@ class ConfigScreen(ModalScreen[None]):
         self.dismiss()
 
 
+# The single content tab that stacks every source page as a labelled section.
+_CONTENT_TAB_ID = "tab-content"
+
+
 class PgntuiApp(App[None]):
     """Top-level Textual app.
 
@@ -584,17 +588,28 @@ class PgntuiApp(App[None]):
                         with TabPane(title):
                             yield Static(title, classes="signal-title")
                 else:
-                    for page in self._pages:
-                        with TabPane(page.title, id=f"tab-{page.id}"):
-                            view = PageView(
-                                page=page,
-                                signals=self._signals,
-                                write_enabled=self._write_enabled,
-                                theme=self._theme,
-                            )
-                            # Stash the view so we can hook widgets after mount.
-                            self._page_views.append((page, view))
-                            yield view
+                    if self._pages:
+                        # One "Main" tab stacks every source page as a labelled
+                        # section (Nav / Engine / Main) in a single scroll, rather
+                        # than one tab per page.
+                        with (
+                            TabPane("Main", id=_CONTENT_TAB_ID),
+                            VerticalScroll(id="content-scroll"),
+                        ):
+                            for page in self._pages:
+                                view = PageView(
+                                    page=page,
+                                    signals=self._signals,
+                                    write_enabled=self._write_enabled,
+                                    theme=self._theme,
+                                    section_title=page.title,
+                                )
+                                # Size to content so the sections flow in one
+                                # scroll instead of each taking an equal share.
+                                view.styles.height = "auto"
+                                # Stash the view so we can hook widgets after mount.
+                                self._page_views.append((page, view))
+                                yield view
                     if self._n2k_driver is not None:
                         # Auto tab: auto-populates from the live stream. Only with
                         # a driver (skipping it keeps no-driver frame tests clean).
@@ -781,33 +796,27 @@ class PgntuiApp(App[None]):
             w.toggle_sparkline()
 
     def action_columns_one(self) -> None:
-        view = self._active_view()
-        if view is not None:
+        for view in self._active_views():
             view.set_columns(1)
 
     def action_columns_default(self) -> None:
-        view = self._active_view()
-        if view is not None:
+        for view in self._active_views():
             view.set_columns(2)
 
     def action_columns_three(self) -> None:
-        view = self._active_view()
-        if view is not None:
+        for view in self._active_views():
             view.set_columns(3)
 
     def action_group_columns_one(self) -> None:
-        view = self._active_view()
-        if view is not None:
+        for view in self._active_views():
             view.set_group_columns(1)
 
     def action_group_columns_two(self) -> None:
-        view = self._active_view()
-        if view is not None:
+        for view in self._active_views():
             view.set_group_columns(2)
 
     def action_group_columns_three(self) -> None:
-        view = self._active_view()
-        if view is not None:
+        for view in self._active_views():
             view.set_group_columns(3)
 
     def action_focus_next_signal(self) -> None:
@@ -817,12 +826,11 @@ class PgntuiApp(App[None]):
         self._move_signal_focus(-1)
 
     def _move_signal_focus(self, delta: int) -> None:
-        view = self._active_view()
-        if view is None:
-            return
-        widgets = [
-            w for w in view.widgets.values() if isinstance(w, (AnalogInWidget, DigitalInWidget))
-        ]
+        widgets: list[Widget] = []
+        for view in self._active_views():
+            widgets += [
+                w for w in view.widgets.values() if isinstance(w, (AnalogInWidget, DigitalInWidget))
+            ]
         if not widgets:
             return
         cur = self.focused
@@ -858,15 +866,18 @@ class PgntuiApp(App[None]):
             "debug: aggregated (per-PGN)" if show_aggregate else "debug: stream (trace)"
         )
 
-    def _active_view(self) -> PageView | None:
+    def _active_views(self) -> list[PageView]:
+        """Every PageView under the active tab. The content tab stacks one per
+        source page (Nav / Engine / Main sections); Auto has one; Debug none."""
         try:
             active = self.query_one(TabbedContent).active
         except Exception:  # pragma: no cover — pre-mount
-            return None
-        for page, view in self._page_views:
-            if f"tab-{page.id}" == active:
-                return view
-        return None
+            return []
+        if active == _CONTENT_TAB_ID:
+            return [view for _page, view in self._page_views]
+        if active == "tab-auto" and self._auto_view is not None:
+            return [self._auto_view]
+        return []
 
     def action_next_instance(self) -> None:
         self._cycle_instance(1)
@@ -875,12 +886,14 @@ class PgntuiApp(App[None]):
         self._cycle_instance(-1)
 
     def _cycle_instance(self, delta: int) -> None:
-        view = self._active_view()
-        if view is None or not view.page.instances:
+        views = [v for v in self._active_views() if v.page.instances]
+        if not views:
             self._set_status("this page has no instances to switch")
             return
-        view.set_active_instance(view.active_index + delta)
-        label = view.page.instances[view.active_index].label
+        for view in views:
+            view.set_active_instance(view.active_index + delta)
+        first = views[0]
+        label = first.page.instances[first.active_index].label
         self._set_status(f"showing {label}")
 
     def action_about(self) -> None:

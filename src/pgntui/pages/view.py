@@ -163,12 +163,17 @@ class PageView(Widget):
         signals: dict[str, Signal],
         write_enabled: bool,
         theme: Theme | None = None,
+        section_title: str | None = None,
     ) -> None:
         super().__init__()
         self.page = page
         self.signals = signals
         self.write_enabled = write_enabled
         self.theme_def = theme
+        # When several pages are stacked under one tab, each renders a full-width
+        # ``├── Title ──┤`` rule above its content so the sections stay labelled.
+        self.section_title = section_title
+        self._section_header: GroupRule | None = None
         self.widgets: dict[str, Widget] = {}
         # Ordered (child widget, column_span) pairs, built in compose, applied in
         # on_mount (column_span can't be set before the widget is mounted).
@@ -220,6 +225,11 @@ class PageView(Widget):
                 widget.clear()
 
     def compose(self) -> ComposeResult:
+        # Optional section header — a labelled rule above this page's content,
+        # used when several pages share one tab (Nav / Engine / Main sections).
+        if self.section_title:
+            self._section_header = GroupRule(self.section_title, theme=self.theme_def)
+            yield self._section_header
         # A page with instances gets a header line showing the active source.
         if self.page.instances:
             self._instance_header = GroupRule(
@@ -432,6 +442,9 @@ class PageView(Widget):
         enough — no rebuild needed.
         """
         self.theme_def = theme
+        if self._section_header is not None:
+            self._section_header.theme_def = theme
+            self._section_header.refresh()
         if self._instance_header is not None:
             self._instance_header.theme_def = theme
             self._instance_header.refresh()

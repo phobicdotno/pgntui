@@ -57,8 +57,9 @@ def test_main_replay_runs_app_with_containers(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
-async def test_replay_app_composes_tabpane_per_container(tmp_path: Path) -> None:
-    """The composed app mounts one TabPane per container plus Debug."""
+async def test_replay_app_composes_one_content_tab(tmp_path: Path) -> None:
+    """The composed app mounts a single content tab (Main) holding every source
+    page as a section, plus Auto (driver present) and Debug."""
     ws = _make_workspace(tmp_path)
     cfg = Config(theme="dark", workspace=ws)
     drv = FileReplayDriver()
@@ -70,9 +71,14 @@ async def test_replay_app_composes_tabpane_per_container(tmp_path: Path) -> None
 
         tabs = app.query_one(TabbedContent)
         tab_ids = sorted(tp.id or "" for tp in tabs.query("TabPane"))
-        assert "tab-engine" in tab_ids
-        assert "tab-nav" in tab_ids
+        assert "tab-content" in tab_ids
+        assert "tab-auto" in tab_ids
         assert "debug" in tab_ids
+        # No more one-tab-per-page; the pages live as sections in the content tab.
+        assert "tab-engine" not in tab_ids
+        assert "tab-nav" not in tab_ids
+        page_titles = {page.title for page, _view in app._page_views}
+        assert {"Nav", "Engine"} <= page_titles
     # Allow the background worker to wind down before closing the driver.
     await asyncio.sleep(0)
     drv.close()

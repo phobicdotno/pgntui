@@ -26,13 +26,16 @@ async def test_example_workspace_widgets_have_nonzero_screen_area(tmp_path: Path
     assert scaffold_example(workspace) == 0
     cfg = load_config(workspace / "config.toml")
     app = _build_app(cfg=cfg, workspace=workspace, driver=None)
-    async with app.run_test(size=(110, 38)) as pilot:
+    # Tall terminal so every stacked section fits without scrolling — then every
+    # placed widget must occupy non-zero screen area.
+    async with app.run_test(size=(120, 70)) as pilot:
         await pilot.pause()
         tabs = app.query_one(TabbedContent)
         assert app._page_views, "example workspace produced no page views"
+        # All source pages are now sections inside the single content tab.
+        tabs.active = "tab-content"
+        await pilot.pause()
         for page, view in app._page_views:
-            tabs.active = f"tab-{page.id}"
-            await pilot.pause()
             assert view.widgets, f"page {page.id} has no widgets"
             for ref, w in view.widgets.items():
                 assert w.region.height > 0, f"{page.id}/{ref} collapsed to zero height"
