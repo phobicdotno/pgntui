@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pgntui"
-version = "0.6.11"
+version = "0.6.12"
 description = "Cross-platform TUI for NMEA 2000 with canboat decoding and pluggable drivers"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "phobicdotno" }]
+authors = [{ name = "Karstein Kvistad (phobicdotno)" }]
 keywords = ["nmea2000", "n2k", "tui", "marine", "canboat"]
 classifiers = [
   "Development Status :: 3 - Alpha",

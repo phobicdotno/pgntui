@@ -11,11 +11,13 @@ from pgntui import __version__
 
 APP_NAME = "PgnTui"
 TAGLINE = "NMEA 2000 reader"
+COPYRIGHT = "© 2026 Karstein Kvistad (phobicdotno)"
 
 # Curated highlights, newest first — keep each to one short line.
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.12", "Title bar + About show © 2026 Karstein Kvistad (phobicdotno)."),
     ("0.6.11", "Fix: NGT-1 fast-packet PGNs (engine dynamic, GPS) were dropped."),
     ("0.6.10", "Readable footer; double-border sections; clickable instance bar."),
     ("0.6.9", "Page columns are F1/F2/F3 (Ctrl+digit isn't sent by all terminals)."),
@@ -49,8 +51,9 @@ RELEASE_NOTES: tuple[tuple[str, str], ...] = (
 
 
 def header_title() -> str:
-    """The string shown in the top bar, e.g. ``PgnTui — NMEA 2000 reader — v0.3.8``."""
-    return f"{APP_NAME} — {TAGLINE} — v{__version__}"
+    """The top-bar string, e.g.
+    ``PgnTui — NMEA 2000 reader — v0.3.8 — © 2026 Karstein Kvistad``."""
+    return f"{APP_NAME} — {TAGLINE} — v{__version__} — {COPYRIGHT}"
 
 
 def changelog_lines(limit: int = 6) -> list[str]:
@@ -63,4 +66,4 @@ def changelog_lines(limit: int = 6) -> list[str]:
     return [f"v{ver:<{width}}  {summary}" for ver, summary in RELEASE_NOTES[:limit]]
 
 
-__all__ = ["APP_NAME", "RELEASE_NOTES", "TAGLINE", "changelog_lines", "header_title"]
+__all__ = ["APP_NAME", "COPYRIGHT", "RELEASE_NOTES", "TAGLINE", "changelog_lines", "header_title"]

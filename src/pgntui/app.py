@@ -196,7 +196,13 @@ class AboutScreen(ModalScreen[None]):
     def compose(self) -> ComposeResult:
         from pgntui import __version__
 
-        body = [f"{about.APP_NAME} — {about.TAGLINE}", f"version {__version__}", "", "What's new:"]
+        body = [
+            f"{about.APP_NAME} — {about.TAGLINE}",
+            f"version {__version__}",
+            about.COPYRIGHT,
+            "",
+            "What's new:",
+        ]
         body += [f"  {line}" for line in about.changelog_lines()]
         yield TextualContainer(
             # markup=False: changelog text is literal (entries may contain
