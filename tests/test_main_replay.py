@@ -11,7 +11,7 @@ import pytest
 
 from pgntui.__main__ import _build_app, main
 from pgntui.app import PgntuiApp
-from pgntui.config import Config
+from pgntui.config import Config, load_config
 from pgntui.drivers.replay import FileReplayDriver
 
 FX = Path(__file__).parent / "fixtures"
@@ -82,6 +82,40 @@ async def test_replay_app_composes_one_content_tab(tmp_path: Path) -> None:
     # Allow the background worker to wind down before closing the driver.
     await asyncio.sleep(0)
     drv.close()
+
+
+@pytest.mark.asyncio
+async def test_saved_layout_restored_on_launch(tmp_path: Path) -> None:
+    """A layout chosen with [1/2/3], Shift+1/2/3 or F1/F2/F3 is persisted and
+    re-applied on the next launch."""
+    from textual.widgets import TabbedContent
+
+    ws = _make_workspace(tmp_path)
+    # First launch: choose 2 signal columns and 3 page columns, which persists.
+    cfg = load_config(ws / "config.toml")
+    app = _build_app(cfg=cfg, workspace=ws, driver=None)
+    async with app.run_test(size=(150, 40)) as pilot:
+        await pilot.pause()
+        app.query_one(TabbedContent).active = "tab-content"
+        await pilot.pause()
+        await pilot.press("2")  # signal columns
+        await pilot.press("f3")  # page columns
+        await pilot.pause()
+        assert app._saved_signal_cols == 2
+        assert app._saved_page_cols == 3
+
+    # Second launch from the same workspace: the layout is restored from config.
+    cfg2 = load_config(ws / "config.toml")
+    assert cfg2.layout_columns == 2
+    assert cfg2.layout_pages == 3
+    app2 = _build_app(cfg=cfg2, workspace=ws, driver=None)
+    async with app2.run_test(size=(150, 40)) as pilot:
+        await pilot.pause()
+        assert app2._saved_signal_cols == 2
+        assert app2._page_cols == 3
+        # Every content section was laid out in 2 signal columns on mount.
+        for _page, view in app2._page_views:
+            assert view._layout_cols == 2
 
 
 @pytest.mark.asyncio

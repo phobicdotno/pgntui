@@ -17,6 +17,7 @@ COPYRIGHT = "© 2026 Karstein Kvistad (phobicdotno)"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.16", "Remember the last column layout (1/2/3, Shift, F-keys) across runs."),
     ("0.6.15", "Fix Debug freeze: capped scrollback; views fed only when open."),
     ("0.6.14", "Auto: one box per Instance (title '· Instance X'); F1/F2/F3 here."),
     ("0.6.13", "Each engine instance gets its own labelled section (no jumping)."),

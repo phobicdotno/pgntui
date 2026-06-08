@@ -529,6 +529,10 @@ class PgntuiApp(App[None]):
         debug_buffer: DebugBuffer | None = None,
         workspace: Path | None = None,
         driver_options: dict[str, Any] | None = None,
+        # Last-used layout (restored from config), applied to every view on mount.
+        layout_columns: int | None = None,
+        layout_groups: int = 1,
+        layout_pages: int = 1,
         # Back-compat: older callers (and tests) construct with page_titles=[...].
         # When present, pages + signals are ignored and the app renders title-only
         # placeholder tabs. New callers should prefer the structured args.
@@ -576,9 +580,14 @@ class PgntuiApp(App[None]):
         # yields each PageView so ``_wire_write_callbacks`` can hook widgets
         # after mount.
         self._page_views: list[tuple[Page, PageView]] = []
-        # The grid that arranges the content sections; Ctrl+1/2/3 set its columns.
+        # The grid that arranges the content sections; F1/F2/F3 set its columns.
         self._page_grid: Grid | None = None
-        self._page_cols: int = 1
+        # Last-used layout, restored on mount and re-persisted on every change so
+        # the [1/2/3], Shift+1/2/3 and F1/F2/F3 choices survive a restart.
+        self._saved_signal_cols: int | None = layout_columns
+        self._saved_group_cols: int = layout_groups
+        self._saved_page_cols: int = layout_pages
+        self._page_cols: int = layout_pages
         # Auto page (built at runtime from the live stream) — only with a driver.
         self._auto_view: PageView | None = None
         self._auto_builder: AutoPageBuilder | None = None
@@ -601,6 +610,7 @@ class PgntuiApp(App[None]):
         self._wire_write_callbacks()
         if self._auto_view is not None:
             self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
+        self._apply_saved_layout()
         # Repaint expanded sparklines once a second so a stopped signal scrolls
         # left into trailing gaps even when no new frames arrive for it.
         self.set_interval(1.0, self._tick_sparklines)
@@ -857,28 +867,38 @@ class PgntuiApp(App[None]):
             w.toggle_sparkline()
 
     def action_columns_one(self) -> None:
-        for view in self._active_views():
-            view.set_columns(1)
+        self._set_signal_columns(1)
 
     def action_columns_default(self) -> None:
-        for view in self._active_views():
-            view.set_columns(2)
+        self._set_signal_columns(2)
 
     def action_columns_three(self) -> None:
+        self._set_signal_columns(3)
+
+    def _set_signal_columns(self, n: int) -> None:
         for view in self._active_views():
-            view.set_columns(3)
+            view.set_columns(n)
+        self._saved_signal_cols = n
+        self._persist_layout()
 
     def action_group_columns_one(self) -> None:
-        for view in self._active_views():
-            view.set_group_columns(1)
+        self._set_group_columns(1)
 
     def action_group_columns_two(self) -> None:
-        for view in self._active_views():
-            view.set_group_columns(2)
+        self._set_group_columns(2)
 
     def action_group_columns_three(self) -> None:
+        self._set_group_columns(3)
+
+    def _set_group_columns(self, n: int) -> None:
         for view in self._active_views():
-            view.set_group_columns(3)
+            view.set_group_columns(n)
+        self._saved_group_cols = n
+        # Group columns derive the signal density (set_group_columns → set_columns
+        # 4-n); clear the saved signal override so restore reproduces that, unless
+        # the user later picks a signal column explicitly.
+        self._saved_signal_cols = None
+        self._persist_layout()
 
     def action_page_columns_one(self) -> None:
         self._set_page_columns(1)
@@ -906,9 +926,44 @@ class PgntuiApp(App[None]):
             self._page_cols = n
             self._page_grid.styles.grid_size_columns = n
             self._page_grid.styles.grid_columns = "1fr"
+            self._saved_page_cols = n
+            self._persist_layout()
             return
         for view in self._active_views():
             view.set_group_columns(n)
+        self._saved_group_cols = n
+        self._saved_signal_cols = None
+        self._persist_layout()
+
+    def _apply_saved_layout(self) -> None:
+        """Restore the last-used layout on mount. Group columns set the signal
+        density (4-n); a saved signal column then overrides it. Page columns were
+        already applied via ``_page_cols`` at compose — re-assert for safety."""
+        views = [v for _p, v in self._page_views]
+        if self._auto_view is not None:
+            views.append(self._auto_view)
+        for view in views:
+            if self._saved_group_cols != 1:
+                view.set_group_columns(self._saved_group_cols)
+            if self._saved_signal_cols is not None:
+                view.set_columns(self._saved_signal_cols)
+        if self._page_grid is not None and self._saved_page_cols != 1:
+            self._page_grid.styles.grid_size_columns = self._saved_page_cols
+            self._page_grid.styles.grid_columns = "1fr"
+
+    def _persist_layout(self) -> None:
+        """Write the current layout choice back to config.toml so it survives a
+        restart. No-op without a workspace (e.g. the welcome / no-config case)."""
+        if self._workspace is None:
+            return
+        from pgntui.config import write_layout
+
+        write_layout(
+            self._workspace / "config.toml",
+            columns=self._saved_signal_cols,
+            groups=self._saved_group_cols,
+            pages=self._saved_page_cols,
+        )
 
     def action_focus_next_signal(self) -> None:
         self._move_signal_focus(1)

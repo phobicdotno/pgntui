@@ -260,6 +260,9 @@ def _build_app(
         debug_buffer=debug_buffer,
         workspace=workspace,
         driver_options=cfg.driver_options,
+        layout_columns=cfg.layout_columns,
+        layout_groups=cfg.layout_groups,
+        layout_pages=cfg.layout_pages,
     )
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from pgntui.config import load_config, write_driver_settings
+from pgntui.config import load_config, write_driver_settings, write_layout
 
 EXAMPLE = """\
 [app]
@@ -23,6 +23,33 @@ name = "file-replay"
 # name = "actisense-ngt1"
 # port = "COM3"
 """
+
+
+def test_write_layout_roundtrip_and_preserves_theme(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text(EXAMPLE, encoding="utf-8")
+    write_layout(p, columns=2, groups=3, pages=2)
+    cfg = load_config(p)
+    assert cfg.layout_columns == 2
+    assert cfg.layout_groups == 3
+    assert cfg.layout_pages == 2
+    # The existing theme key in [app] must survive the merge.
+    assert cfg.theme == "dark"
+    # Updating only one axis leaves the others intact.
+    write_layout(p, groups=1)
+    cfg2 = load_config(p)
+    assert cfg2.layout_groups == 1
+    assert cfg2.layout_columns == 2  # unchanged
+    assert cfg2.theme == "dark"
+
+
+def test_layout_defaults_when_absent(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('[app]\ntheme = "dark"\n', encoding="utf-8")
+    cfg = load_config(p)
+    assert cfg.layout_columns is None  # authored layout
+    assert cfg.layout_groups == 1
+    assert cfg.layout_pages == 1
 
 
 def test_write_updates_existing_driver_section(tmp_path: Path) -> None:
