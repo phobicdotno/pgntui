@@ -51,6 +51,11 @@ class AutoPageBuilder:
         # ``instance`` is None for PGNs without an Instance field.
         self._rows: dict[tuple[int, int, int | None], dict[str, Widget]] = {}
 
+    def reset(self) -> None:
+        """Forget all built containers — used before a masonry column rebuild, so
+        re-ingesting from the buffer creates fresh boxes in the new columns."""
+        self._rows = {}
+
     @property
     def at_capacity(self) -> bool:
         return len(self._rows) >= self._max

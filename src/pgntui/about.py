@@ -13,17 +13,25 @@ APP_NAME = "PgnTui"
 TAGLINE = "NMEA 2000 reader"
 COPYRIGHT = "© 2026 Karstein Kvistad (phobicdotno)"
 
-# Curated highlights, newest first — keep each to one short line.
+# A changelog ``vX.Y.Z  summary`` line must fit the About dialog without wrapping.
+# The dialog is 80 wide (app.py AboutScreen CSS) minus a 1-cell border each side
+# and 2-cell padding each side = 74 content cols; the body indents each line by 2,
+# so a line may be at most 72 cols. Enforced by a test against this constant —
+# keep summaries short (≈60 chars) so the version prefix always fits too.
+CHANGELOG_MAX_WIDTH = 72
+
+# Curated highlights, newest first — keep each to one short line (see above).
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
-    ("0.6.21", "Menu bar (File/Connection/View/Help) with shortcuts; footer trimmed."),
-    ("0.6.20", "Tell the NGT-1 to send all PGNs — fixes 'only heartbeats, no data'."),
-    ("0.6.19", "Single-instance guard, clear port-busy notice, footer keys restored."),
-    ("0.6.18", "Auto page only builds while visible (rebuilt from buffer on open)."),
-    ("0.6.17", "Quit now closes the driver: fast exit and the serial port is freed."),
-    ("0.6.16", "Remember the last column layout (1/2/3, Shift, F-keys) across runs."),
-    ("0.6.15", "Fix Debug freeze: capped scrollback; views fed only when open."),
+    ("0.6.22", "Auto page packs boxes into top-filled columns (no gaps)."),
+    ("0.6.21", "Menu bar: File/Connection/View/Help, with shortcuts."),
+    ("0.6.20", "Tell the NGT-1 to emit all PGNs (fixes heartbeats-only)."),
+    ("0.6.19", "Single-instance guard and a clear port-busy notice."),
+    ("0.6.18", "Auto page builds only while it is visible."),
+    ("0.6.17", "Quit closes the driver: fast exit, serial port freed."),
+    ("0.6.16", "Remember the last column layout across runs."),
+    ("0.6.15", "Fix Debug freeze: capped scrollback."),
     ("0.6.14", "Auto: one box per Instance (title '· Instance X'); F1/F2/F3 here."),
     ("0.6.13", "Each engine instance gets its own labelled section (no jumping)."),
     ("0.6.12", "Title bar + About show © 2026 Karstein Kvistad (phobicdotno)."),
@@ -75,4 +83,12 @@ def changelog_lines(limit: int = 6) -> list[str]:
     return [f"v{ver:<{width}}  {summary}" for ver, summary in RELEASE_NOTES[:limit]]
 
 
-__all__ = ["APP_NAME", "COPYRIGHT", "RELEASE_NOTES", "TAGLINE", "changelog_lines", "header_title"]
+__all__ = [
+    "APP_NAME",
+    "CHANGELOG_MAX_WIDTH",
+    "COPYRIGHT",
+    "RELEASE_NOTES",
+    "TAGLINE",
+    "changelog_lines",
+    "header_title",
+]

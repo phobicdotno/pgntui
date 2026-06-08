@@ -15,7 +15,7 @@ from rich.text import Text
 from textual import events
 from textual.app import ComposeResult
 from textual.containers import Container as TextualContainer
-from textual.containers import Grid
+from textual.containers import Grid, Horizontal, Vertical
 from textual.widget import Widget
 
 from pgntui.pages.loader import Container, InstanceOption, Page
@@ -237,6 +237,10 @@ class PageView(Widget):
     PageView GroupBox.section {
         border: double $accent;
     }
+    /* Masonry layout (the Auto page): independent top-packed columns, so a short
+       box doesn't leave a gap under it the way an aligned grid row would. */
+    PageView .masonry-col { width: 1fr; height: auto; }
+    PageView GroupBox.auto-box { margin: 0 1 1 0; }
     """
 
     def __init__(
@@ -247,9 +251,16 @@ class PageView(Widget):
         theme: Theme | None = None,
         section_title: str | None = None,
         fixed_instance: int | None = None,
+        masonry: bool = False,
     ) -> None:
         super().__init__()
         self.page = page
+        # Masonry mode (the Auto page): boxes go into independent top-packed
+        # columns instead of an aligned grid, so columns don't leave gaps under
+        # short boxes. Column changes rebuild via recompose() (safe here — Auto
+        # boxes aren't in the live routing index and are rebuilt from the buffer).
+        self.masonry = masonry
+        self._box_columns: list[Vertical] = []
         self.signals = signals
         self.write_enabled = write_enabled
         self.theme_def = theme
@@ -331,21 +342,31 @@ class PageView(Widget):
                 theme=self.theme_def,
             )
             inner.append(self._instance_header)
-        boxes: list[GroupBox] = []
-        for ci, container in enumerate(self.page.containers):
-            grid = self._build_grid(container, f"grid-{self.page.id}-{ci}")
-            box = GroupBox(grid, id=f"box-{self.page.id}-{ci}")
-            box.border_title = container.title
-            self._boxes.append(box)
-            boxes.append(box)
-        # height:auto keeps the grid exactly content-tall so its rows never stretch
-        # (Grid defaults to height:1fr); gutters give 1-cell gaps between boxes.
-        self._box_grid = Grid(*boxes, id=f"boxgrid-{self.page.id}")
-        self._box_grid.styles.grid_size_columns = self._group_cols
-        self._box_grid.styles.height = "auto"
-        self._box_grid.styles.grid_gutter_vertical = 1
-        self._box_grid.styles.grid_gutter_horizontal = 1
-        inner.append(self._box_grid)
+        if self.masonry:
+            # Empty top-packed columns; boxes are added at runtime
+            # (add_generated_container) and re-added after a column change.
+            self._box_columns = [
+                Vertical(classes="masonry-col") for _ in range(max(self._group_cols, 1))
+            ]
+            row = Horizontal(*self._box_columns, id=f"masonry-{self.page.id}")
+            row.styles.height = "auto"
+            inner.append(row)
+        else:
+            boxes: list[GroupBox] = []
+            for ci, container in enumerate(self.page.containers):
+                grid = self._build_grid(container, f"grid-{self.page.id}-{ci}")
+                box = GroupBox(grid, id=f"box-{self.page.id}-{ci}")
+                box.border_title = container.title
+                self._boxes.append(box)
+                boxes.append(box)
+            # height:auto keeps the grid exactly content-tall so its rows never
+            # stretch (Grid defaults to height:1fr); gutters give 1-cell gaps.
+            self._box_grid = Grid(*boxes, id=f"boxgrid-{self.page.id}")
+            self._box_grid.styles.grid_size_columns = self._group_cols
+            self._box_grid.styles.height = "auto"
+            self._box_grid.styles.grid_gutter_vertical = 1
+            self._box_grid.styles.grid_gutter_horizontal = 1
+            inner.append(self._box_grid)
         if self.section_title:
             # Enclose the whole section in its own titled box (┌─ Nav ─┐ … └──┘),
             # nesting the container boxes inside it.
@@ -419,13 +440,16 @@ class PageView(Widget):
         height = n_rows + 2  # + top/bottom border
         box.styles.height = height
         self._box_height[box] = height
-        # Mount into the shared box grid so the Auto page's boxes also follow the
-        # current Shift+1/2/3 group-column arrangement.
-        if self._box_grid is not None:
+        if self.masonry and self._box_columns:
+            # Round-robin into top-packed columns (box i -> column i % n).
+            box.add_class("auto-box")
+            self._box_columns[(len(self._boxes) - 1) % len(self._box_columns)].mount(box)
+        elif self._box_grid is not None:
+            # Shared box grid so the Auto page's boxes follow the group-column grid.
             self._box_grid.mount(box)
-        else:  # pragma: no cover - the box grid is always built in compose
+            self._size_box_grid_rows()
+        else:  # pragma: no cover - one of the two is always built in compose
             self.mount(box)
-        self._size_box_grid_rows()
 
     def _refresh_grid_rows(self) -> None:
         """Resize each grid's row tracks so an expanded input row is 2 cells tall
@@ -472,8 +496,8 @@ class PageView(Widget):
         row is as tall as the tallest box in it (its ``auto`` rows under-measure
         once there are several rows), then pin this view's own height so a section
         measures correctly inside a page-grid cell (Ctrl+1/2/3)."""
-        if self._box_grid is None:
-            return
+        if self.masonry or self._box_grid is None:
+            return  # masonry columns size themselves (height:auto Verticals)
         n = max(self._group_cols, 1)
         heights = [self._box_height[b] for b in self._boxes if b in self._box_height]
         if not heights:
@@ -519,6 +543,22 @@ class PageView(Widget):
         # More group columns -> fewer signal columns. Routed through set_columns so
         # the three-signal-column case still respects its own width gate.
         self.set_columns(4 - n)
+
+    async def set_masonry_columns(self, n: int) -> None:
+        """Rebuild the masonry layout with ``n`` top-packed columns (Auto page).
+
+        Reparenting boxes destroys their widget subtree in Textual, so a column
+        change recomposes the (empty) columns instead; the caller then re-adds the
+        boxes (the Auto builder re-ingests from the buffer). No-op off masonry."""
+        if not self.masonry or n < 1:
+            return
+        self._group_cols = n
+        # Drop the generated-box bookkeeping — recompose() discards the old boxes.
+        self._boxes = []
+        self._grids = []
+        self._box_height = {}
+        self._row_of_widget = {}
+        await self.recompose()
 
     def apply_theme(self, theme: Theme) -> None:
         """Re-theme this view and every child in place (live theme switch).

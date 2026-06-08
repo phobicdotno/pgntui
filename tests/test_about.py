@@ -23,11 +23,16 @@ def test_header_title_has_name_tagline_and_version() -> None:
 
 
 def test_changelog_lines_are_short_and_versioned() -> None:
+    # The About dialog renders each line with a 2-space indent inside a 74-col
+    # content area, so a line must be <= CHANGELOG_MAX_WIDTH (72) or it wraps.
+    # Check exactly the lines the dialog shows (changelog_lines() default).
     lines = about.changelog_lines()
     assert lines, "changelog should not be empty"
     for line in lines:
         assert line.startswith("v")
-        assert len(line) <= 80, f"changelog line too long: {line!r}"
+        assert len(line) <= about.CHANGELOG_MAX_WIDTH, (
+            f"changelog line wraps: {line!r} ({len(line)})"
+        )
 
 
 @pytest.mark.asyncio

@@ -174,6 +174,52 @@ async def test_auto_fed_only_when_visible_and_repopulates_on_open(tmp_path: Path
 
 
 @pytest.mark.asyncio
+async def test_auto_masonry_packs_into_independent_columns(tmp_path: Path) -> None:
+    """Auto boxes lay out in top-packed columns: boxes of different heights don't
+    leave a gap under a short box (the ragged-grid problem). After F2 there are
+    two distinct column x-positions and the columns pack to the top."""
+    from textual.widgets import TabbedContent
+
+    from pgntui.decode.canboat import DecodedFrame
+    from pgntui.pages.view import GroupBox
+
+    ws = _make_workspace(tmp_path)
+    cfg = Config(theme="dark", workspace=ws)
+    drv = FileReplayDriver()
+    drv.open({"path": str(FX / "e2e_session.pgnlog"), "speed": "max"})
+    app = _build_app(cfg=cfg, workspace=ws, driver=drv)
+    async with app.run_test(size=(150, 40)) as pilot:
+        await pilot.pause()
+        # Seed a few PGNs of differing field counts into the buffer.
+        for pgn, fields in (
+            (127489, {"a": 1.0, "b": 2.0, "c": 3.0, "d": 4.0, "e": 5.0}),  # tall
+            (127245, {"x": 1.0}),  # short
+            (128267, {"y": 2.0, "z": 3.0}),
+            (130306, {"w": 4.0}),
+        ):
+            app._debug_buffer.push(
+                DecodedFrame(timestamp=0.0, source_addr=3, pgn=pgn, name="X", fields=fields)
+            )
+        app.query_one(TabbedContent).active = "tab-auto"
+        await pilot.pause()
+        assert app._auto_view is not None and app._auto_view.masonry
+        await pilot.press("f2")  # two columns
+        # Let the rebuild worker + repopulation settle.
+        for _ in range(6):
+            await pilot.pause()
+        assert app._auto_view._group_cols == 2
+        # Only the Auto view's boxes (not the hidden content-tab sections).
+        boxes = [b for b in app._auto_view.query(GroupBox) if b.region.height > 0]
+        xs = {b.region.x for b in boxes}
+        assert len(xs) == 2, f"expected two column x-positions, got {sorted(xs)}"
+        # Top-packed: each column's first box sits at the same top row.
+        tops_per_col = {x: min(b.region.y for b in boxes if b.region.x == x) for x in xs}
+        assert len(set(tops_per_col.values())) == 1, tops_per_col
+    await asyncio.sleep(0)
+    drv.close()
+
+
+@pytest.mark.asyncio
 async def test_f_keys_arrange_auto_boxes(tmp_path: Path) -> None:
     """On the Auto tab F1/F2/F3 arrange the PGN boxes into 1/2/3 columns (the Auto
     page is one view of many boxes, not a section grid)."""

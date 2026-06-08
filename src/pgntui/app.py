@@ -760,6 +760,7 @@ class PgntuiApp(App[None]):
                             signals=self._signals,
                             write_enabled=self._write_enabled,
                             theme=self._theme,
+                            masonry=True,  # top-packed columns (no ragged gaps)
                         )
                         with TabPane("Auto", id="tab-auto"):
                             yield self._auto_view
@@ -977,13 +978,29 @@ class PgntuiApp(App[None]):
 
     def _set_group_columns(self, n: int) -> None:
         for view in self._active_views():
-            view.set_group_columns(n)
+            self._set_box_columns(view, n)
         self._saved_group_cols = n
         # Group columns derive the signal density (set_group_columns → set_columns
         # 4-n); clear the saved signal override so restore reproduces that, unless
         # the user later picks a signal column explicitly.
         self._saved_signal_cols = None
         self._persist_layout()
+
+    def _set_box_columns(self, view: PageView, n: int) -> None:
+        """Apply ``n`` box columns to ``view``. A masonry view (Auto) can't reflow
+        in place — Textual destroys a box's widgets when it's reparented — so it
+        rebuilds its columns and re-ingests from the buffer in a worker; a grid
+        view sets the column count synchronously."""
+        if view.masonry:
+            self.run_worker(self._relayout_auto(view, n), group="auto-relayout", exclusive=True)
+        else:
+            view.set_group_columns(n)
+
+    async def _relayout_auto(self, view: PageView, n: int) -> None:
+        await view.set_masonry_columns(n)
+        if self._auto_builder is not None:
+            self._auto_builder.reset()
+            self._populate_auto_from_buffer()
 
     def action_page_columns_one(self) -> None:
         self._set_page_columns(1)
@@ -1015,7 +1032,7 @@ class PgntuiApp(App[None]):
             self._persist_layout()
             return
         for view in self._active_views():
-            view.set_group_columns(n)
+            self._set_box_columns(view, n)
         self._saved_group_cols = n
         self._saved_signal_cols = None
         self._persist_layout()
@@ -1029,8 +1046,8 @@ class PgntuiApp(App[None]):
             views.append(self._auto_view)
         for view in views:
             if self._saved_group_cols != 1:
-                view.set_group_columns(self._saved_group_cols)
-            if self._saved_signal_cols is not None:
+                self._set_box_columns(view, self._saved_group_cols)
+            if self._saved_signal_cols is not None and not view.masonry:
                 view.set_columns(self._saved_signal_cols)
         if self._page_grid is not None and self._saved_page_cols != 1:
             self._page_grid.styles.grid_size_columns = self._saved_page_cols
