@@ -1199,21 +1199,22 @@ class PgntuiApp(App[None]):
 
         Order matters here:
           1. Flush + close the recording writer so the on-disk tail is intact.
-          2. Cancel the frame-loop worker so it stops reading from the (about
-             to be closed) driver and stops posting ``call_from_thread`` work
-             into an event loop that is about to die.
-          3. Exit the Textual app.
+          2. Close the driver. This is the important one: it sets the driver's
+             cooperative ``_stop`` AND releases the serial port / file handle, so
+             ``read_frames()`` returns on its next iteration (within the read
+             timeout) and the OS port is freed. Cancelling the worker alone does
+             NOT do this — a thread worker can't be force-killed, and the read
+             loop only checks the driver's own ``_stop``. Skipping the close left
+             the loop spinning forever (slow exit) with the port still open.
+          3. Cancel the frame-loop worker (belt-and-suspenders; the close above
+             already ends the loop) and exit.
         """
-        # Make sure recording is flushed cleanly before we exit.
         if self._writer is not None:
             try:
                 self._stop_recording()
             except Exception:  # pragma: no cover — defensive
                 pass
-        # Cancel the frame_loop worker. Textual 8.x WorkerManager iterates as
-        # a set; look up by group name. ``cancel()`` on a thread-worker only
-        # flips state — the actual read loops cooperate via their own stop
-        # events (see ``NGT1Driver._stop`` / ``FileReplayDriver._stop``).
+        self._shutdown_driver()
         try:
             for worker in list(self.workers):
                 if self._is_frame_loop_worker(worker):
@@ -1221,6 +1222,23 @@ class PgntuiApp(App[None]):
         except Exception:  # pragma: no cover — defensive
             pass
         self.exit()
+
+    def _shutdown_driver(self) -> None:
+        """Close the active driver so its read loop stops and the serial port /
+        file handle is released. Safe to call with no driver attached, and
+        idempotent (driver.close() may run again from on_unmount)."""
+        driver = self._n2k_driver
+        if driver is None:
+            return
+        try:
+            driver.close()
+        except Exception:  # pragma: no cover — defensive
+            pass
+
+    def on_unmount(self) -> None:
+        # Safety net: release the driver on ANY exit path, not just force_quit
+        # (e.g. ctrl+c, or Textual tearing the app down for another reason).
+        self._shutdown_driver()
 
     @staticmethod
     def _is_frame_loop_worker(worker: Worker[None]) -> bool:

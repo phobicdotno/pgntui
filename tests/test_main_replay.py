@@ -85,6 +85,27 @@ async def test_replay_app_composes_one_content_tab(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_quit_closes_driver_and_releases_port(tmp_path: Path) -> None:
+    """Quitting must close the driver — set its cooperative stop and release the
+    serial port / file handle — so exit is prompt and the port is freed. (The bug:
+    force_quit only cancelled the worker, which never stops the read loop.)"""
+    ws = _make_workspace(tmp_path)
+    cfg = Config(theme="dark", workspace=ws)
+    drv = FileReplayDriver()
+    drv.open({"path": str(FX / "e2e_session.pgnlog"), "speed": "max"})
+    app = _build_app(cfg=cfg, workspace=ws, driver=drv)
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert not drv._stop.is_set()  # running
+        app.action_force_quit()
+        await pilot.pause()
+        # close() ran: stop is set (read loop will return) and the path released.
+        assert drv._stop.is_set()
+        assert drv._path is None
+    await asyncio.sleep(0)
+
+
+@pytest.mark.asyncio
 async def test_saved_layout_restored_on_launch(tmp_path: Path) -> None:
     """A layout chosen with [1/2/3], Shift+1/2/3 or F1/F2/F3 is persisted and
     re-applied on the next launch."""
