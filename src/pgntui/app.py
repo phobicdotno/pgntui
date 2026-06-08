@@ -628,6 +628,23 @@ class PgntuiApp(App[None]):
                             self._page_grid,
                         ):
                             for page in self._pages:
+                                # An instance-switchable page (Engine with Stb/Port/
+                                # generators) becomes one fixed section per instance,
+                                # each accepting only its instance's frames so the
+                                # readouts don't jump between engines.
+                                if page.instances:
+                                    for opt in page.instances:
+                                        iview = PageView(
+                                            page=page,
+                                            signals=self._signals,
+                                            write_enabled=self._write_enabled,
+                                            theme=self._theme,
+                                            section_title=opt.label,
+                                            fixed_instance=opt.id,
+                                        )
+                                        self._page_views.append((page, iview))
+                                        yield iview
+                                    continue
                                 view = PageView(
                                     page=page,
                                     signals=self._signals,
@@ -933,7 +950,8 @@ class PgntuiApp(App[None]):
         self._cycle_instance(-1)
 
     def _cycle_instance(self, delta: int) -> None:
-        views = [v for v in self._active_views() if v.page.instances]
+        # Fixed-instance sections (each engine shown at once) don't switch.
+        views = [v for v in self._active_views() if v.page.instances and v.fixed_instance is None]
         if not views:
             self._set_status("this page has no instances to switch")
             return

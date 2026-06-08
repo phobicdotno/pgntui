@@ -246,6 +246,7 @@ class PageView(Widget):
         write_enabled: bool,
         theme: Theme | None = None,
         section_title: str | None = None,
+        fixed_instance: int | None = None,
     ) -> None:
         super().__init__()
         self.page = page
@@ -283,7 +284,15 @@ class PageView(Widget):
         self._group_cols: int = 1
         self._span_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
+        # ``fixed_instance`` pins this view to ONE instance (no switcher) so several
+        # instances can be shown side by side as separate labelled sections — each
+        # only accepts its own instance's frames, so nothing jumps.
+        self.fixed_instance = fixed_instance
         self.active_index = 0
+        if fixed_instance is not None and self.page.instances:
+            ids = [opt.id for opt in self.page.instances]
+            if fixed_instance in ids:
+                self.active_index = ids.index(fixed_instance)
         self._instance_header: InstanceBar | None = None
 
     @property
@@ -299,7 +308,7 @@ class PageView(Widget):
 
     def set_active_instance(self, index: int) -> None:
         """Switch which instance this page displays (wraps around)."""
-        if not self.page.instances:
+        if not self.page.instances or self.fixed_instance is not None:
             return
         self.active_index = index % len(self.page.instances)
         if self._instance_header is not None:
@@ -314,7 +323,7 @@ class PageView(Widget):
         # Inner content: the optional instance header, then one Grid holding every
         # container box (so Shift+1/2/3 can lay the boxes out in 1/2/3 columns).
         inner: list[Widget] = []
-        if self.page.instances:
+        if self.page.instances and self.fixed_instance is None:
             self._instance_header = InstanceBar(
                 self.page.instances,
                 self.active_index,

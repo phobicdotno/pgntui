@@ -17,6 +17,7 @@ COPYRIGHT = "© 2026 Karstein Kvistad (phobicdotno)"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.13", "Each engine instance gets its own labelled section (no jumping)."),
     ("0.6.12", "Title bar + About show © 2026 Karstein Kvistad (phobicdotno)."),
     ("0.6.11", "Fix: NGT-1 fast-packet PGNs (engine dynamic, GPS) were dropped."),
     ("0.6.10", "Readable footer; double-border sections; clickable instance bar."),

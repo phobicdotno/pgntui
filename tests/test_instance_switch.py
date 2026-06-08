@@ -15,7 +15,6 @@ from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.base import Frame
 from pgntui.pages.loader import Container, InstanceOption, Page, SignalPlacement, load_page
-from pgntui.pages.view import InstanceBar, PageView
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget
 from pgntui.themes.loader import load_builtin
@@ -119,47 +118,36 @@ def _app() -> PgntuiApp:
 
 
 @pytest.mark.asyncio
-async def test_view_shows_instance_header_line() -> None:
+async def test_each_instance_is_its_own_fixed_section() -> None:
+    # An instance-switchable page becomes one fixed, labelled section per
+    # instance (no switcher) so they can all be shown at once.
     app = _app()
-    async with app.run_test(size=(90, 20)) as pilot:
+    async with app.run_test(size=(90, 30)) as pilot:
         await pilot.pause()
-        view = app.query_one(PageView)
-        header = view._instance_header
-        assert isinstance(header, InstanceBar)
-        plain = header.render().plain  # type: ignore[union-attr]
-        assert "Engine Stb" in plain  # active instance label shown
-        assert "0" in plain and "1" in plain  # clickable instance numbers
-        assert view.active_instance_id == 0
+        views = [v for _p, v in app._page_views]
+        assert len(views) == 2
+        assert {v.fixed_instance for v in views} == {0, 1}
+        assert {v.active_instance_id for v in views} == {0, 1}
+        assert {v.section_title for v in views} == {"Engine Stb", "Engine Port"}
+        # Each section is fixed, so none renders the click-to-switch InstanceBar.
+        assert all(v._instance_header is None for v in views)
 
 
 @pytest.mark.asyncio
-async def test_switching_instance_filters_frames() -> None:
+async def test_instances_shown_simultaneously_without_jumping() -> None:
+    # Each fixed section only accepts its own instance's frames, so feeding two
+    # engines leaves each section showing its own value — no jumping.
     app = _app()
-    async with app.run_test(size=(90, 20)) as pilot:
+    async with app.run_test(size=(90, 30)) as pilot:
         await pilot.pause()
-        view = app.query_one(PageView)
-        rpm = view.widgets["rpm"]
-        assert isinstance(rpm, AnalogInWidget)
+        by_inst = {v.fixed_instance: v for _p, v in app._page_views}
+        rpm0 = by_inst[0].widgets["rpm"]
+        rpm1 = by_inst[1].widgets["rpm"]
+        assert isinstance(rpm0, AnalogInWidget)
+        assert isinstance(rpm1, AnalogInWidget)
         loop = asyncio.get_running_loop()
-
-        # Active instance 0: the inst-0 frame shows, the inst-1 frame is ignored.
         await loop.run_in_executor(None, app._handle_frame, _engine_frame(0, 1778))
         await loop.run_in_executor(None, app._handle_frame, _engine_frame(1, 1519))
         await pilot.pause()
-        assert round(rpm.displayed_value) == 1778
-
-        # Switch to instance 1 (Engine Port) and feed both again.
-        app.action_next_instance()
-        await pilot.pause()
-        assert view.active_instance_id == 1
-        assert "Engine Port" in view._instance_header.render().plain  # type: ignore[union-attr]
-        await loop.run_in_executor(None, app._handle_frame, _engine_frame(0, 1778))
-        await loop.run_in_executor(None, app._handle_frame, _engine_frame(1, 1519))
-        await pilot.pause()
-        assert round(rpm.displayed_value) == 1519
-
-        # Wrap-around: [ from index 1 -> 0, ] cycles forward through 4 isn't
-        # tested here (only two instances), but prev returns to Stb.
-        app.action_prev_instance()
-        await pilot.pause()
-        assert view.active_instance_id == 0
+        assert round(rpm0.displayed_value) == 1778
+        assert round(rpm1.displayed_value) == 1519
