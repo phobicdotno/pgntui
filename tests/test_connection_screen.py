@@ -44,8 +44,11 @@ async def test_connection_opens_via_button(monkeypatch) -> None:  # type: ignore
     app = _app()
     async with app.run_test() as pilot:
         await pilot.pause()
-        await pilot.click("#connection-button")
+        await pilot.click("#menu-connection")  # open the Connection menu
         await pilot.pause()
+        await pilot.click("#menu-item-connection")  # Connect…
+        await pilot.pause()
+        await pilot.pause()  # select() runs the action after the menu closes
         assert isinstance(app.screen, ConnectionScreen)
 
 

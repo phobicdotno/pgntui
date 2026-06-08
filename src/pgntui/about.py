@@ -17,6 +17,7 @@ COPYRIGHT = "© 2026 Karstein Kvistad (phobicdotno)"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.21", "Menu bar (File/Connection/View/Help) with shortcuts; footer trimmed."),
     ("0.6.20", "Tell the NGT-1 to send all PGNs — fixes 'only heartbeats, no data'."),
     ("0.6.19", "Single-instance guard, clear port-busy notice, footer keys restored."),
     ("0.6.18", "Auto page only builds while visible (rebuilt from buffer on open)."),

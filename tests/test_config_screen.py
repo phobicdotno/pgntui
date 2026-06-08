@@ -53,8 +53,11 @@ async def test_config_opens_via_button_and_key() -> None:
     app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
-        await pilot.click("#config-button")
+        await pilot.click("#menu-view")  # open the View menu
         await pilot.pause()
+        await pilot.click("#menu-item-config")  # Settings…
+        await pilot.pause()
+        await pilot.pause()  # select() runs the action after the menu closes
         assert isinstance(app.screen, ConfigScreen)
         await pilot.press("escape")
         await pilot.pause()

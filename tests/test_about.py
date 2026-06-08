@@ -38,9 +38,9 @@ async def test_topbar_button_hover_text_contrasts_with_fill() -> None:
     app = PgntuiApp(theme=load_builtin("mono-ascii"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
-        await pilot.hover("#config-button")
+        await pilot.hover("#menu-file")
         await pilot.pause()
-        btn = app.query_one("#config-button")
+        btn = app.query_one("#menu-file")
         assert btn.styles.color.rgb != btn.styles.background.rgb, "hover text invisible on fill"
         assert btn.styles.color.rgb == (0, 0, 0), "mono-ascii hover label should be black"
 
@@ -80,8 +80,11 @@ async def test_about_opens_via_button_click() -> None:
     app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
         await pilot.pause()
-        await pilot.click("#about-button")
+        await pilot.click("#menu-help")  # open the Help menu
         await pilot.pause()
+        await pilot.click("#menu-item-about")  # About
+        await pilot.pause()
+        await pilot.pause()  # select() runs the action after the menu closes
         assert isinstance(app.screen, AboutScreen)
 
 

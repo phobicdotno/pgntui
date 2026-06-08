@@ -8,7 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from textual import on, work
+from textual import events, on, work
 from textual.app import App, ComposeResult
 from textual.containers import Container as TextualContainer
 from textual.containers import Grid, Horizontal, Vertical, VerticalScroll
@@ -123,54 +123,124 @@ class DebugAggregate(DataTable[str]):
         self._seen.clear()
 
 
-class TopBarButton(Static):
-    """Clickable label in the title bar that fires a named app action."""
+# The menu bar's contents: each top-level menu maps to a list of
+# ``(label, action_name, key)`` rows. ``action_name`` resolves to ``action_*`` on
+# the app, so clicking a menu item and pressing its key share one code path.
+_MENUS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
+    ("File", (("Record on/off", "toggle_record", "R"), ("Quit", "force_quit", "Q"))),
+    ("Connection", (("Connect…", "connection", "C"),)),
+    (
+        "View",
+        (
+            ("Debug", "show_debug", "D"),
+            ("Debug: trace / aggregate", "toggle_debug_view", "G"),
+            ("Settings…", "config", "S"),
+        ),
+    ),
+    ("Help", (("About", "about", "A"), ("Keyboard help", "help", "?"))),
+)
+
+
+class MenuItem(Static):
+    """One clickable row in an open menu: ``label … key``."""
 
     DEFAULT_CSS = """
-    TopBarButton { width: auto; padding: 0 2; }
-    /* Paint the hover label in the theme background color so it inverts against
-       the accent fill. Without this, themes whose accent equals their
-       foreground (mono-ascii: white on white) render an unreadable box. */
-    TopBarButton:hover { background: $accent; color: $background; text-style: bold; }
+    MenuItem { width: 100%; height: 1; padding: 0 1; }
+    MenuItem:hover { background: $accent; color: $background; text-style: bold; }
     """
 
-    def __init__(self, label: str, action: str, **kwargs: Any) -> None:
-        super().__init__(label, **kwargs)
+    def __init__(self, label: str, key: str, action: str, width: int) -> None:
+        # Pad the label so every shortcut lines up in a column on the right.
+        super().__init__(f"{label:<{width}}   {key}", markup=False, id=f"menu-item-{action}")
         self._action = action
 
+    def on_click(self, event: events.Click) -> None:
+        event.stop()  # don't let it bubble to the screen's close-on-click
+        screen = self.screen
+        if isinstance(screen, MenuScreen):
+            screen.select(self._action)
+
+
+class MenuScreen(ModalScreen[None]):
+    """A dropdown for one top-level menu, opened under its title."""
+
+    DEFAULT_CSS = """
+    MenuScreen { align: left top; background: $background 0%; }
+    MenuScreen #menu-dropdown {
+        width: auto;
+        height: auto;
+        border: round $accent;
+        background: $surface;
+        padding: 0 1;
+    }
+    """
+
+    BINDINGS = [("escape", "dismiss", "Close")]
+
+    def __init__(self, items: tuple[tuple[str, str, str], ...], x: int) -> None:
+        super().__init__()
+        self._items = items
+        self._x = x
+
+    def compose(self) -> ComposeResult:
+        label_w = max((len(label) for label, _, _ in self._items), default=4)
+        dropdown = Vertical(
+            *(MenuItem(label, key, action, label_w) for label, action, key in self._items),
+            id="menu-dropdown",
+        )
+        # Pin the width to the content: an auto-width box with width:100% children
+        # collapses, so size it from the row text (label + 3 spaces + key) plus the
+        # border (2) and padding (2).
+        dropdown.styles.width = label_w + 1 + 3 + 2 + 2 + 2
+        # Sit just under the menu bar, left-aligned with the clicked title.
+        dropdown.styles.offset = (max(self._x, 0), 1)
+        yield dropdown
+
     def on_click(self) -> None:
-        # Call the app's action method directly so the keyboard binding and the
-        # click share one code path. (run_action is async; these actions are
-        # sync, so a plain call avoids an un-awaited coroutine.)
-        action = getattr(self.app, f"action_{self._action}", None)
-        if action is not None:
-            action()
+        # A click that reaches the screen missed every item -> close the menu.
+        self.dismiss()
+
+    def select(self, action: str) -> None:
+        """Run the chosen action after the menu has closed (so a dialog it opens
+        isn't immediately popped along with this menu)."""
+        fn = getattr(self.app, f"action_{action}", None)
+        self.dismiss()
+        if fn is not None:
+            self.app.call_after_refresh(fn)
+
+
+class MenuTitle(Static):
+    """A clickable top-level menu name in the title bar."""
+
+    DEFAULT_CSS = """
+    MenuTitle { width: auto; padding: 0 2; }
+    MenuTitle:hover { background: $accent; color: $background; text-style: bold; }
+    """
+
+    def __init__(self, name: str, items: tuple[tuple[str, str, str], ...], **kwargs: Any) -> None:
+        super().__init__(name, **kwargs)
+        self._items = items
+
+    def on_click(self) -> None:
+        self.app.push_screen(MenuScreen(self._items, self.region.x))
 
 
 class TopBar(Horizontal):
-    """One-line title bar: a ``☰ Menu`` (config) on the far left, the centered
-    ``PgnTui — NMEA 2000 reader — vX.Y.Z`` title, and Connection/About on the
-    far right.
-    """
+    """One-line title bar: the ``File Connection View Help`` menu bar on the left
+    and the centered ``PgnTui — NMEA 2000 reader — vX.Y.Z — © …`` title."""
 
     DEFAULT_CSS = """
     TopBar { dock: top; height: 1; background: $surface; }
     TopBar #topbar-left { width: auto; height: 1; }
-    TopBar #topbar-right { width: auto; height: 1; }
     TopBar #app-title { width: 1fr; content-align: center middle; text-style: bold; }
     """
 
     def compose(self) -> ComposeResult:
         yield Horizontal(
-            TopBarButton("☰ Menu", "config", id="config-button"),
+            *(MenuTitle(name, items, id=f"menu-{name.lower()}") for name, items in _MENUS),
             id="topbar-left",
         )
         yield Static(about.header_title(), id="app-title")
-        yield Horizontal(
-            TopBarButton("Connection", "connection", id="connection-button"),
-            TopBarButton("About", "about", id="about-button"),
-            id="topbar-right",
-        )
 
 
 class AboutScreen(ModalScreen[None]):
@@ -711,11 +781,12 @@ class PgntuiApp(App[None]):
                     self._debug_aggregate.display = False
                     yield self._debug_aggregate
             with Horizontal(id="footer"):
+                # Navigation + layout hints live here; the action keys (Debug,
+                # Record, Connect, Settings, About, Quit) now live in the menu bar.
                 yield Static(
                     "[Tab] Page  [,/.] Inst  [↑/↓] Sig  [+] Spark  "
                     "[1/2/3] Cols  [Shift+1/2/3] Box cols  [F1/F2/F3] Pages  "
-                    "[D] Debug  [G] Dbg view  [R] Rec  "
-                    "[C] Conn  [S] Config  [A] About  [Q] Quit",
+                    "[Menu] File/View/Help",
                     id="hotkey-strip",
                     markup=False,
                 )
@@ -1302,7 +1373,8 @@ __all__ = [
     "ConnectionScreen",
     "DebugAggregate",
     "DebugLog",
+    "MenuScreen",
+    "MenuTitle",
     "PgntuiApp",
     "TopBar",
-    "TopBarButton",
 ]
