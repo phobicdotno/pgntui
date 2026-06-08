@@ -33,6 +33,16 @@ ETX = 0x03
 DLE = 0x10
 N2K_MSG_RECEIVED = 0x93
 N2K_MSG_SEND = 0x94
+# Commands sent TO the NGT-1 (vs N2K_MSG_* which carry bus traffic).
+NGT_MSG_SEND = 0xA1
+
+# "Receive all PGNs" startup command (canboat actisense-serial: NGT_STARTUP_SEQ).
+# By default the NGT-1 forwards only network-management PGNs (heartbeats, address
+# claims); this clears its PGN TX filter list so it emits EVERY received PGN —
+# without it no sensor data (engine, GPS, …) reaches the host. canboat sends it
+# on open and re-sends every 20s to keep the mode active, so we do the same.
+_NGT_RECEIVE_ALL = bytes([0x11, 0x02, 0x00])
+NGT_STARTUP_RESEND_SECONDS = 20.0
 
 
 # ---------------------------------------------------------------------------
@@ -61,6 +71,15 @@ def frame_message(command: int, payload: bytes) -> bytes:
         out.append(b)
     out += bytes([DLE, ETX])
     return bytes(out)
+
+
+def build_ngt_receive_all() -> bytes:
+    """Framed NGT-1 command that puts the gateway into 'receive all PGNs' mode.
+
+    Must be sent after opening the port (and re-sent periodically) or the NGT-1
+    only forwards network-management PGNs and no sensor data arrives.
+    """
+    return frame_message(NGT_MSG_SEND, _NGT_RECEIVE_ALL)
 
 
 def build_n2k_send(prio: int, pgn: int, dst: int, data: bytes) -> bytes:
@@ -321,6 +340,17 @@ class NGT1Driver:
             baudrate=int(config.get("baud", 115200)),
             timeout=0.1,
         )
+        # Tell the NGT-1 to forward every PGN, not just network-management ones.
+        self._send_receive_all()
+
+    def _send_receive_all(self) -> None:
+        """Send the 'receive all PGNs' command, ignoring write errors."""
+        if self._serial is None:
+            return
+        try:
+            self._serial.write(build_ngt_receive_all())
+        except Exception:  # pragma: no cover — defensive
+            pass
 
     def close(self) -> None:
         # Signal stop FIRST so a read_frames loop running on another thread
@@ -333,9 +363,16 @@ class NGT1Driver:
 
     def read_frames(self) -> Iterator[Frame]:
         assert self._serial is not None
+        # Re-send the receive-all command periodically — the NGT-1 reverts to its
+        # default (network-management only) if it stops hearing it (canboat does
+        # the same on a 20s cadence).
+        last_keepalive = time.monotonic()
         while True:
             if self._stop.is_set():
                 return
+            if time.monotonic() - last_keepalive > NGT_STARTUP_RESEND_SECONDS:
+                self._send_receive_all()
+                last_keepalive = time.monotonic()
             chunk = self._serial.read(256)
             if not chunk:
                 continue
@@ -363,12 +400,14 @@ __all__ = [
     "ETX",
     "N2K_MSG_RECEIVED",
     "N2K_MSG_SEND",
+    "NGT_MSG_SEND",
     "STX",
     "MessageReassembler",
     "NGT1Driver",
     "ProbeResult",
     "build_n2k_received",
     "build_n2k_send",
+    "build_ngt_receive_all",
     "frame_message",
     "list_serial_ports",
     "parse_n2k_received",

@@ -20,11 +20,13 @@ from pgntui.drivers.actisense import (
     ETX,
     N2K_MSG_RECEIVED,
     N2K_MSG_SEND,
+    NGT_MSG_SEND,
     STX,
     MessageReassembler,
     NGT1Driver,
     build_n2k_received,
     build_n2k_send,
+    build_ngt_receive_all,
     frame_message,
     parse_n2k_received,
 )
@@ -133,6 +135,26 @@ def test_reassembler_drops_bad_checksum() -> None:
     msgs = r.push(bytes(framed))
     # Structurally complete but checksum fails -> reassembler drops it entirely.
     assert msgs == []
+
+
+def test_receive_all_command_is_ngt_send_with_startup_payload() -> None:
+    # Without this command the NGT-1 forwards only network-management PGNs and no
+    # sensor data arrives. Verified against canboat: NGT_MSG_SEND (0xA1) + payload
+    # 0x11 0x02 0x00.
+    framed = build_ngt_receive_all()
+    assert framed[:2] == bytes([DLE, STX])
+    assert framed[-2:] == bytes([DLE, ETX])
+    msgs = MessageReassembler().push(framed)
+    assert msgs == [(NGT_MSG_SEND, bytes([0x11, 0x02, 0x00]))]
+
+
+def test_open_sends_receive_all() -> None:
+    # The driver must request 'receive all' as soon as the port is open.
+    d = NGT1Driver()
+    d._serial = MagicMock()
+    d._send_receive_all()  # what open() calls after constructing the serial
+    written = d._serial.write.call_args[0][0]
+    assert written == build_ngt_receive_all()
 
 
 def test_write_frame_uses_send_command() -> None:
