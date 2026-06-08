@@ -5,6 +5,7 @@ monitor, and confirm repeated frames coalesce onto one row.
 from __future__ import annotations
 
 import pytest
+from textual.widgets import TabbedContent
 
 from pgntui.app import DebugAggregate, DebugLog, PgntuiApp
 from pgntui.decode.canboat import DecodedFrame
@@ -35,6 +36,36 @@ async def test_debug_starts_on_stream_and_toggles() -> None:
         await pilot.pause()
         assert log.display is True
         assert table.display is False  # back to stream
+
+
+@pytest.mark.asyncio
+async def test_debug_log_is_capped() -> None:
+    # The scrollback must be bounded — an unbounded RichLog grows without limit on
+    # a live bus and eventually freezes when rendered.
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert app.query_one(DebugLog).max_lines == 5000
+
+
+@pytest.mark.asyncio
+async def test_debug_views_fed_only_when_visible_and_repopulate_on_open() -> None:
+    # While the Debug tab is hidden the per-frame UI hop is skipped (it floods the
+    # event loop on a busy bus); the capped buffer still records, and the views are
+    # rebuilt from it when Debug is opened.
+    app = PgntuiApp(theme=load_builtin("dark"), page_titles=["Main"])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        assert app._debug_active is False  # Main is the active tab, Debug hidden
+        # Frames accumulate in the capped buffer while Debug is hidden.
+        for v in (1000, 1500, 50):
+            app._debug_buffer.push(_frame(127488 if v != 50 else 127489, 0, v))
+        assert app.query_one(DebugAggregate).row_count == 0  # views not fed yet
+        # Opening Debug rebuilds the views from the buffer.
+        app.query_one(TabbedContent).active = "debug"
+        await pilot.pause()
+        assert app._debug_active is True
+        assert app.query_one(DebugAggregate).row_count == 2  # two distinct (pgn,src)
 
 
 @pytest.mark.asyncio

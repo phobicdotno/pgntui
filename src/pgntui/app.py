@@ -566,6 +566,12 @@ class PgntuiApp(App[None]):
         # time — the streaming log by default, the aggregated table on toggle.
         self._debug_log: DebugLog | None = None
         self._debug_aggregate: DebugAggregate | None = None
+        # Whether the Debug tab is the active one. Set on the UI thread from the
+        # TabActivated handler; read (atomic bool) from the frame-loop worker so it
+        # only does the per-frame UI hop to the Debug views when they're visible.
+        # The capped DebugBuffer keeps accumulating regardless, and the views are
+        # repopulated from it when Debug is opened.
+        self._debug_active: bool = False
         # Compose-time storage for (page, view) pairs. Populated as ``compose()``
         # yields each PageView so ``_wire_write_callbacks`` can hook widgets
         # after mount.
@@ -671,8 +677,13 @@ class PgntuiApp(App[None]):
                 with TabPane("Debug", id="debug"):
                     if not self._pages and self._page_titles is None:
                         yield Static(_WELCOME_TEXT, id="welcome", markup=True)
+                    # Cap the scrollback: a RichLog keeps every line in memory,
+                    # so on a busy bus an unbounded log grows without limit and
+                    # eventually freezes when rendered. 5000 lines is plenty of
+                    # history; older lines are discarded. (The aggregate view is
+                    # naturally bounded — one row per PGN/source.)
                     self._debug_log = DebugLog(
-                        highlight=False, markup=False, wrap=False, id="debug-log"
+                        highlight=False, markup=False, wrap=False, max_lines=5000, id="debug-log"
                     )
                     yield self._debug_log
                     self._debug_aggregate = DebugAggregate(id="debug-aggregate")
@@ -731,11 +742,15 @@ class PgntuiApp(App[None]):
         # one-frame-stale sparkline window.
         self._clock = max(self._clock, decoded.timestamp)
         self._debug_buffer.push(decoded)
-        # Feed both Debug views so toggling between them is instant and populated.
-        if self._debug_log is not None:
-            self.call_from_thread(self._debug_log.push_decoded, decoded)
-        if self._debug_aggregate is not None:
-            self.call_from_thread(self._debug_aggregate.push_decoded, decoded)
+        # Only do the per-frame UI hop to the Debug views when the Debug tab is
+        # visible — otherwise it floods the event loop on a busy bus for a view
+        # nobody is looking at. When hidden, the capped DebugBuffer still records
+        # everything; the views are rebuilt from it when Debug is opened.
+        if self._debug_active:
+            if self._debug_log is not None:
+                self.call_from_thread(self._debug_log.push_decoded, decoded)
+            if self._debug_aggregate is not None:
+                self.call_from_thread(self._debug_aggregate.push_decoded, decoded)
         if self._auto_builder is not None:
             self.call_from_thread(self._auto_builder.ingest, decoded)
         for update in self._router.route(decoded):
@@ -922,6 +937,32 @@ class PgntuiApp(App[None]):
                 if isinstance(w, (AnalogInWidget, DigitalInWidget)) and w.expanded:
                     w.tick(self._clock)
                     w.refresh()
+
+    @on(TabbedContent.TabActivated)
+    def _on_tab_activated(self, event: TabbedContent.TabActivated) -> None:
+        """Track whether Debug is the active tab and, when it just became active,
+        rebuild its views from the capped buffer (they aren't fed while hidden)."""
+        try:
+            active = self.query_one(TabbedContent).active
+        except Exception:  # pragma: no cover — pre-mount
+            return
+        was_active = self._debug_active
+        self._debug_active = active == "debug"
+        if self._debug_active and not was_active:
+            self._populate_debug_from_buffer()
+
+    def _populate_debug_from_buffer(self) -> None:
+        """Replay the capped DebugBuffer into the log + aggregate so opening Debug
+        shows recent history without feeding the views frame-by-frame while hidden."""
+        rows = self._debug_buffer.rows()
+        if self._debug_log is not None:
+            self._debug_log.clear()
+            for df in rows:
+                self._debug_log.push_decoded(df)
+        if self._debug_aggregate is not None:
+            self._debug_aggregate.clear_frames()
+            for df in rows:
+                self._debug_aggregate.push_decoded(df)
 
     def action_show_debug(self) -> None:
         tabs = self.query_one(TabbedContent)
