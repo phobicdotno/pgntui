@@ -79,6 +79,15 @@ class FastPacketReassembler:
             yield data
             return
 
+        # Gateways like the Actisense NGT-1 reassemble fast-packets in hardware and
+        # hand us the COMPLETE payload in one frame. A raw fast-packet CAN frame is
+        # never longer than 8 bytes, so anything longer is already a full message —
+        # pass it straight through instead of mis-reading data[0] as a frame header
+        # (which silently dropped every fast-packet PGN: 127489, 127493, 129029…).
+        if len(data) > 8:
+            yield data
+            return
+
         if len(data) < 2:
             # Malformed fast-packet frame; cannot read header or first byte.
             return

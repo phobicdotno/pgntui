@@ -39,6 +39,18 @@ def test_single_frame_passes_through() -> None:
     assert yielded == [data]
 
 
+def test_already_reassembled_fastpacket_passes_through() -> None:
+    # Regression: a gateway (Actisense NGT-1) reassembles fast-packets in
+    # hardware and delivers the COMPLETE payload in a single frame longer than
+    # 8 bytes. It must pass straight through — NOT be mis-read as a fast-packet
+    # frame header (which silently dropped every fast-packet PGN: 127489 engine
+    # dynamic, 129029 GNSS position, …).
+    fp = FastPacketReassembler(fast_pgns={127489})
+    complete = bytes(range(26))  # 26-byte Engine Parameters (Dynamic), assembled
+    yielded = _collect(fp.push(pgn=127489, source=104, data=complete))
+    assert yielded == [complete]
+
+
 def test_first_frame_with_short_length_yields_immediately() -> None:
     fp = FastPacketReassembler(fast_pgns={129540})
     # length=3 fits entirely in frame 0 (frame 0 carries 6 useful bytes).
