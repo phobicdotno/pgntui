@@ -533,6 +533,9 @@ class PgntuiApp(App[None]):
         layout_columns: int | None = None,
         layout_groups: int = 1,
         layout_pages: int = 1,
+        # Optional message shown in the status bar on mount (e.g. a port-busy
+        # notice when the configured driver couldn't auto-connect at launch).
+        startup_status: str | None = None,
         # Back-compat: older callers (and tests) construct with page_titles=[...].
         # When present, pages + signals are ignored and the app renders title-only
         # placeholder tabs. New callers should prefer the structured args.
@@ -591,6 +594,7 @@ class PgntuiApp(App[None]):
         self._saved_group_cols: int = layout_groups
         self._saved_page_cols: int = layout_pages
         self._page_cols: int = layout_pages
+        self._startup_status = startup_status
         # Auto page (built at runtime from the live stream) — only with a driver.
         self._auto_view: PageView | None = None
         self._auto_builder: AutoPageBuilder | None = None
@@ -614,6 +618,8 @@ class PgntuiApp(App[None]):
         if self._auto_view is not None:
             self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
         self._apply_saved_layout()
+        if self._startup_status:
+            self._set_status(self._startup_status)
         # Repaint expanded sparklines once a second so a stopped signal scrolls
         # left into trailing gaps even when no new frames arrive for it.
         self.set_interval(1.0, self._tick_sparklines)
@@ -707,7 +713,9 @@ class PgntuiApp(App[None]):
             with Horizontal(id="footer"):
                 yield Static(
                     "[Tab] Page  [,/.] Inst  [↑/↓] Sig  [+] Spark  "
-                    "[1/2/3] Cols  [Shift+1/2/3] Box cols  [F1/F2/F3] Pages",
+                    "[1/2/3] Cols  [Shift+1/2/3] Box cols  [F1/F2/F3] Pages  "
+                    "[D] Debug  [G] Dbg view  [R] Rec  "
+                    "[C] Conn  [S] Config  [A] About  [Q] Quit",
                     id="hotkey-strip",
                     markup=False,
                 )

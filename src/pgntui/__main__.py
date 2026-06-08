@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import sys
 from importlib import resources
@@ -206,14 +207,111 @@ def load_driver(name: str) -> Driver | None:
 def open_driver_or_none(driver: Driver | None, options: dict[str, object]) -> Driver | None:
     """Open the driver, swallowing errors so a missing serial device etc.
     degrades gracefully into a no-driver UI."""
+    driver, _ = open_driver_reporting(driver, options)
+    return driver
+
+
+def open_driver_reporting(
+    driver: Driver | None, options: dict[str, object]
+) -> tuple[Driver | None, str | None]:
+    """Open the driver, returning ``(driver, error_message)``.
+
+    On success returns ``(driver, None)``. On failure returns ``(None, msg)`` with
+    a friendly, actionable message so the launcher can surface *why* it started
+    without a live connection instead of silently degrading to a no-driver UI.
+    """
     if driver is None:
-        return None
+        return None, None
     try:
         driver.open(options)
     except Exception as e:
-        print(f"warning: failed to open driver: {e}", file=sys.stderr)
-        return None
-    return driver
+        return None, _driver_open_message(options, e)
+    return driver, None
+
+
+def _driver_open_message(options: dict[str, object], error: Exception) -> str:
+    """Turn a driver-open failure into a clear status line."""
+    port = options.get("port") or "the serial port"
+    text = str(error).lower()
+    if "access is denied" in text or "permission" in text or "in use" in text:
+        return (
+            f"{port} is busy — another app or a previous pgntui still has it. "
+            "Close that, then press C to connect."
+        )
+    return f"Could not open {port}: {error}. Press C to try again."
+
+
+# ---------------------------------------------------------------------------
+# Single-instance guard
+# ---------------------------------------------------------------------------
+
+
+def _instance_lock_path(workspace: Path) -> Path:
+    return workspace / "pgntui.lock"
+
+
+def _pid_alive(pid: int) -> bool:
+    """True if a process with ``pid`` is currently running. Cross-platform and
+    stdlib-only (no psutil)."""
+    if pid <= 0:
+        return False
+    if os.name == "nt":
+        import ctypes
+
+        # getattr keeps mypy happy on non-Windows (where ctypes.windll is absent);
+        # this branch only runs on Windows anyway. noqa: ruff's B009 wants direct
+        # access, but that fails mypy on Linux — the dynamic form is intentional.
+        kernel32 = getattr(ctypes, "windll").kernel32  # noqa: B009
+        # PROCESS_QUERY_LIMITED_INFORMATION = 0x1000; STILL_ACTIVE = 259.
+        handle = kernel32.OpenProcess(0x1000, False, pid)
+        if not handle:
+            return False
+        try:
+            code = ctypes.c_ulong()
+            ok = kernel32.GetExitCodeProcess(handle, ctypes.byref(code))
+            return bool(ok) and code.value == 259
+        finally:
+            kernel32.CloseHandle(handle)
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True  # exists, just not ours to signal
+    return True
+
+
+def acquire_single_instance(workspace: Path) -> int | None:
+    """Take the single-instance lock for ``workspace``.
+
+    Returns ``None`` when the lock is acquired (this is the only instance), or the
+    PID of the other *live* pgntui that already holds it. A stale lock (its PID is
+    dead) is taken over. Lock-file I/O errors never block startup.
+    """
+    lock = _instance_lock_path(workspace)
+    try:
+        if lock.exists():
+            try:
+                holder = int(lock.read_text(encoding="utf-8").strip())
+            except (ValueError, OSError):
+                holder = 0
+            if holder and holder != os.getpid() and _pid_alive(holder):
+                return holder
+        workspace.mkdir(parents=True, exist_ok=True)
+        lock.write_text(str(os.getpid()), encoding="utf-8")
+    except OSError:
+        return None  # can't write the lock (read-only fs etc.) — don't block
+    return None
+
+
+def release_single_instance(workspace: Path) -> None:
+    """Remove the single-instance lock if (and only if) we own it."""
+    lock = _instance_lock_path(workspace)
+    try:
+        if lock.exists() and lock.read_text(encoding="utf-8").strip() == str(os.getpid()):
+            lock.unlink()
+    except OSError:  # pragma: no cover — defensive
+        pass
 
 
 # ---------------------------------------------------------------------------
@@ -230,6 +328,9 @@ def _apply_enable_write(cfg: Config, workspace: Path) -> Config:
         workspace=workspace,
         csv_dir=cfg.csv_dir,
         record_dir=cfg.record_dir,
+        layout_columns=cfg.layout_columns,
+        layout_groups=cfg.layout_groups,
+        layout_pages=cfg.layout_pages,
     )
 
 
@@ -237,6 +338,7 @@ def _build_app(
     cfg: Config,
     workspace: Path,
     driver: Driver | None,
+    startup_status: str | None = None,
 ) -> PgntuiApp:
     try:
         theme = load_builtin(cfg.theme)
@@ -263,6 +365,7 @@ def _build_app(
         layout_columns=cfg.layout_columns,
         layout_groups=cfg.layout_groups,
         layout_pages=cfg.layout_pages,
+        startup_status=startup_status,
     )
 
 
@@ -302,6 +405,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.command == "probe":
         return _run_probe(cfg, args.port, args.baud, args.seconds)
 
+    # Set by the live-serial branch below; the finally clause reads them.
+    startup_status: str | None = None
+    locked = False
+
     if args.command == "replay":
         replay_path = Path(args.replay_file).expanduser().resolve()
         if not replay_path.exists():
@@ -317,11 +424,25 @@ def main(argv: list[str] | None = None) -> int:
         # menu (press C) to attach an NGT-1.
         driver = None
     else:
+        # Live serial launch (a configured real driver, e.g. the NGT-1). Enforce a
+        # single instance so port holders don't pile up: a second launch while one
+        # is running would fail to grab the port and confuse the user.
+        holder = acquire_single_instance(workspace)
+        if holder is not None:
+            print(
+                f"pgntui is already running (pid {holder}). Quit it (press Q) or "
+                "close its window before launching again.",
+                file=sys.stderr,
+            )
+            return 3
+        locked = True
         driver = load_driver(cfg.driver_name)
         if driver is not None:
-            driver = open_driver_or_none(driver, cfg.driver_options)
+            # Report *why* if the port won't open (busy etc.) so the UI can say so
+            # instead of silently starting with no connection.
+            driver, startup_status = open_driver_reporting(driver, cfg.driver_options)
 
-    app = _build_app(cfg=cfg, workspace=workspace, driver=driver)
+    app = _build_app(cfg=cfg, workspace=workspace, driver=driver, startup_status=startup_status)
     try:
         app.run()
     finally:
@@ -330,6 +451,8 @@ def main(argv: list[str] | None = None) -> int:
                 driver.close()
             except Exception:  # pragma: no cover — defensive
                 pass
+        if locked:
+            release_single_instance(workspace)
         # SIGINT (KeyboardInterrupt) escapes ``app.run()`` before
         # ``action_force_quit`` can flush the recording writer. Backstop the
         # flush here so the tail of the .pgnlog isn't lost on Ctrl+C.
