@@ -24,6 +24,7 @@ CHANGELOG_MAX_WIDTH = 72
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.25", "Main page: drop Engine RPM (it has its own Engine sections)."),
     ("0.6.24", "Auto tab now appears when you Connect, not only at launch."),
     ("0.6.23", "Debug aggregate: one row per Instance (was one merged row)."),
     ("0.6.22", "Auto page packs boxes into top-filled columns (no gaps)."),

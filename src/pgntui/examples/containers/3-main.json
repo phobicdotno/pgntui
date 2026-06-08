@@ -7,27 +7,21 @@
       "cols": 12,
       "signals": [
         {
-          "ref": "engine_rpm",
+          "ref": "speed",
           "row": 0,
           "col": 0,
           "w": 3
         },
         {
-          "ref": "speed",
+          "ref": "depth",
           "row": 0,
           "col": 3,
           "w": 3
         },
         {
-          "ref": "depth",
-          "row": 0,
-          "col": 6,
-          "w": 3
-        },
-        {
           "ref": "water_temp",
           "row": 0,
-          "col": 9,
+          "col": 6,
           "w": 3
         },
         {
