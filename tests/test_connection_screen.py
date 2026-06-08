@@ -129,11 +129,21 @@ async def test_connect_ngt1_wires_driver(monkeypatch) -> None:  # type: ignore[n
     )
     async with app.run_test() as pilot:
         await pilot.pause()
+        from textual.widgets import TabbedContent
+
+        tabs = app.query_one(TabbedContent)
+        # Launched without a driver -> no Auto tab yet.
+        assert "tab-auto" not in {tp.id for tp in tabs.query("TabPane")}
         ok, message = app.connect_ngt1("COM7", 115200)
         assert ok is True
         assert "Connected" in message
         assert app._n2k_driver is fake
         assert fake.opened == {"port": "COM7", "baud": 115200}
+        # Connecting via the menu now creates the Auto tab + builder (so it no
+        # longer appears only when a driver was connected at launch).
+        await pilot.pause()
+        assert "tab-auto" in {tp.id for tp in tabs.query("TabPane")}
+        assert app._auto_view is not None and app._auto_builder is not None
         # A second attempt refuses while a driver is live.
         ok2, message2 = app.connect_ngt1("COM4", 115200)
         assert ok2 is False

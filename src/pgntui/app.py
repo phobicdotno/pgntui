@@ -761,16 +761,10 @@ class PgntuiApp(App[None]):
                                 self._page_views.append((page, view))
                                 yield view
                     if self._n2k_driver is not None:
-                        # Auto tab: auto-populates from the live stream. Only with
-                        # a driver (skipping it keeps no-driver frame tests clean).
-                        auto_page = Page(id="auto", title="Auto", containers=(), generated=True)
-                        self._auto_view = PageView(
-                            page=auto_page,
-                            signals=self._signals,
-                            write_enabled=self._write_enabled,
-                            theme=self._theme,
-                            masonry=True,  # top-packed columns (no ragged gaps)
-                        )
+                        # Auto tab: auto-populates from the live stream. Built at
+                        # launch when a driver is present; also added at runtime by
+                        # _ensure_auto_tab when connecting via the menu.
+                        self._auto_view = self._make_auto_view()
                         with TabPane("Auto", id="tab-auto"):
                             yield self._auto_view
                 with TabPane("Debug", id="debug"):
@@ -1257,6 +1251,35 @@ class PgntuiApp(App[None]):
         if self._auto_view is not None:
             self._auto_view.apply_theme(new)
 
+    def _make_auto_view(self) -> PageView:
+        """Build the Auto page view (masonry, top-packed columns)."""
+        auto_page = Page(id="auto", title="Auto", containers=(), generated=True)
+        return PageView(
+            page=auto_page,
+            signals=self._signals,
+            write_enabled=self._write_enabled,
+            theme=self._theme,
+            masonry=True,
+        )
+
+    def _ensure_auto_tab(self) -> None:
+        """Create + mount the Auto tab if it doesn't exist yet.
+
+        The tab is built at launch only when a driver is already connected; when
+        the user connects later via the Connection menu it would otherwise never
+        appear (the cause of the Auto tab showing only 'sometimes'). Idempotent.
+        """
+        if self._auto_view is not None:
+            return
+        self._auto_view = self._make_auto_view()
+        self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
+        try:
+            tabs = self.query_one(TabbedContent)
+            tabs.add_pane(TabPane("Auto", self._auto_view, id="tab-auto"), before="debug")
+        except Exception:  # pragma: no cover — defensive (pre-mount / no tabs)
+            self._auto_view = None
+            self._auto_builder = None
+
     def connect_ngt1(self, port: str, baud: int) -> tuple[bool, str]:
         """Open an NGT-1 on ``port`` and start the frame loop. Returns (ok, message).
 
@@ -1276,6 +1299,9 @@ class PgntuiApp(App[None]):
             return False, f"Could not open {port}: {e}"
         self._n2k_driver = driver
         self._driver_options = {"port": port, "baud": baud}
+        # Make the Auto tab exist now, so it doesn't only appear when a driver was
+        # connected at launch.
+        self._ensure_auto_tab()
         self.frame_loop()
         self._set_status(f"connected {port} @ {baud}")
         return True, f"Connected on {port} @ {baud}. Watch the Debug tab for frames."
