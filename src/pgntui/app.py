@@ -164,18 +164,23 @@ class MenuItem(Static):
         self._action = action
 
     def on_click(self, event: events.Click) -> None:
-        event.stop()  # don't let it bubble to the screen's close-on-click
-        screen = self.screen
-        if isinstance(screen, MenuScreen):
-            screen.select(self._action)
+        event.stop()  # don't bubble to the app's close-on-outside-click
+        self.app.menu_select(self._action)  # type: ignore[attr-defined]
 
 
-class MenuScreen(ModalScreen[None]):
-    """A dropdown for one top-level menu, opened under its title."""
+class MenuDropdown(Vertical):
+    """A floating menu dropdown, mounted on the SAME screen as the dashboard.
+
+    Deliberately not a ModalScreen: a transparent modal screen blanks the
+    dashboard behind it (Textual doesn't composite the screen below here), so the
+    dropdown is an absolutely-positioned overlay on its own layer instead — the
+    dashboard stays fully visible underneath.
+    """
 
     DEFAULT_CSS = """
-    MenuScreen { align: left top; background: $background 0%; }
-    MenuScreen #menu-dropdown {
+    MenuDropdown {
+        layer: menu;
+        position: absolute;
         width: auto;
         height: auto;
         border: round $accent;
@@ -184,38 +189,17 @@ class MenuScreen(ModalScreen[None]):
     }
     """
 
-    BINDINGS = [("escape", "dismiss", "Close")]
-
     def __init__(self, items: tuple[tuple[str, str, str], ...], x: int) -> None:
-        super().__init__()
-        self._items = items
-        self._x = x
-
-    def compose(self) -> ComposeResult:
-        label_w = max((len(label) for label, _, _ in self._items), default=4)
-        dropdown = Vertical(
-            *(MenuItem(label, key, action, label_w) for label, action, key in self._items),
+        label_w = max((len(label) for label, _, _ in items), default=4)
+        super().__init__(
+            *(MenuItem(label, key, action, label_w) for label, action, key in items),
             id="menu-dropdown",
         )
-        # Pin the width to the content: an auto-width box with width:100% children
-        # collapses, so size it from the row text (label + 3 spaces + key) plus the
-        # border (2) and padding (2).
-        dropdown.styles.width = label_w + 1 + 3 + 2 + 2 + 2
-        # Sit just under the menu bar, left-aligned with the clicked title.
-        dropdown.styles.offset = (max(self._x, 0), 1)
-        yield dropdown
-
-    def on_click(self) -> None:
-        # A click that reaches the screen missed every item -> close the menu.
-        self.dismiss()
-
-    def select(self, action: str) -> None:
-        """Run the chosen action after the menu has closed (so a dialog it opens
-        isn't immediately popped along with this menu)."""
-        fn = getattr(self.app, f"action_{action}", None)
-        self.dismiss()
-        if fn is not None:
-            self.app.call_after_refresh(fn)
+        # Width from the row text (label + 3 spaces + key) + border (2) + padding
+        # (2); an auto-width box with width:100% children would collapse.
+        self.styles.width = label_w + 1 + 3 + 2 + 2 + 2
+        # Just under the menu bar (row 1), left-aligned with the clicked title.
+        self.styles.offset = (max(x, 0), 1)
 
 
 class MenuTitle(Static):
@@ -228,10 +212,12 @@ class MenuTitle(Static):
 
     def __init__(self, name: str, items: tuple[tuple[str, str, str], ...], **kwargs: Any) -> None:
         super().__init__(name, **kwargs)
+        self.menu_name = name
         self._items = items
 
-    def on_click(self) -> None:
-        self.app.push_screen(MenuScreen(self._items, self.region.x))
+    def on_click(self, event: events.Click) -> None:
+        event.stop()  # don't bubble to the app's close-on-outside-click
+        self.app.toggle_menu(self.menu_name, self._items, self.region.x)  # type: ignore[attr-defined]
 
 
 class TopBar(Horizontal):
@@ -548,6 +534,9 @@ class PgntuiApp(App[None]):
     """
 
     CSS = """
+    /* A 'menu' layer above the base content so the menu-bar dropdown floats over
+       the dashboard (it's an overlay widget on this screen, not a modal). */
+    Screen { layers: base menu; }
     TabbedContent { height: 1fr; }
     /* Footer is one docked bar: the hotkey hints fill the left, the status sits at
        the right. A single row so they share the bar (two separate ``dock: bottom``
@@ -593,6 +582,7 @@ class PgntuiApp(App[None]):
         ("a", "about", "About"),
         ("q,ctrl+q", "force_quit", "Quit"),
         ("question_mark", "help", "Help"),
+        ("escape", "close_menu", "Close menu"),
     ]
 
     def __init__(
@@ -674,6 +664,9 @@ class PgntuiApp(App[None]):
         self._saved_page_cols: int = layout_pages
         self._page_cols: int = layout_pages
         self._startup_status = startup_status
+        # Menu-bar dropdown overlay state (mounted on the screen, not a modal).
+        self._menu_dropdown: MenuDropdown | None = None
+        self._open_menu_name: str | None = None
         # Auto page (built at runtime from the live stream) — only with a driver.
         self._auto_view: PageView | None = None
         self._auto_builder: AutoPageBuilder | None = None
@@ -933,6 +926,44 @@ class PgntuiApp(App[None]):
                 self._set_status(f"write failed: {e}")
 
         return cb
+
+    # ---- Menu bar ----------------------------------------------------------
+
+    def toggle_menu(self, name: str, items: tuple[tuple[str, str, str], ...], x: int) -> None:
+        """Open the dropdown for menu ``name`` (or close it if it's already open)."""
+        if self._open_menu_name == name:
+            self.close_menu()
+            return
+        self.close_menu()
+        dropdown = MenuDropdown(items, x)
+        self._menu_dropdown = dropdown
+        self._open_menu_name = name
+        self.screen.mount(dropdown)
+
+    def close_menu(self) -> None:
+        """Remove the open menu dropdown, if any."""
+        if self._menu_dropdown is not None:
+            self._menu_dropdown.remove()
+            self._menu_dropdown = None
+            self._open_menu_name = None
+
+    def action_close_menu(self) -> None:
+        # Escape closes an open menu (no-op otherwise).
+        self.close_menu()
+
+    def menu_select(self, action: str) -> None:
+        """Run a chosen menu item's action after the dropdown closes (so a dialog
+        it opens isn't immediately torn down with the menu)."""
+        self.close_menu()
+        fn = getattr(self, f"action_{action}", None)
+        if fn is not None:
+            self.call_after_refresh(fn)
+
+    def on_click(self, event: events.Click) -> None:
+        # A click that bubbles up to the app (i.e. not on a menu title or item,
+        # which stop propagation) closes any open menu.
+        if self._menu_dropdown is not None:
+            self.close_menu()
 
     # ---- Status / actions --------------------------------------------------
 
@@ -1425,7 +1456,7 @@ __all__ = [
     "ConnectionScreen",
     "DebugAggregate",
     "DebugLog",
-    "MenuScreen",
+    "MenuDropdown",
     "MenuTitle",
     "PgntuiApp",
     "TopBar",

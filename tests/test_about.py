@@ -81,6 +81,32 @@ async def test_about_opens_via_key_and_closes() -> None:
 
 
 @pytest.mark.asyncio
+async def test_menu_is_overlay_not_screen_blanking_modal() -> None:
+    # Regression: the menu used to be a transparent ModalScreen that blanked the
+    # dashboard behind it. It must now be an overlay on the SAME screen — opening
+    # it must NOT push a new screen, and Escape closes it.
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        await pilot.click("#menu-file")
+        await pilot.pause()
+        assert len(app.screen_stack) == 1, "menu must not push a screen"
+        assert app._menu_dropdown is not None
+        assert app.query_one("#menu-dropdown") is not None
+        # Clicking the same title again toggles it closed.
+        await pilot.click("#menu-file")
+        await pilot.pause()
+        assert app._menu_dropdown is None
+        # Escape also closes an open menu.
+        await pilot.click("#menu-file")
+        await pilot.pause()
+        assert app._menu_dropdown is not None
+        await pilot.press("escape")
+        await pilot.pause()
+        assert app._menu_dropdown is None
+
+
+@pytest.mark.asyncio
 async def test_about_opens_via_button_click() -> None:
     app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:
