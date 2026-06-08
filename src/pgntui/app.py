@@ -875,13 +875,25 @@ class PgntuiApp(App[None]):
         self._set_page_columns(3)
 
     def _set_page_columns(self, n: int) -> None:
-        """Lay the content sections out in ``n`` columns across the page (Ctrl+N).
-        Sections pin their own height, so the grid's auto rows size correctly."""
-        if self._page_grid is None:
+        """F1/F2/F3 → lay content out in ``n`` columns.
+
+        On the Main tab this arranges the section grid (Nav/Engine/Main columns;
+        sections pin their own height so the grid's auto rows size correctly). The
+        Auto tab has no section grid — it is one view of many PGN boxes — so there
+        F1/F2/F3 arrange those boxes into ``n`` columns instead (same as
+        Shift+1/2/3), which is what "page columns" means on that page.
+        """
+        try:
+            active = self.query_one(TabbedContent).active
+        except Exception:  # pragma: no cover — pre-mount
             return
-        self._page_cols = n
-        self._page_grid.styles.grid_size_columns = n
-        self._page_grid.styles.grid_columns = "1fr"
+        if active == _CONTENT_TAB_ID and self._page_grid is not None:
+            self._page_cols = n
+            self._page_grid.styles.grid_size_columns = n
+            self._page_grid.styles.grid_columns = "1fr"
+            return
+        for view in self._active_views():
+            view.set_group_columns(n)
 
     def action_focus_next_signal(self) -> None:
         self._move_signal_focus(1)

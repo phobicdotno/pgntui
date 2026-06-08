@@ -85,6 +85,32 @@ async def test_replay_app_composes_one_content_tab(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_f_keys_arrange_auto_boxes(tmp_path: Path) -> None:
+    """On the Auto tab F1/F2/F3 arrange the PGN boxes into 1/2/3 columns (the Auto
+    page is one view of many boxes, not a section grid)."""
+    from textual.widgets import TabbedContent
+
+    ws = _make_workspace(tmp_path)
+    cfg = Config(theme="dark", workspace=ws)
+    drv = FileReplayDriver()
+    drv.open({"path": str(FX / "e2e_session.pgnlog"), "speed": "max"})
+    app = _build_app(cfg=cfg, workspace=ws, driver=drv)
+    async with app.run_test(size=(150, 40)) as pilot:
+        await pilot.pause()
+        app.query_one(TabbedContent).active = "tab-auto"
+        await pilot.pause()
+        assert app._auto_view is not None
+        await pilot.press("f2")
+        await pilot.pause()
+        assert app._auto_view._group_cols == 2
+        await pilot.press("f1")
+        await pilot.pause()
+        assert app._auto_view._group_cols == 1
+    await asyncio.sleep(0)
+    drv.close()
+
+
+@pytest.mark.asyncio
 async def test_f_keys_set_page_columns(tmp_path: Path) -> None:
     """F1/F2/F3 lay the content sections out in 1/2/3 page-columns. Ctrl+digit is
     not delivered by legacy terminals, so the F-keys are the reliable binding."""

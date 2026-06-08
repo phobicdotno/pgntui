@@ -49,6 +49,30 @@ async def test_auto_builds_container_per_pgn_source_and_updates() -> None:
 
 
 @pytest.mark.asyncio
+async def test_auto_splits_one_box_per_instance() -> None:
+    # A PGN that reports several Instances from one source gets one box per
+    # instance, and the title gains "· Instance X" after the src.
+    async with _Host().run_test(size=(90, 30)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        builder = AutoPageBuilder(view, theme=load_builtin("dark"))
+        builder.ingest(_frame(127488, 104, {"Instance": 0, "Speed": 1778.0}, ts=0.0))
+        builder.ingest(_frame(127488, 104, {"Instance": 1, "Speed": 1519.0}, ts=0.1))
+        await pilot.pause()
+        # Same pgn+source but two instances -> two boxes (not one that jumps).
+        assert builder.count == 2
+        from pgntui.pages.view import GroupBox
+
+        titles = {str(b.border_title) for b in pilot.app.query(GroupBox)}
+        assert any("Instance 0" in t and "src 104" in t for t in titles)
+        assert any("Instance 1" in t for t in titles)
+        # Re-feeding instance 0 updates its box in place (no third box).
+        builder.ingest(_frame(127488, 104, {"Instance": 0, "Speed": 1800.0}, ts=0.2))
+        await pilot.pause()
+        assert builder.count == 2
+
+
+@pytest.mark.asyncio
 async def test_auto_respects_cap() -> None:
     async with _Host().run_test(size=(90, 24)) as pilot:
         await pilot.pause()

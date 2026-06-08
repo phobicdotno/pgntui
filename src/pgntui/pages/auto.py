@@ -1,9 +1,11 @@
 """AutoPageBuilder — fills the Auto page from the live decoded-frame stream.
 
-Every ``(pgn, source)`` seen becomes one titled container; each decoded field is
-a row: numeric fields render as an ``AnalogInWidget`` without a bar (value + the
-on-demand sparkline), non-numeric fields as a read-only ``AutoTextWidget``.
-Containers are built first-seen on the UI thread (capped), then updated in place.
+Every ``(pgn, source, instance)`` seen becomes one titled container; each decoded
+field is a row: numeric fields render as an ``AnalogInWidget`` without a bar
+(value + the on-demand sparkline), non-numeric fields as a read-only
+``AutoTextWidget``. A PGN that reports several Instances from one source (e.g.
+several engines) gets one box per instance. Containers are built first-seen on
+the UI thread (capped), then updated in place.
 
 See docs/superpowers/specs/2026-06-06-auto-page-design.md.
 """
@@ -28,6 +30,16 @@ def _is_numeric(value: object) -> bool:
     return isinstance(value, (int, float)) and not isinstance(value, bool)
 
 
+def _instance_of(decoded: DecodedFrame) -> int | None:
+    """The frame's NMEA Instance, or ``None`` if it carries no integer Instance.
+
+    Splits an instance-carrying PGN (e.g. several engines on one source) into one
+    box per instance instead of one box whose values jump between them.
+    """
+    value = decoded.fields.get("Instance")
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 class AutoPageBuilder:
     def __init__(
         self, view: PageView, *, theme: Theme | None = None, max_containers: int = 50
@@ -35,8 +47,9 @@ class AutoPageBuilder:
         self._view = view
         self._theme = theme
         self._max = max_containers
-        # (pgn, source) -> {field_name: row widget}, in build order.
-        self._rows: dict[tuple[int, int], dict[str, Widget]] = {}
+        # (pgn, source, instance) -> {field_name: row widget}, in build order.
+        # ``instance`` is None for PGNs without an Instance field.
+        self._rows: dict[tuple[int, int, int | None], dict[str, Widget]] = {}
 
     @property
     def at_capacity(self) -> bool:
@@ -47,15 +60,16 @@ class AutoPageBuilder:
         return len(self._rows)
 
     def ingest(self, decoded: DecodedFrame) -> None:
-        """Create a container for a new ``(pgn, source)`` (up to the cap), then
-        push the frame's field values into that container's rows. Runs on the
-        Textual event-loop thread (hop via ``call_from_thread``)."""
-        key = (decoded.pgn, decoded.source_addr)
+        """Create a container for a new ``(pgn, source, instance)`` (up to the
+        cap), then push the frame's field values into that container's rows. Runs
+        on the Textual event-loop thread (hop via ``call_from_thread``)."""
+        instance = _instance_of(decoded)
+        key = (decoded.pgn, decoded.source_addr, instance)
         rows = self._rows.get(key)
         if rows is None:
             if self.at_capacity:
                 return
-            rows = self._build(decoded)
+            rows = self._build(decoded, instance)
             self._rows[key] = rows
         ts = decoded.timestamp
         for name, widget in rows.items():
@@ -68,14 +82,16 @@ class AutoPageBuilder:
             elif isinstance(widget, AutoTextWidget):
                 widget.set_text(str(value))
 
-    def _build(self, decoded: DecodedFrame) -> dict[str, Widget]:
+    def _build(self, decoded: DecodedFrame, instance: int | None) -> dict[str, Widget]:
         rows: dict[str, Widget] = {}
         ordered: list[Widget] = []
+        inst_tag = "" if instance is None else f"-i{instance}"
         for name, value in decoded.fields.items():
             widget: Widget
             if _is_numeric(value):
                 sig = AnalogIn(
-                    id=f"auto-{decoded.pgn}-{decoded.source_addr}-{name}",
+                    # inst_tag keeps ids unique across instances of one PGN/source.
+                    id=f"auto-{decoded.pgn}-{decoded.source_addr}{inst_tag}-{name}",
                     type="analog_in",
                     title=name,
                     pgn=decoded.pgn,
@@ -87,11 +103,11 @@ class AutoPageBuilder:
             rows[name] = widget
             ordered.append(widget)
         name = decoded.name or ""
-        title = (
-            f"{decoded.pgn} {name} · src {decoded.source_addr}"
-            if name
-            else f"{decoded.pgn} · src {decoded.source_addr}"
-        )
+        title = f"{decoded.pgn} {name} · src {decoded.source_addr}".replace("  ", " ")
+        if not name:
+            title = f"{decoded.pgn} · src {decoded.source_addr}"
+        if instance is not None:
+            title = f"{title} · Instance {instance}"
         self._view.add_generated_container(title, ordered)
         return rows
 
