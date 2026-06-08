@@ -140,6 +140,40 @@ async def test_saved_layout_restored_on_launch(tmp_path: Path) -> None:
 
 
 @pytest.mark.asyncio
+async def test_auto_fed_only_when_visible_and_repopulates_on_open(tmp_path: Path) -> None:
+    """Auto isn't built/updated while hidden (no per-frame UI work for a tab nobody
+    is viewing); it is rebuilt from the capped buffer when opened."""
+    from textual.widgets import TabbedContent
+
+    from pgntui.decode.canboat import DecodedFrame
+
+    ws = _make_workspace(tmp_path)
+    cfg = Config(theme="dark", workspace=ws)
+    drv = FileReplayDriver()
+    drv.open({"path": str(FX / "e2e_session.pgnlog"), "speed": "max"})
+    app = _build_app(cfg=cfg, workspace=ws, driver=drv)
+    async with app.run_test(size=(120, 40)) as pilot:
+        await pilot.pause()
+        app.query_one(TabbedContent).active = "tab-content"
+        await pilot.pause()
+        assert app._auto_active is False  # Auto hidden
+        assert app._auto_builder is not None and app._auto_builder.count == 0
+        # Frames accumulate in the capped buffer while Auto is hidden.
+        for pgn in (127488, 129025):
+            app._debug_buffer.push(
+                DecodedFrame(timestamp=0.0, source_addr=3, pgn=pgn, name="X", fields={"V": 1.0})
+            )
+        assert app._auto_builder.count == 0  # not built while hidden
+        app.query_one(TabbedContent).active = "tab-auto"
+        await pilot.pause()
+        assert app._auto_active is True
+        # Rebuilt from the buffer on open (>= my two; the replay may add more).
+        assert app._auto_builder.count >= 2
+    await asyncio.sleep(0)
+    drv.close()
+
+
+@pytest.mark.asyncio
 async def test_f_keys_arrange_auto_boxes(tmp_path: Path) -> None:
     """On the Auto tab F1/F2/F3 arrange the PGN boxes into 1/2/3 columns (the Auto
     page is one view of many boxes, not a section grid)."""

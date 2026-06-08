@@ -17,6 +17,7 @@ COPYRIGHT = "© 2026 Karstein Kvistad (phobicdotno)"
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.18", "Auto page only builds while visible (rebuilt from buffer on open)."),
     ("0.6.17", "Quit now closes the driver: fast exit and the serial port is freed."),
     ("0.6.16", "Remember the last column layout (1/2/3, Shift, F-keys) across runs."),
     ("0.6.15", "Fix Debug freeze: capped scrollback; views fed only when open."),
