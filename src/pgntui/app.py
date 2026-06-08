@@ -27,7 +27,7 @@ from textual.worker import Worker
 
 from pgntui import about
 from pgntui.debug.tab import DebugBuffer
-from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
+from pgntui.decode.canboat import CanboatDecoder, DecodedFrame, frame_instance
 from pgntui.decode.router import SignalRouter
 from pgntui.drivers.base import Driver, Frame
 from pgntui.pages.auto import AutoPageBuilder
@@ -99,12 +99,21 @@ class DebugAggregate(DataTable[str]):
         self.add_column("Time", key="time")
         self.add_column("PGN", key="pgn")
         self.add_column("Src", key="src")
+        self.add_column("Inst", key="inst")
         self.add_column("Name", key="name")
         self.add_column("Count", key="count")
         self.add_column("Fields", key="fields")
 
     def push_decoded(self, df: DecodedFrame) -> None:
+        # Key by instance too, so a PGN/source that reports several Instances
+        # (e.g. several engines) gets one row per instance instead of one row
+        # whose values jump between them. No Instance field -> key unchanged.
+        instance = frame_instance(df)
         key = f"{df.pgn}:{df.source_addr}"
+        inst_str = ""
+        if instance is not None:
+            key = f"{key}:i{instance}"
+            inst_str = str(instance)
         name = df.name or "?"
         fields = _frame_fields(df)
         ts = _frame_time(df)
@@ -116,7 +125,7 @@ class DebugAggregate(DataTable[str]):
             self.update_cell(key, "fields", fields)
         else:
             self._seen.add(key)
-            self.add_row(ts, str(df.pgn), str(df.source_addr), name, "1", fields, key=key)
+            self.add_row(ts, str(df.pgn), str(df.source_addr), inst_str, name, "1", fields, key=key)
 
     def clear_frames(self) -> None:
         self.clear()

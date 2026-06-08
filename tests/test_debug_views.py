@@ -82,3 +82,32 @@ async def test_aggregate_coalesces_repeated_pgns() -> None:
         # The repeated PGN row shows the latest value and a count of 2.
         assert str(table.get_cell("127488:0", "count")) == "2"
         assert "rpm=1500" in str(table.get_cell("127488:0", "fields"))
+
+
+def _inst_frame(pgn: int, src: int, instance: int, rpm: int) -> DecodedFrame:
+    return DecodedFrame(
+        timestamp=1.0,
+        source_addr=src,
+        pgn=pgn,
+        name="Engine",
+        fields={"Instance": instance, "rpm": rpm},
+    )
+
+
+@pytest.mark.asyncio
+async def test_aggregate_splits_rows_per_instance() -> None:
+    # One PGN/source carrying several Instances gets one row per instance, not a
+    # single coalesced row that jumps between engines.
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        table = app.query_one(DebugAggregate)
+        table.push_decoded(_inst_frame(127489, 104, 0, 1778))
+        table.push_decoded(_inst_frame(127489, 104, 1, 1519))
+        table.push_decoded(_inst_frame(127489, 104, 0, 1800))  # updates instance 0
+        await pilot.pause()
+        assert table.row_count == 2  # one row per instance, not one merged row
+        assert str(table.get_cell("127489:104:i0", "count")) == "2"
+        assert str(table.get_cell("127489:104:i1", "count")) == "1"
+        assert str(table.get_cell("127489:104:i0", "inst")) == "0"
+        assert str(table.get_cell("127489:104:i1", "inst")) == "1"

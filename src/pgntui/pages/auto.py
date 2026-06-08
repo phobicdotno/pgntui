@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from textual.widget import Widget
 
-from pgntui.decode.canboat import DecodedFrame
+from pgntui.decode.canboat import DecodedFrame, frame_instance
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget, AutoTextWidget
 from pgntui.themes.loader import Theme
@@ -28,16 +28,6 @@ if TYPE_CHECKING:
 def _is_numeric(value: object) -> bool:
     """A field value we can show as a numeric row (and sparkline)."""
     return isinstance(value, (int, float)) and not isinstance(value, bool)
-
-
-def _instance_of(decoded: DecodedFrame) -> int | None:
-    """The frame's NMEA Instance, or ``None`` if it carries no integer Instance.
-
-    Splits an instance-carrying PGN (e.g. several engines on one source) into one
-    box per instance instead of one box whose values jump between them.
-    """
-    value = decoded.fields.get("Instance")
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
 
 
 class AutoPageBuilder:
@@ -68,7 +58,7 @@ class AutoPageBuilder:
         """Create a container for a new ``(pgn, source, instance)`` (up to the
         cap), then push the frame's field values into that container's rows. Runs
         on the Textual event-loop thread (hop via ``call_from_thread``)."""
-        instance = _instance_of(decoded)
+        instance = frame_instance(decoded)
         key = (decoded.pgn, decoded.source_addr, instance)
         rows = self._rows.get(key)
         if rows is None:

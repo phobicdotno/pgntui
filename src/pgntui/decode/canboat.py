@@ -26,6 +26,15 @@ class DecodedFrame:
     fields: dict[str, Any] = field(default_factory=dict)
 
 
+def frame_instance(df: DecodedFrame) -> int | None:
+    """The frame's NMEA ``Instance`` value, or ``None`` if it carries no integer
+    Instance. Used to split one PGN/source that reports several instances (e.g.
+    several engines) into a row/box per instance instead of one that shows only
+    the last-seen instance. (``bool`` is excluded — it's an ``int`` subclass.)"""
+    value = df.fields.get("Instance")
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
 # Bridge between canboat's raw ``Name`` and the more common downstream name used
 # by tools such as SignalK and most N2K reference docs. Keyed by
 # ``(pgn, canboat field name)``.
@@ -161,4 +170,4 @@ def _read_bits(data: bytes, offset: int, length: int) -> int:
     return result
 
 
-__all__ = ["CanboatDecoder", "DecodedFrame"]
+__all__ = ["CanboatDecoder", "DecodedFrame", "frame_instance"]
