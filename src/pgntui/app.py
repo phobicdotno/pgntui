@@ -466,8 +466,10 @@ class PgntuiApp(App[None]):
     TabbedContent { height: 1fr; }
     /* Footer is one docked bar: the hotkey hints fill the left, the status sits at
        the right. A single row so they share the bar (two separate ``dock: bottom``
-       widgets would land on the same row and overlap, hiding the hints). */
-    #footer { dock: bottom; height: 1; background: $primary; }
+       widgets would land on the same row and overlap, hiding the hints). $boost is
+       a subtle overlay on the normal background, so the normal foreground text
+       stays readable on every theme (a bright $primary fill did not). */
+    #footer { dock: bottom; height: 1; background: $boost; color: $foreground; }
     #hotkey-strip { width: 1fr; height: 1; }
     #status-bar { width: auto; height: 1; padding: 0 1; }
     #welcome { padding: 1 2; }

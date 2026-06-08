@@ -9,13 +9,16 @@ page-level instance header (``◀ Engine Stb (0) ▶``) followed by one
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from rich.text import Text
+from textual import events
 from textual.app import ComposeResult
 from textual.containers import Container as TextualContainer
 from textual.containers import Grid
 from textual.widget import Widget
 
-from pgntui.pages.loader import Container, Page
+from pgntui.pages.loader import Container, InstanceOption, Page
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut, Signal
 from pgntui.signals.widgets import (
     AnalogInWidget,
@@ -90,6 +93,79 @@ class GroupRule(Widget):
         return text
 
 
+class InstanceBar(Widget):
+    """Clickable instance selector rendered as a rule line, e.g.
+    ``── Engine Stb ─────── 0  1  2  3``. Clicking a number switches the section
+    to that NMEA instance and inverts (highlights) the chosen number; the label
+    shows the selected source. Replaces a plain header inside an
+    instance-switchable section. The , / . keys drive the same switch.
+    """
+
+    DEFAULT_CSS = "InstanceBar { height: 1; }"
+
+    def __init__(
+        self,
+        instances: tuple[InstanceOption, ...],
+        active_index: int,
+        on_pick: Callable[[int], None],
+        theme: Theme | None = None,
+    ) -> None:
+        super().__init__()
+        self._instances = instances
+        self.active_index = active_index
+        self._on_pick = on_pick
+        self.theme_def = theme
+        # Widget-relative x-range of each number, recomputed each render so a
+        # click can be mapped back to the instance it landed on.
+        self._ranges: list[tuple[int, int]] = []
+        self._width = 0
+
+    def on_resize(self) -> None:
+        self._width = self.size.width
+        self.refresh()
+
+    def set_active(self, index: int) -> None:
+        self.active_index = index % len(self._instances)
+        self.refresh()
+
+    def render(self) -> Text | str:
+        width = self._width or self.size.width or 40
+        label = self._instances[self.active_index].label
+        left = f"── {label} "
+        segs = [f" {opt.id} " for opt in self._instances]
+        fill = max(width - len(left) - sum(len(s) for s in segs), 0)
+        self._ranges = []
+        x = len(left) + fill
+        for s in segs:
+            self._ranges.append((x, x + len(s)))
+            x += len(s)
+        c = self.theme_def.colors if self.theme_def is not None else None
+        text = Text()
+        if c is not None:
+            text.append(left, style=f"bold {c['accent']}")
+            text.append("─" * fill, style=c["border"])
+            for i, s in enumerate(segs):
+                style = f"reverse bold {c['accent']}" if i == self.active_index else c["accent"]
+                text.append(s, style=style)
+        else:
+            text.append(left + "─" * fill)
+            for i, s in enumerate(segs):
+                text.append(s, style="reverse bold" if i == self.active_index else "")
+        return text
+
+    def _index_at(self, x: int) -> int | None:
+        """The instance whose number occupies column ``x`` (widget-relative)."""
+        for i, (start, end) in enumerate(self._ranges):
+            if start <= x < end:
+                return i
+        return None
+
+    def on_click(self, event: events.Click) -> None:
+        index = self._index_at(event.x)
+        if index is not None:
+            self._on_pick(index)
+
+
 # Screen width (columns) at/above which the three-column layout [3] is offered,
 # so each of the three columns stays wide enough to be usable.
 _THREE_COL_MIN = 120
@@ -155,11 +231,11 @@ class PageView(Widget):
            not a margin — a margin eats into the grid cell and clips the box. */
         margin: 0;
     }
-    /* Section (page) boxes use a different border tone ($secondary) so they stand
-       out from the container boxes ($accent) nested inside them. */
+    /* Section (page) boxes use a DOUBLE border (vs the container boxes' solid)
+       so they stand out as the outer frame on every theme — keeping the theme's
+       own $accent colour instead of a fixed second hue. */
     PageView GroupBox.section {
-        border: solid $secondary;
-        border-title-color: $secondary;
+        border: double $accent;
     }
     """
 
@@ -208,7 +284,7 @@ class PageView(Widget):
         self._span_of_widget: dict[Widget, int] = {}
         # Instance switcher state (only used when the page declares instances).
         self.active_index = 0
-        self._instance_header: GroupRule | None = None
+        self._instance_header: InstanceBar | None = None
 
     @property
     def active_instance_id(self) -> int | None:
@@ -217,9 +293,9 @@ class PageView(Widget):
             return None
         return self.page.instances[self.active_index].id
 
-    def _instance_label(self, index: int) -> str:
-        opt = self.page.instances[index]
-        return f"◀ {opt.label} ({opt.id}) ▶"
+    def _pick_instance(self, index: int) -> None:
+        """Switch instance from a click on the InstanceBar's number."""
+        self.set_active_instance(index)
 
     def set_active_instance(self, index: int) -> None:
         """Switch which instance this page displays (wraps around)."""
@@ -227,7 +303,7 @@ class PageView(Widget):
             return
         self.active_index = index % len(self.page.instances)
         if self._instance_header is not None:
-            self._instance_header.set_title(self._instance_label(self.active_index))
+            self._instance_header.set_active(self.active_index)
         # Reset readings to the diffuse (no-data) state so the previous
         # instance's values don't linger as if they belonged to the new one.
         for widget in self.widgets.values():
@@ -239,8 +315,11 @@ class PageView(Widget):
         # container box (so Shift+1/2/3 can lay the boxes out in 1/2/3 columns).
         inner: list[Widget] = []
         if self.page.instances:
-            self._instance_header = GroupRule(
-                self._instance_label(self.active_index), theme=self.theme_def
+            self._instance_header = InstanceBar(
+                self.page.instances,
+                self.active_index,
+                self._pick_instance,
+                theme=self.theme_def,
             )
             inner.append(self._instance_header)
         boxes: list[GroupBox] = []
@@ -453,4 +532,4 @@ class PageView(Widget):
             widget.refresh()
 
 
-__all__ = ["GroupBox", "GroupRule", "PageView"]
+__all__ = ["GroupBox", "GroupRule", "InstanceBar", "PageView"]

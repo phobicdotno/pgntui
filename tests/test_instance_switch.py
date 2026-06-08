@@ -15,7 +15,7 @@ from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
 from pgntui.decode.router import SignalKey, SignalRouter
 from pgntui.drivers.base import Frame
 from pgntui.pages.loader import Container, InstanceOption, Page, SignalPlacement, load_page
-from pgntui.pages.view import GroupRule, PageView
+from pgntui.pages.view import InstanceBar, PageView
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget
 from pgntui.themes.loader import load_builtin
@@ -125,10 +125,10 @@ async def test_view_shows_instance_header_line() -> None:
         await pilot.pause()
         view = app.query_one(PageView)
         header = view._instance_header
-        assert isinstance(header, GroupRule)
+        assert isinstance(header, InstanceBar)
         plain = header.render().plain  # type: ignore[union-attr]
-        assert "Engine Stb" in plain
-        assert plain.startswith("├")
+        assert "Engine Stb" in plain  # active instance label shown
+        assert "0" in plain and "1" in plain  # clickable instance numbers
         assert view.active_instance_id == 0
 
 
