@@ -40,6 +40,15 @@ def _glyph(theme: Theme | None, key: str) -> str:
     return _DEFAULT_GLYPHS[key]
 
 
+def _empty_spark_rows(width: int, height: int) -> list[str]:
+    """Placeholder rows for an expanded signal that has no readings yet: a dim
+    dashed baseline (top rows blank) so the empty sparkline track is visibly
+    present instead of rendering as a blank line that looks like nothing
+    happened — the common 'sparkline doesn't appear' confusion when no source
+    is connected."""
+    return [" " * width] * (height - 1) + ["┄" * width]  # ┄ dashed baseline
+
+
 def _notify_layout(widget: Widget) -> None:
     """Ask the enclosing PageView to resize grid rows for the new expand state.
 
@@ -228,15 +237,18 @@ class AnalogInWidget(Widget):
             text.append(f" {s.unit}", style=unit_style)
         if self.expanded:
             width = max((self.content_size.width or 0) - 2, 0)
-            rows = self.sparkline_rows(width) if width >= 4 else []
-            if rows:
+            if width >= 4:
                 # Crop the signal line to exactly one cell-width so it can't wrap
                 # and shove the sparkline onto a clipped extra line in a narrow
                 # multi-column cell.
                 text.truncate(self.content_size.width, overflow="crop")
+                if self.has_data:
+                    rows, row_style = self.sparkline_rows(width), c["bar_fill"]
+                else:
+                    rows, row_style = _empty_spark_rows(width, self.spark_height), c["fg_dim"]
                 for row in rows:
                     text.append("\n  ")
-                    text.append(row, style=c["bar_fill"])
+                    text.append(row, style=row_style)
         return text
 
     def clear(self) -> None:
@@ -393,14 +405,17 @@ class DigitalInWidget(Widget):
             text.append(f" {s.off_label}", style=c["fg_dim"])
         if self.expanded:
             width = max((self.content_size.width or 0) - 2, 0)
-            rows = self.sparkline_rows(width) if width >= 4 else []
-            if rows:
+            if width >= 4:
                 # Crop to one cell-width so the sparkline stays below the signal
                 # line even in a narrow multi-column cell.
                 text.truncate(self.content_size.width, overflow="crop")
+                if self.has_data:
+                    rows, row_style = self.sparkline_rows(width), c["bar_fill"]
+                else:
+                    rows, row_style = _empty_spark_rows(width, self.spark_height), c["fg_dim"]
                 for row in rows:
                     text.append("\n  ")
-                    text.append(row, style=c["bar_fill"])
+                    text.append(row, style=row_style)
         return text
 
     def clear(self) -> None:

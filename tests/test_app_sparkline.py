@@ -128,6 +128,23 @@ async def test_set_spark_height_makes_expanded_sparkline_taller() -> None:
 
 
 @pytest.mark.asyncio
+async def test_expanded_no_data_shows_a_dim_baseline_not_blank() -> None:
+    # Regression for "sparkline doesn't appear": with no readings yet (no source
+    # connected) an expanded signal must show a visible dashed baseline track,
+    # not a blank line.
+    app = _app()
+    async with app.run_test(size=(90, 20)) as pilot:
+        await pilot.pause()
+        w = app.query_one(AnalogInWidget)
+        assert w.has_data is False
+        w.toggle_sparkline()
+        await pilot.pause()
+        spark_line = w.render().plain.split("\n")[-1]
+        assert "┄" in spark_line  # dashed baseline placeholder
+        assert spark_line.strip() != ""
+
+
+@pytest.mark.asyncio
 async def test_settings_menu_action_sets_spark_height() -> None:
     app = _app()
     async with app.run_test(size=(90, 24)) as pilot:

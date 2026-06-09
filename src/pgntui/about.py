@@ -24,6 +24,7 @@ CHANGELOG_MAX_WIDTH = 72
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.31", "Expanded sparkline shows a dim baseline until data arrives."),
     ("0.6.30", "File menu: Open and play a .pgnlog recording (pick speed)."),
     ("0.6.29", "Settings menu: set sparkline height 1-4 (taller graphs)."),
     ("0.6.28", "Menu items invert the shortcut letter (mnemonic highlight)."),
