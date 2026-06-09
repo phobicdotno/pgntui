@@ -97,18 +97,18 @@ async def test_down_moves_focus_to_a_signal_row() -> None:
         assert isinstance(app.focused, AnalogInWidget)
 
 
-@pytest.mark.asyncio
-async def test_repaint_tick_advances_expanded_widget_clock() -> None:
-    app = _app()
-    async with app.run_test(size=(90, 20)) as pilot:
-        await pilot.pause()
-        w = app.query_one(AnalogInWidget)
-        w.update_value(3000.0, ts=0.0)
-        w.toggle_sparkline()
-        app._clock = 5.0  # 5 s elapsed (would come from later frames)
-        app._tick_sparklines()
-        await pilot.pause()
-        assert w._now == 5.0
+def test_advance_slides_window_in_real_time_from_last_sample() -> None:
+    # The window is anchored to the signal's OWN last sample and slides forward
+    # by real wall-clock seconds, so the newest sample stays at the right edge
+    # and a stopped signal scrolls left into gaps.
+    w = AnalogInWidget(_rpm())
+    w.update_value(3000.0, ts=100.0)  # anchors at data-time 100
+    # 5 real seconds later, the window end has slid to data-time ~105.
+    w.advance(w._anchor_wall + 5.0)
+    assert w._now == pytest.approx(105.0)
+    # Never runs backwards relative to the anchor.
+    w.advance(w._anchor_wall + 7.5)
+    assert w._now == pytest.approx(107.5)
 
 
 @pytest.mark.asyncio

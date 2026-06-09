@@ -6,6 +6,7 @@ import threading
 from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
+from time import monotonic
 from typing import Any
 
 from rich.text import Text
@@ -1301,10 +1302,15 @@ class PgntuiApp(App[None]):
         widgets[idx].focus()
 
     def _tick_sparklines(self) -> None:
+        # Drive the scroll from a wall clock so each expanded sparkline slides in
+        # real time and keeps its newest sample at the right edge — rather than
+        # anchoring every signal to the global last-frame timestamp (which pushed
+        # slower signals leftward with trailing right-hand gaps).
+        wall = monotonic()
         for widgets in self._widgets_by_signal.values():
             for w in widgets:
                 if isinstance(w, (AnalogInWidget, DigitalInWidget)) and w.expanded:
-                    w.tick(self._clock)
+                    w.advance(wall)
                     w.refresh()
 
     @on(TabbedContent.TabActivated)

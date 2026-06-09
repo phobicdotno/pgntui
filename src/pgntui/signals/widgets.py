@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from time import monotonic
 
 from rich.text import Text
 from textual.widget import Widget
@@ -83,7 +84,12 @@ class AnalogInWidget(Widget):
         # the latest clock value the window is rendered against.
         self._history = History()
         self.expanded: bool = False
+        # Window anchor: the data-time and wall-clock instant of the last reading.
+        # ``advance`` slides the window from here in real time so the newest
+        # sample stays at the right edge and a stopped signal scrolls into gaps.
         self._now: float = 0.0
+        self._anchor_ts: float = 0.0
+        self._anchor_wall: float = monotonic()
         # How many text rows the expanded sparkline occupies (1-4); set globally
         # from the Settings menu. A taller sparkline gives finer vertical detail.
         self.spark_height: int = 1
@@ -114,6 +120,10 @@ class AnalogInWidget(Widget):
         self.state_class = f"state-{self.compute_state(self.displayed_value)}"
         if ts is not None:
             self._now = max(self._now, ts)
+            # Re-anchor the scrolling window to this reading so the newest sample
+            # sits at the right edge (see ``advance``).
+            self._anchor_ts = self._now
+            self._anchor_wall = monotonic()
             # The sparkline is the bar's history, so record the display value.
             self._history.add(self.displayed_value, ts)
         self.refresh()
@@ -165,8 +175,16 @@ class AnalogInWidget(Widget):
         self.refresh(layout=True)  # height switches 1 <-> 2 lines
 
     def tick(self, now: float) -> None:
-        """Advance the render clock so a stopped signal scrolls into gaps."""
+        """Set the render clock to ``now`` (absolute data-time), never backwards."""
         self._now = max(self._now, now)
+
+    def advance(self, wall_now: float) -> None:
+        """Slide the window forward in real time: it ends at the last sample's
+        data-time plus the wall-clock seconds elapsed since that sample. The
+        newest sample stays pinned to the right edge, and a signal that stops
+        updating scrolls left into trailing gaps. ``wall_now`` is a monotonic
+        clock reading supplied by the caller (so this stays test-friendly)."""
+        self._now = self._anchor_ts + (wall_now - self._anchor_wall)
 
     def on_click(self) -> None:
         self.focus()
@@ -269,6 +287,8 @@ class AnalogInWidget(Widget):
         # instance's readings anchor the window at their own timestamps rather
         # than a stale clock left over from the previous instance.
         self._now = 0.0
+        self._anchor_ts = 0.0
+        self._anchor_wall = monotonic()
         self.refresh()
 
 
@@ -335,7 +355,10 @@ class DigitalInWidget(Widget):
         self.has_data: bool = False
         self._history = History()
         self.expanded: bool = False
+        # See AnalogInWidget — window anchor for the real-time scroll.
         self._now: float = 0.0
+        self._anchor_ts: float = 0.0
+        self._anchor_wall: float = monotonic()
         # See AnalogInWidget.spark_height — how many text rows the expanded
         # sparkline occupies (1-4), set globally from the Settings menu.
         self.spark_height: int = 1
@@ -348,6 +371,8 @@ class DigitalInWidget(Widget):
             self.value = bool(value)
         if ts is not None:
             self._now = max(self._now, ts)
+            self._anchor_ts = self._now
+            self._anchor_wall = monotonic()
             self._history.add(1.0 if self.value else 0.0, ts)
         self.refresh()
 
@@ -367,6 +392,10 @@ class DigitalInWidget(Widget):
 
     def tick(self, now: float) -> None:
         self._now = max(self._now, now)
+
+    def advance(self, wall_now: float) -> None:
+        """See AnalogInWidget.advance — slide the window forward in real time."""
+        self._now = self._anchor_ts + (wall_now - self._anchor_wall)
 
     def on_click(self) -> None:
         self.focus()
@@ -426,6 +455,8 @@ class DigitalInWidget(Widget):
         # Reset the render clock too (see AnalogInWidget.clear) so a new
         # instance's readings anchor the window at their own timestamps.
         self._now = 0.0
+        self._anchor_ts = 0.0
+        self._anchor_wall = monotonic()
         self.refresh()
 
 
