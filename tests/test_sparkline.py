@@ -25,6 +25,26 @@ def test_analog_flat_window_is_mid_glyph() -> None:
     assert render_analog([5.0, 5.0, 5.0]) == "▄▄▄"
 
 
+def test_analog_handles_negative_values() -> None:
+    # A bipolar signal (e.g. reverse RPM) autoscales across its window: the
+    # lowest value — even when negative — is the baseline, scaling up through
+    # zero to the highest. The sign isn't a special case; it just scales in.
+    assert render_analog([-2000.0, 0.0, 2000.0, 4000.0, 6000.0]) == "▁▃▅▆█"
+    # An all-negative (full reverse) window still scales within its own range.
+    out = render_analog([-500.0, -2000.0, -1000.0])
+    assert out[0] == RAMP[-1]  # -500 is the highest -> top of the ramp
+    assert out[1] == RAMP[0]  # -2000 is the lowest -> baseline
+
+
+def test_analog_rows_handles_negative_values() -> None:
+    rows = render_analog_rows([-2000.0, 0.0, 2000.0, 4000.0, 6000.0], 3)
+    assert len(rows) == 3
+    # Bottom row carries the lowest (most-reverse) value; bars grow up toward
+    # the highest (most-forward).
+    assert rows[-1][0] != " "  # the -2000 column shows a baseline glyph
+    assert rows[0][-1] == "█"  # 6000 fills the full height
+
+
 def test_analog_gaps_render_as_spaces() -> None:
     out = render_analog([0.0, None, 10.0])
     assert out == f"{RAMP[0]} {RAMP[-1]}"
