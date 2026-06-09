@@ -11,7 +11,7 @@ from __future__ import annotations
 
 import pytest
 
-from pgntui.app import MenuDropdown, PgntuiApp
+from pgntui.app import MenuDropdown, MenuItem, PgntuiApp, _mnemonic_index
 from pgntui.debug.tab import DebugBuffer
 from pgntui.decode.canboat import CanboatDecoder
 from pgntui.decode.router import SignalRouter
@@ -50,6 +50,36 @@ def _app() -> PgntuiApp:
         router=router,
         debug_buffer=DebugBuffer(),
     )
+
+
+def test_mnemonic_index_finds_shortcut_letter() -> None:
+    assert _mnemonic_index("Record on/off", "R") == 0  # first R
+    assert _mnemonic_index("Connect…", "C") == 0
+    assert _mnemonic_index("About", "A") == 0
+    # Case-insensitive, first occurrence.
+    assert _mnemonic_index("Settings…", "S") == 0
+    # Non-letter shortcuts (e.g. ? for help) and absent letters -> no highlight.
+    assert _mnemonic_index("Keyboard help", "?") is None
+    assert _mnemonic_index("Quit", "Z") is None
+
+
+def test_menu_item_inverts_the_shortcut_letter() -> None:
+    item = MenuItem("Record on/off", "R", "toggle_record", width=20)
+    text = item.render()
+    # The visible row is the padded label followed by the right-aligned key.
+    assert text.plain == f"{'Record on/off':<20}   R"
+    # Exactly the mnemonic letter carries the reverse style.
+    reverse_spans = [s for s in text.spans if "reverse" in (s.style or "")]
+    assert len(reverse_spans) == 1
+    span = reverse_spans[0]
+    assert (span.start, span.end) == (0, 1)
+    assert text.plain[span.start : span.end] == "R"
+
+
+def test_menu_item_without_mnemonic_has_no_reverse_span() -> None:
+    item = MenuItem("Keyboard help", "?", "help", width=20)
+    text = item.render()
+    assert not [s for s in text.spans if "reverse" in (s.style or "")]
 
 
 @pytest.mark.asyncio

@@ -8,6 +8,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from rich.text import Text
 from textual import events, on, work
 from textual.app import App, ComposeResult
 from textual.containers import Container as TextualContainer
@@ -150,8 +151,22 @@ _MENUS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
 )
 
 
+def _mnemonic_index(label: str, key: str) -> int | None:
+    """Index in ``label`` of the first letter matching shortcut ``key`` (case-
+    insensitive), or ``None`` when ``key`` isn't a single letter or isn't present
+    (e.g. ``?`` for Keyboard help). Used to highlight the mnemonic in a menu row."""
+    if len(key) != 1 or not key.isalpha():
+        return None
+    idx = label.lower().find(key.lower())
+    return idx if idx >= 0 else None
+
+
 class MenuItem(Static):
-    """One clickable row in an open menu: ``label … key``."""
+    """One clickable row in an open menu: ``label … key``.
+
+    The letter in ``label`` matching the shortcut ``key`` is inverted (reverse
+    video) so the keyboard shortcut is discoverable at a glance — e.g. the ``R``
+    in ``Record on/off`` for the ``R`` key."""
 
     DEFAULT_CSS = """
     MenuItem { width: 100%; height: 1; padding: 0 1; }
@@ -159,9 +174,25 @@ class MenuItem(Static):
     """
 
     def __init__(self, label: str, key: str, action: str, width: int) -> None:
+        super().__init__("", markup=False, id=f"menu-item-{action}")
         # Pad the label so every shortcut lines up in a column on the right.
-        super().__init__(f"{label:<{width}}   {key}", markup=False, id=f"menu-item-{action}")
+        self._label = label
+        self._key = key
+        self._width = width
         self._action = action
+
+    def render(self) -> Text:
+        padded = f"{self._label:<{self._width}}"
+        idx = _mnemonic_index(self._label, self._key)
+        text = Text()
+        if idx is None:
+            text.append(padded)
+        else:
+            text.append(padded[:idx])
+            text.append(padded[idx], style="reverse bold")
+            text.append(padded[idx + 1 :])
+        text.append(f"   {self._key}")
+        return text
 
     def on_click(self, event: events.Click) -> None:
         event.stop()  # don't bubble to the app's close-on-outside-click
