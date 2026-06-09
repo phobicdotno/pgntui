@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 
 from pgntui import __version__, about
-from pgntui.app import AboutScreen, PgntuiApp, TopBar
+from pgntui.app import AboutScreen, MenuDropdown, PgntuiApp, TopBar
 from pgntui.themes.loader import load_builtin
 
 
@@ -92,7 +92,9 @@ async def test_menu_is_overlay_not_screen_blanking_modal() -> None:
         await pilot.pause()
         assert len(app.screen_stack) == 1, "menu must not push a screen"
         assert app._menu_dropdown is not None
-        assert app.query_one("#menu-dropdown") is not None
+        # The dropdown carries no fixed id (so transient instances can't collide
+        # on DuplicateIds), so it's located by type rather than by id.
+        assert len(app.screen.query(MenuDropdown)) == 1
         # Clicking the same title again toggles it closed.
         await pilot.click("#menu-file")
         await pilot.pause()

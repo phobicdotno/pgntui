@@ -193,7 +193,6 @@ class MenuDropdown(Vertical):
         label_w = max((len(label) for label, _, _ in items), default=4)
         super().__init__(
             *(MenuItem(label, key, action, label_w) for label, action, key in items),
-            id="menu-dropdown",
         )
         # Width from the row text (label + 3 spaces + key) + border (2) + padding
         # (2); an auto-width box with width:100% children would collapse.
@@ -941,11 +940,22 @@ class PgntuiApp(App[None]):
         self.screen.mount(dropdown)
 
     def close_menu(self) -> None:
-        """Remove the open menu dropdown, if any."""
-        if self._menu_dropdown is not None:
-            self._menu_dropdown.remove()
-            self._menu_dropdown = None
-            self._open_menu_name = None
+        """Remove any open menu dropdown.
+
+        Textual's ``remove()`` is asynchronous (it schedules a prune), so a fresh
+        dropdown can be mounted while an old one is still in the DOM. The dropdown
+        therefore carries NO fixed id — two transient instances never collide —
+        and this removes *every* MenuDropdown by type rather than the single
+        tracked reference, so a straggler from rapid open/close is always cleaned
+        up. Fire-and-forget (not awaited): awaiting the prune of a dropdown from
+        inside one of its own MenuItem click handlers would deadlock.
+        """
+        self._menu_dropdown = None
+        self._open_menu_name = None
+        try:
+            self.screen.query(MenuDropdown).remove()
+        except Exception:  # pragma: no cover — no screen yet (pre-mount)
+            pass
 
     def action_close_menu(self) -> None:
         # Escape closes an open menu (no-op otherwise).
@@ -962,7 +972,7 @@ class PgntuiApp(App[None]):
     def on_click(self, event: events.Click) -> None:
         # A click that bubbles up to the app (i.e. not on a menu title or item,
         # which stop propagation) closes any open menu.
-        if self._menu_dropdown is not None:
+        if self._open_menu_name is not None:
             self.close_menu()
 
     # ---- Status / actions --------------------------------------------------
