@@ -6,6 +6,15 @@ Read live N2K frames through pluggable drivers, decode them with the
 canboat PGN database, and route values into JSON-defined dashboards. Record
 sessions to `.pgnlog` and replay them later — no boat required.
 
+![pgntui dashboard](docs/screenshots/dashboard.png)
+
+Expand any signal (`[+]`) to reveal its sparkline; set the sparkline height
+from the Settings menu, and browse/play recordings from File → Open recording.
+
+| Settings menu | Open recording |
+| --- | --- |
+| ![Settings menu](docs/screenshots/settings-menu.png) | ![Open recording](docs/screenshots/open-recording.png) |
+
 ## Install
 
 The easiest path is `pipx`:
