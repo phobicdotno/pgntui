@@ -147,6 +147,17 @@ _MENUS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
             ("Settings…", "config", "S"),
         ),
     ),
+    (
+        # Click-only items: no key hint, since digits 1-4 are already the
+        # column-layout shortcuts (showing them here would mislead).
+        "Settings",
+        (
+            ("Sparkline height 1", "spark_height_1", ""),
+            ("Sparkline height 2", "spark_height_2", ""),
+            ("Sparkline height 3", "spark_height_3", ""),
+            ("Sparkline height 4", "spark_height_4", ""),
+        ),
+    ),
     ("Help", (("About", "about", "A"), ("Keyboard help", "help", "?"))),
 )
 
@@ -632,6 +643,8 @@ class PgntuiApp(App[None]):
         layout_columns: int | None = None,
         layout_groups: int = 1,
         layout_pages: int = 1,
+        # Expanded-sparkline height in text rows (1-4), restored from config.
+        spark_height: int = 1,
         # Optional message shown in the status bar on mount (e.g. a port-busy
         # notice when the configured driver couldn't auto-connect at launch).
         startup_status: str | None = None,
@@ -693,6 +706,7 @@ class PgntuiApp(App[None]):
         self._saved_group_cols: int = layout_groups
         self._saved_page_cols: int = layout_pages
         self._page_cols: int = layout_pages
+        self._spark_height: int = max(1, min(4, spark_height))
         self._startup_status = startup_status
         # Menu-bar dropdown overlay state (mounted on the screen, not a modal).
         self._menu_dropdown: MenuDropdown | None = None
@@ -720,6 +734,10 @@ class PgntuiApp(App[None]):
         if self._auto_view is not None:
             self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
         self._apply_saved_layout()
+        # Push the restored sparkline height to every view (no persist on mount).
+        if self._spark_height != 1:
+            for view in self._all_views():
+                view.set_spark_height(self._spark_height)
         if self._startup_status:
             self._set_status(self._startup_status)
         # Repaint expanded sparklines once a second so a stopped signal scrolls
@@ -1140,6 +1158,7 @@ class PgntuiApp(App[None]):
             columns=self._saved_signal_cols,
             groups=self._saved_group_cols,
             pages=self._saved_page_cols,
+            spark_height=self._spark_height,
         )
 
     def action_focus_next_signal(self) -> None:
@@ -1226,6 +1245,35 @@ class PgntuiApp(App[None]):
         self._set_status(
             "debug: aggregated (per-PGN)" if show_aggregate else "debug: stream (trace)"
         )
+
+    def _all_views(self) -> list[PageView]:
+        """Every PageView in the app (all source pages + the Auto view), across
+        all tabs — used for settings that apply globally (e.g. sparkline height)."""
+        views = [view for _page, view in self._page_views]
+        if self._auto_view is not None:
+            views.append(self._auto_view)
+        return views
+
+    def action_spark_height_1(self) -> None:
+        self.set_spark_height(1)
+
+    def action_spark_height_2(self) -> None:
+        self.set_spark_height(2)
+
+    def action_spark_height_3(self) -> None:
+        self.set_spark_height(3)
+
+    def action_spark_height_4(self) -> None:
+        self.set_spark_height(4)
+
+    def set_spark_height(self, n: int) -> None:
+        """Set the expanded-sparkline height (1-4 text rows) for every view and
+        persist it. Applied live; expanded sparklines grow/shrink immediately."""
+        self._spark_height = max(1, min(4, n))
+        for view in self._all_views():
+            view.set_spark_height(self._spark_height)
+        self._persist_layout()
+        self._set_status(f"sparkline height {self._spark_height}")
 
     def _active_views(self) -> list[PageView]:
         """Every PageView under the active tab. The content tab stacks one per

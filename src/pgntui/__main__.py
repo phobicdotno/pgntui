@@ -331,6 +331,7 @@ def _apply_enable_write(cfg: Config, workspace: Path) -> Config:
         layout_columns=cfg.layout_columns,
         layout_groups=cfg.layout_groups,
         layout_pages=cfg.layout_pages,
+        spark_height=cfg.spark_height,
     )
 
 
@@ -365,6 +366,7 @@ def _build_app(
         layout_columns=cfg.layout_columns,
         layout_groups=cfg.layout_groups,
         layout_pages=cfg.layout_pages,
+        spark_height=cfg.spark_height,
         startup_status=startup_status,
     )
 

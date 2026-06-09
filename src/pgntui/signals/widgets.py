@@ -9,7 +9,12 @@ from textual.widget import Widget
 
 from pgntui.signals.base import AnalogIn, AnalogOut, DigitalIn, DigitalOut
 from pgntui.signals.history import History
-from pgntui.signals.sparkline import render_analog, render_digital
+from pgntui.signals.sparkline import (
+    render_analog,
+    render_analog_rows,
+    render_digital,
+    render_digital_rows,
+)
 from pgntui.themes.loader import Theme
 
 _BAR_WIDTH = 18
@@ -70,6 +75,9 @@ class AnalogInWidget(Widget):
         self._history = History()
         self.expanded: bool = False
         self._now: float = 0.0
+        # How many text rows the expanded sparkline occupies (1-4); set globally
+        # from the Settings menu. A taller sparkline gives finer vertical detail.
+        self.spark_height: int = 1
 
     def update_value(self, value: float, ts: float | None = None) -> None:
         """Apply ``value`` to the widget and schedule a redraw.
@@ -136,6 +144,10 @@ class AnalogInWidget(Widget):
         """The analog sparkline glyph string for ``width`` columns, rendered
         against the current clock (``_now``)."""
         return render_analog(self._history.columns(self._now, width))
+
+    def sparkline_rows(self, width: int) -> list[str]:
+        """The analog sparkline as ``spark_height`` text rows (top line first)."""
+        return render_analog_rows(self._history.columns(self._now, width), self.spark_height)
 
     def toggle_sparkline(self) -> None:
         self.expanded = not self.expanded
@@ -216,14 +228,15 @@ class AnalogInWidget(Widget):
             text.append(f" {s.unit}", style=unit_style)
         if self.expanded:
             width = max((self.content_size.width or 0) - 2, 0)
-            spark = self.sparkline_str(width) if width >= 4 else ""
-            if spark:
+            rows = self.sparkline_rows(width) if width >= 4 else []
+            if rows:
                 # Crop the signal line to exactly one cell-width so it can't wrap
-                # and shove the sparkline onto a clipped third line in a narrow
+                # and shove the sparkline onto a clipped extra line in a narrow
                 # multi-column cell.
                 text.truncate(self.content_size.width, overflow="crop")
-                text.append("\n  ")
-                text.append(spark, style=c["bar_fill"])
+                for row in rows:
+                    text.append("\n  ")
+                    text.append(row, style=c["bar_fill"])
         return text
 
     def clear(self) -> None:
@@ -311,6 +324,9 @@ class DigitalInWidget(Widget):
         self._history = History()
         self.expanded: bool = False
         self._now: float = 0.0
+        # See AnalogInWidget.spark_height — how many text rows the expanded
+        # sparkline occupies (1-4), set globally from the Settings menu.
+        self.spark_height: int = 1
 
     def update_value(self, value: object, ts: float | None = None) -> None:
         self.has_data = True
@@ -326,6 +342,10 @@ class DigitalInWidget(Widget):
     def sparkline_str(self, width: int) -> str:
         """The digital step-wave glyph string for ``width`` columns."""
         return render_digital(self._history.columns(self._now, width))
+
+    def sparkline_rows(self, width: int) -> list[str]:
+        """The digital step-wave as ``spark_height`` text rows (top line first)."""
+        return render_digital_rows(self._history.columns(self._now, width), self.spark_height)
 
     def toggle_sparkline(self) -> None:
         self.expanded = not self.expanded
@@ -373,13 +393,14 @@ class DigitalInWidget(Widget):
             text.append(f" {s.off_label}", style=c["fg_dim"])
         if self.expanded:
             width = max((self.content_size.width or 0) - 2, 0)
-            spark = self.sparkline_str(width) if width >= 4 else ""
-            if spark:
-                # Crop to one cell-width so the sparkline stays line two even in
-                # a narrow multi-column cell.
+            rows = self.sparkline_rows(width) if width >= 4 else []
+            if rows:
+                # Crop to one cell-width so the sparkline stays below the signal
+                # line even in a narrow multi-column cell.
                 text.truncate(self.content_size.width, overflow="crop")
-                text.append("\n  ")
-                text.append(spark, style=c["bar_fill"])
+                for row in rows:
+                    text.append("\n  ")
+                    text.append(row, style=c["bar_fill"])
         return text
 
     def clear(self) -> None:

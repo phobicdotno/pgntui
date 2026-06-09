@@ -36,6 +36,9 @@ class Config:
     layout_columns: int | None = None
     layout_groups: int = 1
     layout_pages: int = 1
+    # How many text rows an expanded sparkline occupies (1-4), set from the
+    # Settings menu and restored on launch.
+    spark_height: int = 1
 
 
 def load_config(path: Path) -> Config:
@@ -69,6 +72,7 @@ def load_config(path: Path) -> Config:
         layout_columns=_as_cols(app.get("layout_columns")),
         layout_groups=_as_cols(app.get("layout_groups")) or 1,
         layout_pages=_as_cols(app.get("layout_pages")) or 1,
+        spark_height=_as_spark(app.get("spark_height")),
     )
 
 
@@ -79,6 +83,15 @@ def _as_cols(value: Any) -> int | None:
     except (TypeError, ValueError):
         return None
     return n if 1 <= n <= 3 else None
+
+
+def _as_spark(value: Any) -> int:
+    """Coerce a saved sparkline height to 1-4, defaulting to 1 if absent/invalid."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return 1
+    return n if 1 <= n <= 4 else 1
 
 
 def _toml_key(line: str) -> str:
@@ -169,9 +182,11 @@ def write_layout(
     columns: int | None = None,
     groups: int | None = None,
     pages: int | None = None,
+    spark_height: int | None = None,
 ) -> None:
     """Persist the last-used layout into ``[app]`` (``layout_columns`` /
-    ``layout_groups`` / ``layout_pages``), so it is restored on the next launch.
+    ``layout_groups`` / ``layout_pages`` / ``spark_height``), so it is restored on
+    the next launch.
 
     Line-based so existing comments, the ``theme`` key, and other sections are
     preserved. Only the provided (non-None) keys are written; any pre-existing
@@ -187,6 +202,8 @@ def write_layout(
         new["layout_groups"] = f"layout_groups = {int(groups)}"
     if pages is not None:
         new["layout_pages"] = f"layout_pages = {int(pages)}"
+    if spark_height is not None:
+        new["spark_height"] = f"spark_height = {int(spark_height)}"
     if not new:
         return
     out: list[str] = []

@@ -112,6 +112,33 @@ async def test_repaint_tick_advances_expanded_widget_clock() -> None:
 
 
 @pytest.mark.asyncio
+async def test_set_spark_height_makes_expanded_sparkline_taller() -> None:
+    app = _app()
+    async with app.run_test(size=(90, 24)) as pilot:
+        await pilot.pause()
+        w = app.query_one(AnalogInWidget)
+        w.toggle_sparkline()  # expand -> 1 signal line + 1 sparkline row
+        await pilot.pause()
+        assert w.render().plain.count("\n") == 1
+        app.set_spark_height(3)
+        await pilot.pause()
+        assert w.spark_height == 3
+        # signal line + 3 sparkline rows
+        assert w.render().plain.count("\n") == 3
+
+
+@pytest.mark.asyncio
+async def test_settings_menu_action_sets_spark_height() -> None:
+    app = _app()
+    async with app.run_test(size=(90, 24)) as pilot:
+        await pilot.pause()
+        app.action_spark_height_2()
+        await pilot.pause()
+        w = app.query_one(AnalogInWidget)
+        assert w.spark_height == 2
+
+
+@pytest.mark.asyncio
 async def test_up_down_wrap_around_two_signals() -> None:
     # Two signals on one page, so the modular wrap in both directions is exercised
     # (the single-signal tests can't distinguish wrap from no-op).

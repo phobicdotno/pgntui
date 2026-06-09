@@ -50,6 +50,20 @@ def test_layout_defaults_when_absent(tmp_path: Path) -> None:
     assert cfg.layout_columns is None  # authored layout
     assert cfg.layout_groups == 1
     assert cfg.layout_pages == 1
+    assert cfg.spark_height == 1  # default height
+
+
+def test_spark_height_roundtrip_clamps_and_preserves_layout(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text(EXAMPLE, encoding="utf-8")
+    write_layout(p, columns=2, spark_height=3)
+    cfg = load_config(p)
+    assert cfg.spark_height == 3
+    assert cfg.layout_columns == 2  # written alongside, preserved
+    assert cfg.theme == "dark"
+    # Out-of-range / absent values fall back to 1.
+    p.write_text("[app]\nspark_height = 9\n", encoding="utf-8")
+    assert load_config(p).spark_height == 1
 
 
 def test_write_updates_existing_driver_section(tmp_path: Path) -> None:

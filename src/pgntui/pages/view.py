@@ -287,6 +287,9 @@ class PageView(Widget):
         # section measures correctly inside a page-grid cell (Ctrl+1/2/3).
         self._content_height: int = 0
         self._row_of_widget: dict[Widget, int] = {}
+        # How many text rows an expanded sparkline occupies (1-4), set globally
+        # from the Settings menu. An expanded input row is 1 (signal) + this tall.
+        self._spark_height: int = 1
         # Signal-column layout: None = the page's authored layout; 1/2/3 = that
         # many equal columns within each box. Toggled by [1] / [2] / [3].
         self._layout_cols: int | None = None
@@ -430,6 +433,10 @@ class PageView(Widget):
         for i, w in enumerate(rows):
             self._row_of_widget[w] = i
             self._span_of_widget[w] = 1
+            # Inherit the current sparkline height (it may have been set before
+            # this Auto box existed).
+            if isinstance(w, (AnalogInWidget, DigitalInWidget)):
+                w.spark_height = self._spark_height
         box = GroupBox(grid)
         box.border_title = title
         self._boxes.append(box)
@@ -463,6 +470,7 @@ class PageView(Widget):
         signal toggles its sparkline (see ``signals.widgets._notify_layout``), on
         mount, and on a layout change.
         """
+        expanded_h = 1 + self._spark_height  # signal line + the sparkline rows
         for grid in self._grids:
             max_row = -1
             expanded_rows: set[int] = set()
@@ -476,11 +484,17 @@ class PageView(Widget):
                 if row is None:
                     continue
                 max_row = max(max_row, row)
-                if getattr(child, "expanded", False):
+                is_expanded = getattr(child, "expanded", False)
+                # Pin the input widget's own height (inline, so it overrides the
+                # CSS .expanded rule) to match its grid track — otherwise a >2-row
+                # sparkline would be clipped to the CSS height.
+                if hasattr(child, "expanded"):
+                    child.styles.height = expanded_h if is_expanded else 1
+                if is_expanded:
                     expanded_rows.add(row)
             if max_row < 0:
                 continue
-            sizes = ["2" if r in expanded_rows else "1" for r in range(max_row + 1)]
+            sizes = [str(expanded_h) if r in expanded_rows else "1" for r in range(max_row + 1)]
             grid.styles.grid_rows = " ".join(sizes)
             # Pin the wrapping box to its exact content height (signal rows + the
             # top/bottom border) so the box grid's cell can't clip it.
@@ -559,6 +573,17 @@ class PageView(Widget):
         self._box_height = {}
         self._row_of_widget = {}
         await self.recompose()
+
+    def set_spark_height(self, height: int) -> None:
+        """Set how many text rows an expanded sparkline occupies (1-4) for every
+        input widget on this page, then resize the grid rows to match. Covers
+        authored AND runtime (Auto-page) rows via ``_row_of_widget``."""
+        self._spark_height = max(1, min(4, height))
+        for widget in self._row_of_widget:
+            if isinstance(widget, (AnalogInWidget, DigitalInWidget)):
+                widget.spark_height = self._spark_height
+                widget.refresh()
+        self._refresh_grid_rows()
 
     def apply_theme(self, theme: Theme) -> None:
         """Re-theme this view and every child in place (live theme switch).
