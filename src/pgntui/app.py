@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -18,6 +18,7 @@ from textual.widget import Widget
 from textual.widgets import (
     Button,
     DataTable,
+    DirectoryTree,
     RichLog,
     Select,
     Static,
@@ -137,7 +138,14 @@ class DebugAggregate(DataTable[str]):
 # ``(label, action_name, key)`` rows. ``action_name`` resolves to ``action_*`` on
 # the app, so clicking a menu item and pressing its key share one code path.
 _MENUS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
-    ("File", (("Record on/off", "toggle_record", "R"), ("Quit", "force_quit", "Q"))),
+    (
+        "File",
+        (
+            ("Open recording…", "open_recording", "O"),
+            ("Record on/off", "toggle_record", "R"),
+            ("Quit", "force_quit", "Q"),
+        ),
+    ),
     ("Connection", (("Connect…", "connection", "C"),)),
     (
         "View",
@@ -562,6 +570,115 @@ class ConfigScreen(ModalScreen[None]):
         self.dismiss()
 
 
+class _RecordingTree(DirectoryTree):
+    """A DirectoryTree that shows only directories and ``.pgnlog`` recordings."""
+
+    def filter_paths(self, paths: Iterable[Path]) -> list[Path]:
+        return [
+            p for p in paths if not p.name.startswith(".") and (p.is_dir() or p.suffix == ".pgnlog")
+        ]
+
+
+# Replay speeds offered in the Open dialog (mirrors FileReplayDriver._SPEED_MAP).
+_REPLAY_SPEEDS = ("0.25x", "0.5x", "1x", "2x", "5x", "10x", "max")
+
+
+class OpenRecordingScreen(ModalScreen[None]):
+    """Browse for a ``.pgnlog`` recording and play it back into the dashboard."""
+
+    DEFAULT_CSS = """
+    OpenRecordingScreen { align: center middle; }
+    OpenRecordingScreen #open-dialog {
+        width: 80;
+        max-width: 95%;
+        height: auto;
+        max-height: 80%;
+        padding: 1 2;
+        border: round $accent;
+        background: $surface;
+    }
+    OpenRecordingScreen #open-title { text-style: bold; margin-bottom: 1; }
+    OpenRecordingScreen .open-label { color: $accent; margin-top: 1; }
+    OpenRecordingScreen #open-tree { height: 14; border: round $accent; }
+    OpenRecordingScreen #open-buttons { height: auto; margin-top: 1; }
+    OpenRecordingScreen Button { margin: 0 1 0 0; }
+    OpenRecordingScreen #open-result { margin-top: 1; height: auto; min-height: 2; }
+    """
+
+    BINDINGS = [("escape", "dismiss", "Close")]
+
+    # Seconds the dialog stays up after a successful play (override in tests).
+    AUTO_CLOSE_SECONDS = 1.0
+
+    def __init__(self, *, start_dir: Path) -> None:
+        super().__init__()
+        self._start_dir = start_dir
+
+    def compose(self) -> ComposeResult:
+        yield TextualContainer(
+            Static("Open recording (.pgnlog)", id="open-title"),
+            _RecordingTree(str(self._start_dir), id="open-tree"),
+            Static("Speed", classes="open-label"),
+            Select(
+                [(s, s) for s in _REPLAY_SPEEDS],
+                value="1x",
+                allow_blank=False,
+                id="open-speed",
+            ),
+            Horizontal(
+                Button("Play", id="open-play", variant="success"),
+                Button("Close", id="open-close"),
+                id="open-buttons",
+            ),
+            Static("Pick a .pgnlog file, then Play.", id="open-result", markup=False),
+            id="open-dialog",
+        )
+
+    def _set_result(self, text: str) -> None:
+        self.query_one("#open-result", Static).update(text)
+
+    def _selected_file(self) -> Path | None:
+        """The highlighted tree node, if it's a ``.pgnlog`` file."""
+        node = self.query_one("#open-tree", _RecordingTree).cursor_node
+        path = getattr(node.data, "path", None) if node is not None else None
+        if path is not None and Path(path).is_file() and Path(path).suffix == ".pgnlog":
+            return Path(path)
+        return None
+
+    @on(DirectoryTree.FileSelected, "#open-tree")
+    def _on_file_selected(self, event: DirectoryTree.FileSelected) -> None:
+        event.stop()
+        if Path(event.path).suffix == ".pgnlog":
+            self._play(Path(event.path))
+        else:
+            self._set_result("That isn't a .pgnlog file.")
+
+    @on(Button.Pressed, "#open-play")
+    def _on_play(self) -> None:
+        path = self._selected_file()
+        if path is None:
+            self._set_result("Select a .pgnlog file first.")
+            return
+        self._play(path)
+
+    @on(Button.Pressed, "#open-close")
+    def _on_close(self) -> None:
+        self.dismiss()
+
+    def _play(self, path: Path) -> None:
+        speed = str(self.query_one("#open-speed", Select).value)
+        ok, message = self.app.play_recording(path, speed)  # type: ignore[attr-defined]
+        self._set_result(message)
+        if ok:
+            # Auto-close so the user sees the dashboard. The timer callback must
+            # NOT return dismiss()'s AwaitComplete (Textual would await it in this
+            # screen's pump and raise), so go through a None-returning helper.
+            self.set_timer(self.AUTO_CLOSE_SECONDS, self._close)
+
+    def _close(self) -> None:
+        self.dismiss()
+
+
 # The single content tab that stacks every source page as a labelled section.
 _CONTENT_TAB_ID = "tab-content"
 
@@ -614,6 +731,7 @@ class PgntuiApp(App[None]):
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
         ("r", "toggle_record", "Record"),
+        ("o", "open_recording", "Open"),
         # Instance switch: , / . work on every keyboard (the [ ] aliases need
         # AltGr on Nordic layouts, so keep both).
         ("comma,left_square_bracket", "prev_instance", "Inst-"),
@@ -1426,6 +1544,41 @@ class PgntuiApp(App[None]):
         self._set_status(f"connected {port} @ {baud}")
         return True, f"Connected on {port} @ {baud}. Watch the Debug tab for frames."
 
+    def action_open_recording(self) -> None:
+        """Open the file browser to pick and play a ``.pgnlog`` recording."""
+        start = self._record_dir if (self._record_dir and self._record_dir.exists()) else Path.cwd()
+        self.push_screen(OpenRecordingScreen(start_dir=start))
+
+    def play_recording(self, path: Path, speed: str = "1x") -> tuple[bool, str]:
+        """Replay ``path`` into the dashboard at ``speed``. Returns (ok, message).
+
+        Replaces any currently-running driver (live serial or a previous replay):
+        the old driver is closed and the exclusive frame-loop worker is restarted
+        on the new replay driver."""
+        from pgntui.drivers.replay import FileReplayDriver
+
+        if self._decoder is None or self._router is None:
+            return False, "No decoder/router available in this session."
+        path = Path(path)
+        if not path.is_file():
+            return False, f"Not a file: {path}"
+        # Close any active driver so its read loop stops and its handle frees; the
+        # exclusive frame_loop() below cancels the old worker.
+        self._shutdown_driver()
+        driver = FileReplayDriver()
+        try:
+            driver.open({"path": str(path), "speed": speed})
+        except Exception as e:
+            return False, f"Could not open {path.name}: {e}"
+        self._n2k_driver = driver
+        self._driver_options = {"path": str(path), "speed": speed}
+        # Make the Auto tab exist now (as connect_ngt1 does), so it isn't limited
+        # to drivers attached at launch.
+        self._ensure_auto_tab()
+        self.frame_loop()
+        self._set_status(f"replaying {path.name} @ {speed}")
+        return True, f"Replaying {path.name} @ {speed}."
+
     def action_toggle_record(self) -> None:
         if self._writer is not None:
             self._stop_recording()
@@ -1547,6 +1700,7 @@ __all__ = [
     "DebugLog",
     "MenuDropdown",
     "MenuTitle",
+    "OpenRecordingScreen",
     "PgntuiApp",
     "TopBar",
 ]
