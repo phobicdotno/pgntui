@@ -1,5 +1,7 @@
 import struct
 
+import pytest
+
 from pgntui.decode.canboat import CanboatDecoder, DecodedFrame
 from pgntui.drivers.base import Frame
 from tests.fixtures.frames import ENGINE_RAPID
@@ -19,6 +21,37 @@ def test_decode_engine_rapid_rpm_units() -> None:
     rpm = result.fields.get("Engine Speed")
     assert rpm is not None
     assert 2140 <= float(rpm) <= 2160
+
+
+def _heading_127250(variation_raw: int) -> Frame:
+    # PGN 127250 Vessel Heading: SID(8) Heading(16,u) Deviation(16,s)
+    # Variation(16,s) Reference(8). Heading 1.0 rad (0x2710), Deviation 0.
+    return Frame(
+        timestamp=0.0,
+        source_addr=100,
+        pgn=127250,
+        data=bytes([0xFF, 0x10, 0x27, 0x00, 0x00])
+        + struct.pack("<H", variation_raw)
+        + bytes([0x00]),
+    )
+
+
+def test_decode_drops_not_available_variation_sentinel() -> None:
+    # 0x7FFF is the reserved "not available" value for a signed 16-bit field; it
+    # must NOT decode to a bogus 187.7 deg reading. The field is dropped so the
+    # router skips it and the gauge keeps its last good value (no flicker).
+    dec = CanboatDecoder.load_bundled()
+    result = dec.decode(_heading_127250(0x7FFF))
+    assert result is not None
+    assert "Variation" not in result.fields  # sentinel dropped
+    assert "Heading" in result.fields  # valid field still decoded
+
+
+def test_decode_keeps_valid_variation() -> None:
+    dec = CanboatDecoder.load_bundled()
+    result = dec.decode(_heading_127250(1000))  # 0.1 rad
+    assert result is not None
+    assert result.fields.get("Variation") == pytest.approx(0.1, abs=1e-3)
 
 
 def test_decode_unknown_pgn_returns_none() -> None:

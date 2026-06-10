@@ -140,6 +140,17 @@ class CanboatDecoder:
             except (TypeError, ValueError):
                 offset = 0.0
             signed = bool(f.get("Signed") or f.get("signed"))
+            # NMEA reserves the top of a field's raw range for "data not
+            # available" / "out of range". A scaled measurement field carrying
+            # one of those isn't a real reading (e.g. 0x7FFF in a 0.0001-rad
+            # Variation field decodes to 187.7 deg), so drop the field entirely:
+            # the router then skips it and the widget keeps its last good value
+            # instead of flickering. Enums/counters (resolution 1, no offset)
+            # keep their raw value — their sentinels are domain-specific.
+            reserved_floor = ((1 << (size - 1)) if signed else (1 << size)) - 2
+            if (resolution != 1.0 or offset != 0.0) and size >= 4 and raw >= reserved_floor:
+                bit_offset += size
+                continue
             if signed and raw >= (1 << (size - 1)):
                 raw -= 1 << size
             # Canboat formula: value = raw * resolution + offset.
