@@ -1,5 +1,6 @@
 from pgntui.signals.base import AnalogIn, DigitalIn
-from pgntui.signals.widgets import AnalogInWidget, DigitalInWidget
+from pgntui.signals.widgets import LOST_AFTER_SECONDS, AnalogInWidget, DigitalInWidget
+from pgntui.themes.loader import load_builtin
 
 
 def _sig(**kw) -> AnalogIn:
@@ -74,6 +75,41 @@ def test_clear_resets_clock_so_new_data_shows_after_switch() -> None:
     assert w.sparkline_str(2)[-1] != " "  # new reading visible at the right edge
 
 
+def test_signal_lost_after_timeout() -> None:
+    w = AnalogInWidget(_sig())
+    assert w.is_lost is False  # never reported -> not "lost", just no data
+    w.update_value(3000.0, ts=0.0)
+    assert w.is_lost is False  # fresh reading
+    w._last_valid_wall -= LOST_AFTER_SECONDS + 1  # simulate the source going silent
+    assert w.is_lost is True
+
+
+def test_never_reported_signal_is_not_lost() -> None:
+    w = AnalogInWidget(_sig())
+    w._last_valid_wall -= 10_000  # stale clock, but no data ever arrived
+    assert w.is_lost is False  # stays in the dim "no data" look, not red
+
+
+def test_nan_reading_is_ignored_and_keeps_last_value() -> None:
+    w = AnalogInWidget(_sig())
+    w.update_value(3000.0, ts=0.0)
+    last = w.displayed_value
+    w.update_value(float("nan"))  # bad reading: ignored, last value retained
+    assert w.displayed_value == last
+    w.update_value(float("inf"))  # inf likewise ignored
+    assert w.displayed_value == last
+
+
+def test_lost_render_uses_alarm_color() -> None:
+    theme = load_builtin("dark")
+    w = AnalogInWidget(_sig(), theme=theme)
+    w.update_value(3000.0, ts=0.0)
+    w._last_valid_wall -= LOST_AFTER_SECONDS + 1
+    text = w.render()
+    styles = " ".join(str(s.style) for s in text.spans)
+    assert theme.colors["alarm"] in styles  # the row is flagged red
+
+
 def _dsig(**kw) -> DigitalIn:
     base = dict(
         id="run",
@@ -114,6 +150,14 @@ def test_digital_clear_resets_clock() -> None:
 
 def test_digital_is_focusable() -> None:
     assert DigitalInWidget(_dsig()).can_focus is True
+
+
+def test_digital_signal_lost_after_timeout() -> None:
+    w = DigitalInWidget(_dsig())
+    w.update_value(True, ts=0.0)
+    assert w.is_lost is False
+    w._last_valid_wall -= LOST_AFTER_SECONDS + 1
+    assert w.is_lost is True
 
 
 def test_render_text_shows_expand_toggle() -> None:

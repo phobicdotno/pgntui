@@ -24,6 +24,7 @@ CHANGELOG_MAX_WIDTH = 72
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.34", "Lost/NaN signals turn red after a few seconds of silence."),
     ("0.6.33", "Drop NMEA not-available values (no more 187.7 deg flicker)."),
     ("0.6.32", "Sparkline scrolls in real time; newest sample stays at right."),
     ("0.6.31", "Expanded sparkline shows a dim baseline until data arrives."),

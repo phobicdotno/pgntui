@@ -1027,6 +1027,8 @@ class PgntuiApp(App[None]):
 
     @staticmethod
     def _apply_update(widget: Widget, value: object, ts: float | None = None) -> None:
+        if value is None:
+            return  # dropped/not-available field — keep the last good value
         if isinstance(widget, AnalogInWidget):
             widget.update_value(float(value), ts)  # type: ignore[arg-type]
         elif isinstance(widget, DigitalInWidget):
@@ -1305,12 +1307,21 @@ class PgntuiApp(App[None]):
         # Drive the scroll from a wall clock so each expanded sparkline slides in
         # real time and keeps its newest sample at the right edge — rather than
         # anchoring every signal to the global last-frame timestamp (which pushed
-        # slower signals leftward with trailing right-hand gaps).
+        # slower signals leftward with trailing right-hand gaps). Also flip any
+        # input that has gone stale into the red "signal lost" look, even with no
+        # new frames — repaint only on a transition to avoid churn.
         wall = monotonic()
         for widgets in self._widgets_by_signal.values():
             for w in widgets:
-                if isinstance(w, (AnalogInWidget, DigitalInWidget)) and w.expanded:
+                if not isinstance(w, (AnalogInWidget, DigitalInWidget)):
+                    continue
+                lost = w.is_lost
+                lost_changed = lost != w._was_lost
+                w._was_lost = lost
+                if w.expanded:
                     w.advance(wall)
+                    w.refresh()
+                elif lost_changed:
                     w.refresh()
 
     @on(TabbedContent.TabActivated)

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Callable
 from time import monotonic
 
@@ -17,6 +18,11 @@ from pgntui.signals.sparkline import (
     render_digital_rows,
 )
 from pgntui.themes.loader import Theme
+
+# Seconds without a valid reading after which an input that *had* data is shown
+# as "signal lost" (the whole row turns red). NMEA inputs typically report at
+# 1 Hz or faster, so a few seconds of silence means the source dropped out.
+LOST_AFTER_SECONDS = 5.0
 
 _BAR_WIDTH = 18
 _TITLE_WIDTH = 20
@@ -90,9 +96,19 @@ class AnalogInWidget(Widget):
         self._now: float = 0.0
         self._anchor_ts: float = 0.0
         self._anchor_wall: float = monotonic()
+        # Signal-lost tracking: wall-clock of the last VALID reading, and the
+        # last rendered lost-state so the app only repaints on a transition.
+        self._last_valid_wall: float = monotonic()
+        self._was_lost: bool = False
         # How many text rows the expanded sparkline occupies (1-4); set globally
         # from the Settings menu. A taller sparkline gives finer vertical detail.
         self.spark_height: int = 1
+
+    @property
+    def is_lost(self) -> bool:
+        """True when the signal had data but no valid reading within the timeout
+        (a dropped/stale source) — drives the red 'signal lost' render."""
+        return self.has_data and (monotonic() - self._last_valid_wall) > LOST_AFTER_SECONDS
 
     def update_value(self, value: float, ts: float | None = None) -> None:
         """Apply ``value`` to the widget and schedule a redraw.
@@ -107,10 +123,17 @@ class AnalogInWidget(Widget):
         other threads. From a worker thread (e.g. the frame loop) hop via
         ``App.call_from_thread(widget.update_value, value, ts)``.
         """
-        self.has_data = True
         # Convert decoded (SI) value into display units before smoothing so
         # min/max, thresholds, and the bar all operate in display units.
         value = float(value) * self.signal.scale + self.signal.offset
+        if math.isnan(value) or math.isinf(value):
+            # A NaN/inf reading is not valid: ignore it and keep the last good
+            # value. With no fresh valid reading the signal ages into the lost
+            # (red) state via ``is_lost``.
+            return
+        self.has_data = True
+        self._last_valid_wall = monotonic()
+        self._was_lost = False
         if self.signal.smoothing > 0 and self._raw is not None:
             a = self.signal.smoothing
             self.displayed_value = a * self._raw + (1 - a) * value
@@ -214,12 +237,19 @@ class AnalogInWidget(Widget):
             return self.render_text()
         c = theme.colors
         s = self.signal
+        lost = self.is_lost
         if not self.has_data:
             # No reading yet: render the whole row in the diffuse (dimmed) look
             # so a silent signal is visibly distinct from a live one.
             dim = c["fg_dim"]
             title_style = border_style = track_style = marker_color = value_style = dim
             unit_style = dim
+        elif lost:
+            # Had data but the source dropped out (no valid reading within the
+            # timeout): flag the whole row red so a lost signal is obvious.
+            alarm = c["alarm"]
+            title_style = border_style = track_style = marker_color = value_style = alarm
+            unit_style = alarm
         else:
             state = self.compute_state(self.displayed_value)
             value_color = {"ok": c["fg"], "warn": c["warn"], "alarm": c["alarm"]}[state]
@@ -236,7 +266,7 @@ class AnalogInWidget(Widget):
         text = Text()
         # A visible, clickable expand toggle so the sparkline is discoverable.
         # Dim with the rest of the row until data arrives (the diffuse look).
-        tog_style = c["accent"] if self.has_data else c["fg_dim"]
+        tog_style = c["alarm"] if lost else (c["accent"] if self.has_data else c["fg_dim"])
         text.append("[-] " if self.expanded else "[+] ", style=tog_style)
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
         val = f"{self.displayed_value:.{s.decimals}f}"
@@ -261,7 +291,8 @@ class AnalogInWidget(Widget):
                 # multi-column cell.
                 text.truncate(self.content_size.width, overflow="crop")
                 if self.has_data:
-                    rows, row_style = self.sparkline_rows(width), c["bar_fill"]
+                    rows = self.sparkline_rows(width)
+                    row_style = c["alarm"] if lost else c["bar_fill"]
                 else:
                     rows, row_style = _empty_spark_rows(width, self.spark_height), c["fg_dim"]
                 for row in rows:
@@ -359,12 +390,22 @@ class DigitalInWidget(Widget):
         self._now: float = 0.0
         self._anchor_ts: float = 0.0
         self._anchor_wall: float = monotonic()
+        # See AnalogInWidget — signal-lost tracking.
+        self._last_valid_wall: float = monotonic()
+        self._was_lost: bool = False
         # See AnalogInWidget.spark_height — how many text rows the expanded
         # sparkline occupies (1-4), set globally from the Settings menu.
         self.spark_height: int = 1
 
+    @property
+    def is_lost(self) -> bool:
+        """See AnalogInWidget.is_lost — had data but no reading within timeout."""
+        return self.has_data and (monotonic() - self._last_valid_wall) > LOST_AFTER_SECONDS
+
     def update_value(self, value: object, ts: float | None = None) -> None:
         self.has_data = True
+        self._last_valid_wall = monotonic()
+        self._was_lost = False
         if self.signal.bit is not None:
             self.value = bool((int(value) >> self.signal.bit) & 1)  # type: ignore[call-overload]
         else:
@@ -414,19 +455,29 @@ class DigitalInWidget(Widget):
             return self.render_text()
         c = theme.colors
         s = self.signal
+        lost = self.is_lost
         # No reading yet: dim the title too, so a silent input is distinct from a
-        # live input that happens to read OFF (which keeps a bright title).
+        # live input that happens to read OFF (which keeps a bright title). A lost
+        # signal (had data, now stale) turns the whole row red.
         if not self.has_data:
             title_style = c["fg_dim"]
+        elif lost:
+            title_style = c["alarm"]
         else:
             title_style = theme.styles.get("title", "") or c["fg"]
         text = Text()
         # A visible, clickable expand toggle so the sparkline is discoverable.
-        # Dim with the rest of the row until data arrives (the diffuse look).
-        tog_style = c["accent"] if self.has_data else c["fg_dim"]
+        # Dim until data arrives (diffuse look), red once the signal is lost.
+        tog_style = c["alarm"] if lost else (c["accent"] if self.has_data else c["fg_dim"])
         text.append("[-] " if self.expanded else "[+] ", style=tog_style)
         text.append(f"{s.title:{_TITLE_WIDTH}s} ", style=title_style)
-        if self.value:
+        if lost:
+            # Source dropped out: show the last-known state in red.
+            glyph = _glyph(theme, "on" if self.value else "off")
+            label = s.on_label if self.value else s.off_label
+            text.append(glyph, style=c["alarm"])
+            text.append(f" {label}", style=c["alarm"])
+        elif self.value:
             text.append(_glyph(theme, "on"), style=c["ok"])
             text.append(f" {s.on_label}", style=c["fg"])
         else:
@@ -439,7 +490,8 @@ class DigitalInWidget(Widget):
                 # line even in a narrow multi-column cell.
                 text.truncate(self.content_size.width, overflow="crop")
                 if self.has_data:
-                    rows, row_style = self.sparkline_rows(width), c["bar_fill"]
+                    rows = self.sparkline_rows(width)
+                    row_style = c["alarm"] if lost else c["bar_fill"]
                 else:
                     rows, row_style = _empty_spark_rows(width, self.spark_height), c["fg_dim"]
                 for row in rows:
