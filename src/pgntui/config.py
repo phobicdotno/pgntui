@@ -41,6 +41,8 @@ class Config:
     spark_height: int = 1
     # Max number of auto-discovered PGN boxes on the Auto page.
     auto_max_containers: int = 50
+    # Sparkline time resolution: seconds of history per column.
+    spark_bucket_seconds: float = 1.0
 
 
 def load_config(path: Path) -> Config:
@@ -76,6 +78,7 @@ def load_config(path: Path) -> Config:
         layout_pages=_as_cols(app.get("layout_pages")) or 1,
         spark_height=_as_spark(app.get("spark_height")),
         auto_max_containers=_as_positive(app.get("auto_max_containers"), 50),
+        spark_bucket_seconds=_as_pos_float(app.get("spark_bucket_seconds"), 1.0),
     )
 
 
@@ -104,6 +107,15 @@ def _as_positive(value: Any, default: int) -> int:
     except (TypeError, ValueError):
         return default
     return n if n >= 1 else default
+
+
+def _as_pos_float(value: Any, default: float) -> float:
+    """Coerce to a positive float, falling back to ``default`` if absent/invalid."""
+    try:
+        f = float(value)
+    except (TypeError, ValueError):
+        return default
+    return f if f > 0 else default
 
 
 def _toml_key(line: str) -> str:

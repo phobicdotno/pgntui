@@ -38,12 +38,15 @@ class AutoPageBuilder:
         theme: Theme | None = None,
         max_containers: int = 50,
         decoder: CanboatDecoder | None = None,
+        bucket_seconds: float = 1.0,
     ) -> None:
         self._view = view
         self._theme = theme
         self._max = max_containers
         # Used to label numeric rows with the field's canboat SI unit.
         self._decoder = decoder
+        # Sparkline time resolution for generated numeric rows.
+        self._bucket_seconds = bucket_seconds
         # (pgn, source, instance) -> {field_name: row widget}, in build order.
         # ``instance`` is None for PGNs without an Instance field.
         self._rows: dict[tuple[int, int, int | None], dict[str, Widget]] = {}
@@ -101,7 +104,9 @@ class AutoPageBuilder:
                     field=name,
                     unit=unit,
                 )
-                widget = AnalogInWidget(sig, theme=self._theme, show_bar=False)
+                widget = AnalogInWidget(
+                    sig, theme=self._theme, show_bar=False, bucket_seconds=self._bucket_seconds
+                )
             else:
                 widget = AutoTextWidget(name, theme=self._theme)
             rows[name] = widget

@@ -73,7 +73,13 @@ def _notify_layout(widget: Widget) -> None:
 class AnalogInWidget(Widget):
     can_focus = True
 
-    def __init__(self, signal: AnalogIn, theme: Theme | None = None, show_bar: bool = True) -> None:
+    def __init__(
+        self,
+        signal: AnalogIn,
+        theme: Theme | None = None,
+        show_bar: bool = True,
+        bucket_seconds: float = 1.0,
+    ) -> None:
         super().__init__()
         self.signal = signal
         self.theme_def = theme
@@ -87,8 +93,9 @@ class AnalogInWidget(Widget):
         # render so a signal that has never reported reads as "no signal".
         self.has_data: bool = False
         # Sparkline state: per-signal time-bucketed history, an expand flag, and
-        # the latest clock value the window is rendered against.
-        self._history = History()
+        # the latest clock value the window is rendered against. bucket_seconds
+        # is the time resolution (seconds of history per column).
+        self._history = History(bucket_seconds=bucket_seconds)
         self.expanded: bool = False
         # Window anchor: the data-time and wall-clock instant of the last reading.
         # ``advance`` slides the window from here in real time so the newest
@@ -377,14 +384,16 @@ class AnalogOutWidget(Widget):
 class DigitalInWidget(Widget):
     can_focus = True
 
-    def __init__(self, signal: DigitalIn, theme: Theme | None = None) -> None:
+    def __init__(
+        self, signal: DigitalIn, theme: Theme | None = None, bucket_seconds: float = 1.0
+    ) -> None:
         super().__init__()
         self.signal = signal
         self.theme_def = theme
         self.value: bool = False
         # ``False`` until the first reading arrives — see AnalogInWidget.has_data.
         self.has_data: bool = False
-        self._history = History()
+        self._history = History(bucket_seconds=bucket_seconds)
         self.expanded: bool = False
         # See AnalogInWidget — window anchor for the real-time scroll.
         self._now: float = 0.0

@@ -766,6 +766,8 @@ class PgntuiApp(App[None]):
         spark_height: int = 1,
         # Max auto-discovered PGN boxes on the Auto page.
         auto_max_containers: int = 50,
+        # Sparkline time resolution (seconds of history per column).
+        spark_bucket_seconds: float = 1.0,
         # Optional message shown in the status bar on mount (e.g. a port-busy
         # notice when the configured driver couldn't auto-connect at launch).
         startup_status: str | None = None,
@@ -829,6 +831,9 @@ class PgntuiApp(App[None]):
         self._page_cols: int = layout_pages
         self._spark_height: int = max(1, min(4, spark_height))
         self._auto_max_containers: int = max(1, auto_max_containers)
+        self._spark_bucket_seconds: float = (
+            spark_bucket_seconds if spark_bucket_seconds > 0 else 1.0
+        )
         self._startup_status = startup_status
         # Menu-bar dropdown overlay state (mounted on the screen, not a modal).
         self._menu_dropdown: MenuDropdown | None = None
@@ -859,6 +864,7 @@ class PgntuiApp(App[None]):
                 theme=self._theme,
                 max_containers=self._auto_max_containers,
                 decoder=self._decoder,
+                bucket_seconds=self._spark_bucket_seconds,
             )
         self._apply_saved_layout()
         # Push the restored sparkline height to every view (no persist on mount).
@@ -913,6 +919,7 @@ class PgntuiApp(App[None]):
                                             theme=self._theme,
                                             section_title=opt.label,
                                             fixed_instance=opt.id,
+                                            bucket_seconds=self._spark_bucket_seconds,
                                         )
                                         self._page_views.append((page, iview))
                                         yield iview
@@ -923,6 +930,7 @@ class PgntuiApp(App[None]):
                                     write_enabled=self._write_enabled,
                                     theme=self._theme,
                                     section_title=page.title,
+                                    bucket_seconds=self._spark_bucket_seconds,
                                 )
                                 # PageView pins its own height (_size_box_grid_rows)
                                 # so it measures right inside a page-grid cell.
@@ -1523,6 +1531,7 @@ class PgntuiApp(App[None]):
             write_enabled=self._write_enabled,
             theme=self._theme,
             masonry=True,
+            bucket_seconds=self._spark_bucket_seconds,
         )
 
     def _ensure_auto_tab(self) -> None:
@@ -1540,6 +1549,7 @@ class PgntuiApp(App[None]):
             theme=self._theme,
             max_containers=self._auto_max_containers,
             decoder=self._decoder,
+            bucket_seconds=self._spark_bucket_seconds,
         )
         try:
             tabs = self.query_one(TabbedContent)

@@ -333,6 +333,7 @@ def _apply_enable_write(cfg: Config, workspace: Path) -> Config:
         layout_pages=cfg.layout_pages,
         spark_height=cfg.spark_height,
         auto_max_containers=cfg.auto_max_containers,
+        spark_bucket_seconds=cfg.spark_bucket_seconds,
     )
 
 
@@ -369,6 +370,7 @@ def _build_app(
         layout_pages=cfg.layout_pages,
         spark_height=cfg.spark_height,
         auto_max_containers=cfg.auto_max_containers,
+        spark_bucket_seconds=cfg.spark_bucket_seconds,
         startup_status=startup_status,
     )
 

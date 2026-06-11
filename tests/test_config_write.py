@@ -63,6 +63,17 @@ def test_auto_max_containers_override(tmp_path: Path) -> None:
     assert load_config(p).auto_max_containers == 50
 
 
+def test_spark_bucket_seconds_default_and_override(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text('[app]\ntheme = "dark"\n', encoding="utf-8")
+    assert load_config(p).spark_bucket_seconds == 1.0  # default
+    p.write_text("[app]\nspark_bucket_seconds = 0.5\n", encoding="utf-8")
+    assert load_config(p).spark_bucket_seconds == 0.5
+    # Non-positive / invalid falls back to the default.
+    p.write_text("[app]\nspark_bucket_seconds = 0\n", encoding="utf-8")
+    assert load_config(p).spark_bucket_seconds == 1.0
+
+
 def test_spark_height_roundtrip_clamps_and_preserves_layout(tmp_path: Path) -> None:
     p = tmp_path / "config.toml"
     p.write_text(EXAMPLE, encoding="utf-8")

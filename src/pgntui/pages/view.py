@@ -29,13 +29,15 @@ from pgntui.signals.widgets import (
 from pgntui.themes.loader import Theme
 
 
-def _make_widget(sig: Signal, write_enabled: bool, theme: Theme | None = None) -> Widget:
+def _make_widget(
+    sig: Signal, write_enabled: bool, theme: Theme | None = None, bucket_seconds: float = 1.0
+) -> Widget:
     if isinstance(sig, AnalogIn):
-        return AnalogInWidget(sig, theme=theme)
+        return AnalogInWidget(sig, theme=theme, bucket_seconds=bucket_seconds)
     if isinstance(sig, AnalogOut):
         return AnalogOutWidget(sig, write_enabled=write_enabled, theme=theme)
     if isinstance(sig, DigitalIn):
-        return DigitalInWidget(sig, theme=theme)
+        return DigitalInWidget(sig, theme=theme, bucket_seconds=bucket_seconds)
     if isinstance(sig, DigitalOut):
         return DigitalOutWidget(sig, write_enabled=write_enabled, theme=theme)
     raise TypeError(f"Unknown signal type: {type(sig).__name__}")
@@ -252,9 +254,13 @@ class PageView(Widget):
         section_title: str | None = None,
         fixed_instance: int | None = None,
         masonry: bool = False,
+        bucket_seconds: float = 1.0,
     ) -> None:
         super().__init__()
         self.page = page
+        # Sparkline time resolution (seconds per column) for the widgets this view
+        # builds; passed through to each widget's History.
+        self._bucket_seconds = bucket_seconds
         # Masonry mode (the Auto page): boxes go into independent top-packed
         # columns instead of an aligned grid, so columns don't leave gaps under
         # short boxes. Column changes rebuild via recompose() (safe here — Auto
@@ -386,7 +392,9 @@ class PageView(Widget):
         children: list[Widget] = []
         for placement in ordered:
             sig = self.signals[placement.ref]
-            w = _make_widget(sig, self.write_enabled, theme=self.theme_def)
+            w = _make_widget(
+                sig, self.write_enabled, theme=self.theme_def, bucket_seconds=self._bucket_seconds
+            )
             self.widgets[placement.ref] = w
             self._spans.append((w, placement.w))
             self._row_of_widget[w] = placement.row

@@ -152,6 +152,11 @@ def test_digital_is_focusable() -> None:
     assert DigitalInWidget(_dsig()).can_focus is True
 
 
+def test_bucket_seconds_sets_history_resolution() -> None:
+    assert AnalogInWidget(_sig(), bucket_seconds=2.5)._history.bucket_seconds == 2.5
+    assert DigitalInWidget(_dsig(), bucket_seconds=2.5)._history.bucket_seconds == 2.5
+
+
 def test_digital_signal_lost_after_timeout() -> None:
     w = DigitalInWidget(_dsig())
     w.update_value(True, ts=0.0)
