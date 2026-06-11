@@ -23,17 +23,44 @@ def test_decode_engine_rapid_rpm_units() -> None:
     assert 2140 <= float(rpm) <= 2160
 
 
-def _heading_127250(variation_raw: int) -> Frame:
+def _heading_127250(variation_raw: int, reference: int = 0) -> Frame:
     # PGN 127250 Vessel Heading: SID(8) Heading(16,u) Deviation(16,s)
-    # Variation(16,s) Reference(8). Heading 1.0 rad (0x2710), Deviation 0.
+    # Variation(16,s) Reference(2 bits, LOOKUP) + Reserved. Heading 1.0 rad.
     return Frame(
         timestamp=0.0,
         source_addr=100,
         pgn=127250,
         data=bytes([0xFF, 0x10, 0x27, 0x00, 0x00])
         + struct.pack("<H", variation_raw)
-        + bytes([0x00]),
+        + bytes([reference & 0x03]),
     )
+
+
+def test_decode_resolves_lookup_field_to_label() -> None:
+    dec = CanboatDecoder.load_bundled()
+    # DIRECTION_REFERENCE: 0 -> True, 1 -> Magnetic.
+    assert dec.decode(_heading_127250(1000, reference=1)).fields["Reference"] == "Magnetic"
+    assert dec.decode(_heading_127250(1000, reference=0)).fields["Reference"] == "True"
+
+
+def test_decode_keeps_instance_lookup_numeric() -> None:
+    # PGN 127488's Instance is an ENGINE_INSTANCE lookup, but it keys the
+    # instance-switchable containers and routing, which compare against an int —
+    # so it must stay numeric, not resolve to a label string.
+    dec = CanboatDecoder.load_bundled()
+    raw = round(1778 / 0.25)
+    data = bytes([0, raw & 0xFF, (raw >> 8) & 0xFF, 0xFF, 0xFF, 0x7F])
+    result = dec.decode(Frame(timestamp=0.0, source_addr=0, pgn=127488, data=data))
+    assert result is not None
+    assert result.fields["Instance"] == 0
+    assert isinstance(result.fields["Instance"], int)
+
+
+def test_decode_skips_reserved_fields() -> None:
+    dec = CanboatDecoder.load_bundled()
+    result = dec.decode(_heading_127250(1000))
+    assert result is not None
+    assert not any("reserved" in name.lower() for name in result.fields)
 
 
 def test_decode_drops_not_available_variation_sentinel() -> None:

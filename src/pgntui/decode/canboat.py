@@ -73,6 +73,18 @@ class CanboatDecoder:
         # For single-frame PGNs (the common case) the reassembler is a no-op
         # passthrough, so this is backwards compatible with the previous API.
         self._reassembler = FastPacketReassembler(load_fast_packet_pgns(db))
+        # Lookup tables: enum name -> {value: label}, so a LOOKUP field decodes to
+        # its human label (e.g. Reference 1 -> "Magnetic") instead of a raw int.
+        self._lookups: dict[str, dict[int, str]] = {}
+        for enum in db.get("LookupEnumerations") or []:
+            enum_name = enum.get("Name")
+            if not enum_name:
+                continue
+            self._lookups[enum_name] = {
+                int(v["Value"]): str(v["Name"])
+                for v in enum.get("EnumValues") or []
+                if v.get("Value") is not None and v.get("Name") is not None
+            }
 
     @classmethod
     def load_bundled(cls) -> CanboatDecoder:
@@ -122,6 +134,12 @@ class CanboatDecoder:
             if size <= 0:
                 continue
             name = f.get("Name") or f.get("name") or "?"
+            field_type = str(f.get("FieldType") or f.get("fieldType") or "").upper()
+            # Padding fields carry no information — skip them so they don't clutter
+            # the Auto page / Debug view with "Reserved 0" rows.
+            if field_type in ("RESERVED", "SPARE"):
+                bit_offset += size
+                continue
             raw = _read_bits(data, bit_offset, size)
             resolution_raw = f.get("Resolution")
             if resolution_raw is None:
@@ -160,6 +178,16 @@ class CanboatDecoder:
                 value: Any = raw
             else:
                 value = raw * resolution + offset
+            # Resolve enum/lookup codes to their label so the UI shows e.g.
+            # "Magnetic" instead of 1. Unknown codes keep the raw int. Instance
+            # fields (e.g. ENGINE_INSTANCE) are themselves lookups but key the
+            # instance-switchable containers and routing — those compare against
+            # an int, so leave Instance numeric.
+            if field_type == "LOOKUP" and isinstance(value, int) and "instance" not in name.lower():
+                enum_name = f.get("LookupEnumeration") or f.get("lookupEnumeration") or ""
+                label = self._lookups.get(enum_name, {}).get(value)
+                if label is not None:
+                    value = label
             out[name] = value
             alias = _FIELD_ALIASES.get((pgn, name))
             if alias:
