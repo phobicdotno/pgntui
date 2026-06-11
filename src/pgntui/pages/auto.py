@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 
 from textual.widget import Widget
 
-from pgntui.decode.canboat import DecodedFrame, frame_instance
+from pgntui.decode.canboat import CanboatDecoder, DecodedFrame, frame_instance
 from pgntui.signals.base import AnalogIn
 from pgntui.signals.widgets import AnalogInWidget, AutoTextWidget
 from pgntui.themes.loader import Theme
@@ -32,11 +32,18 @@ def _is_numeric(value: object) -> bool:
 
 class AutoPageBuilder:
     def __init__(
-        self, view: PageView, *, theme: Theme | None = None, max_containers: int = 50
+        self,
+        view: PageView,
+        *,
+        theme: Theme | None = None,
+        max_containers: int = 50,
+        decoder: CanboatDecoder | None = None,
     ) -> None:
         self._view = view
         self._theme = theme
         self._max = max_containers
+        # Used to label numeric rows with the field's canboat SI unit.
+        self._decoder = decoder
         # (pgn, source, instance) -> {field_name: row widget}, in build order.
         # ``instance`` is None for PGNs without an Instance field.
         self._rows: dict[tuple[int, int, int | None], dict[str, Widget]] = {}
@@ -84,6 +91,7 @@ class AutoPageBuilder:
         for name, value in decoded.fields.items():
             widget: Widget
             if _is_numeric(value):
+                unit = self._decoder.field_unit(decoded.pgn, name) if self._decoder else None
                 sig = AnalogIn(
                     # inst_tag keeps ids unique across instances of one PGN/source.
                     id=f"auto-{decoded.pgn}-{decoded.source_addr}{inst_tag}-{name}",
@@ -91,6 +99,7 @@ class AutoPageBuilder:
                     title=name,
                     pgn=decoded.pgn,
                     field=name,
+                    unit=unit,
                 )
                 widget = AnalogInWidget(sig, theme=self._theme, show_bar=False)
             else:

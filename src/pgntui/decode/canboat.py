@@ -96,6 +96,16 @@ class CanboatDecoder:
     def has_pgn(self, pgn: int) -> bool:
         return pgn in self._by_pgn
 
+    def field_unit(self, pgn: int, name: str) -> str | None:
+        """The canboat SI unit string for a field (e.g. ``rad``, ``K``, ``m/s``),
+        or ``None``. Used to label auto-discovered numeric rows."""
+        for entry in self._by_pgn.get(pgn, []):
+            for f in entry.get("Fields", []) or entry.get("fields", []) or []:
+                if (f.get("Name") or f.get("name")) == name:
+                    unit = f.get("Unit") or f.get("unit")
+                    return str(unit) if unit is not None else None
+        return None
+
     def decode(self, frame: Frame) -> DecodedFrame | None:
         """Decode a single CAN frame.
 

@@ -51,6 +51,16 @@ def test_layout_defaults_when_absent(tmp_path: Path) -> None:
     assert cfg.layout_groups == 1
     assert cfg.layout_pages == 1
     assert cfg.spark_height == 1  # default height
+    assert cfg.auto_max_containers == 50  # default cap
+
+
+def test_auto_max_containers_override(tmp_path: Path) -> None:
+    p = tmp_path / "config.toml"
+    p.write_text("[app]\nauto_max_containers = 12\n", encoding="utf-8")
+    assert load_config(p).auto_max_containers == 12
+    # Invalid / non-positive falls back to the default.
+    p.write_text("[app]\nauto_max_containers = 0\n", encoding="utf-8")
+    assert load_config(p).auto_max_containers == 50
 
 
 def test_spark_height_roundtrip_clamps_and_preserves_layout(tmp_path: Path) -> None:

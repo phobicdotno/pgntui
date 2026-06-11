@@ -39,6 +39,8 @@ class Config:
     # How many text rows an expanded sparkline occupies (1-4), set from the
     # Settings menu and restored on launch.
     spark_height: int = 1
+    # Max number of auto-discovered PGN boxes on the Auto page.
+    auto_max_containers: int = 50
 
 
 def load_config(path: Path) -> Config:
@@ -73,6 +75,7 @@ def load_config(path: Path) -> Config:
         layout_groups=_as_cols(app.get("layout_groups")) or 1,
         layout_pages=_as_cols(app.get("layout_pages")) or 1,
         spark_height=_as_spark(app.get("spark_height")),
+        auto_max_containers=_as_positive(app.get("auto_max_containers"), 50),
     )
 
 
@@ -92,6 +95,15 @@ def _as_spark(value: Any) -> int:
     except (TypeError, ValueError):
         return 1
     return n if 1 <= n <= 4 else 1
+
+
+def _as_positive(value: Any, default: int) -> int:
+    """Coerce to a positive int, falling back to ``default`` if absent/invalid."""
+    try:
+        n = int(value)
+    except (TypeError, ValueError):
+        return default
+    return n if n >= 1 else default
 
 
 def _toml_key(line: str) -> str:

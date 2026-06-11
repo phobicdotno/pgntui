@@ -764,6 +764,8 @@ class PgntuiApp(App[None]):
         layout_pages: int = 1,
         # Expanded-sparkline height in text rows (1-4), restored from config.
         spark_height: int = 1,
+        # Max auto-discovered PGN boxes on the Auto page.
+        auto_max_containers: int = 50,
         # Optional message shown in the status bar on mount (e.g. a port-busy
         # notice when the configured driver couldn't auto-connect at launch).
         startup_status: str | None = None,
@@ -826,6 +828,7 @@ class PgntuiApp(App[None]):
         self._saved_page_cols: int = layout_pages
         self._page_cols: int = layout_pages
         self._spark_height: int = max(1, min(4, spark_height))
+        self._auto_max_containers: int = max(1, auto_max_containers)
         self._startup_status = startup_status
         # Menu-bar dropdown overlay state (mounted on the screen, not a modal).
         self._menu_dropdown: MenuDropdown | None = None
@@ -851,7 +854,12 @@ class PgntuiApp(App[None]):
         self.refresh_css()
         self._wire_write_callbacks()
         if self._auto_view is not None:
-            self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
+            self._auto_builder = AutoPageBuilder(
+                self._auto_view,
+                theme=self._theme,
+                max_containers=self._auto_max_containers,
+                decoder=self._decoder,
+            )
         self._apply_saved_layout()
         # Push the restored sparkline height to every view (no persist on mount).
         if self._spark_height != 1:
@@ -1527,7 +1535,12 @@ class PgntuiApp(App[None]):
         if self._auto_view is not None:
             return
         self._auto_view = self._make_auto_view()
-        self._auto_builder = AutoPageBuilder(self._auto_view, theme=self._theme)
+        self._auto_builder = AutoPageBuilder(
+            self._auto_view,
+            theme=self._theme,
+            max_containers=self._auto_max_containers,
+            decoder=self._decoder,
+        )
         try:
             tabs = self.query_one(TabbedContent)
             tabs.add_pane(TabPane("Auto", self._auto_view, id="tab-auto"), before="debug")

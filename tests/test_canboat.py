@@ -56,6 +56,12 @@ def test_decode_keeps_instance_lookup_numeric() -> None:
     assert isinstance(result.fields["Instance"], int)
 
 
+def test_field_unit_returns_canboat_si_unit() -> None:
+    dec = CanboatDecoder.load_bundled()
+    assert dec.field_unit(127250, "Heading") == "rad"
+    assert dec.field_unit(127250, "Nonexistent") is None
+
+
 def test_decode_skips_reserved_fields() -> None:
     dec = CanboatDecoder.load_bundled()
     result = dec.decode(_heading_127250(1000))

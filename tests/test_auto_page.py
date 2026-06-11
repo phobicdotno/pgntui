@@ -49,6 +49,34 @@ async def test_auto_builds_container_per_pgn_source_and_updates() -> None:
 
 
 @pytest.mark.asyncio
+async def test_auto_respects_max_containers_cap() -> None:
+    async with _Host().run_test(size=(90, 24)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        builder = AutoPageBuilder(view, theme=load_builtin("dark"), max_containers=2)
+        for src in (0, 1, 2):
+            builder.ingest(_frame(127488, src, {"Speed": 100.0}, ts=0.0))
+            await pilot.pause()
+        assert builder.count == 2  # third source dropped at the cap
+
+
+@pytest.mark.asyncio
+async def test_auto_labels_numeric_rows_with_canboat_unit() -> None:
+    from pgntui.decode.canboat import CanboatDecoder
+
+    async with _Host().run_test(size=(90, 24)) as pilot:
+        await pilot.pause()
+        view = pilot.app.query_one(PageView)
+        builder = AutoPageBuilder(
+            view, theme=load_builtin("dark"), decoder=CanboatDecoder.load_bundled()
+        )
+        builder.ingest(_frame(127250, 0, {"Heading": 1.0}, ts=0.0))  # canboat unit: rad
+        await pilot.pause()
+        w = pilot.app.query_one(AnalogInWidget)
+        assert w.signal.unit == "rad"
+
+
+@pytest.mark.asyncio
 async def test_auto_splits_one_box_per_instance() -> None:
     # A PGN that reports several Instances from one source gets one box per
     # instance, and the title gains "· Instance X" after the src.
