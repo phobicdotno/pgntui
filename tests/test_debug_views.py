@@ -19,6 +19,21 @@ def _frame(pgn: int, src: int, value: int, ts: float = 1.0) -> DecodedFrame:
 
 
 @pytest.mark.asyncio
+async def test_clear_debug_empties_buffer_log_and_table() -> None:
+    app = PgntuiApp(theme=load_builtin("dark"), pages=[])
+    async with app.run_test() as pilot:
+        await pilot.pause()
+        app._debug_buffer.push(_frame(127488, 0, 1000))
+        app.query_one(TabbedContent).active = "debug"  # populate views from buffer
+        await pilot.pause()
+        assert len(app._debug_buffer.rows()) == 1
+        app.action_clear_debug()
+        await pilot.pause()
+        assert app._debug_buffer.rows() == []  # buffer emptied
+        assert app.query_one(DebugAggregate).row_count == 0  # table emptied
+
+
+@pytest.mark.asyncio
 async def test_debug_starts_on_stream_and_toggles() -> None:
     app = PgntuiApp(theme=load_builtin("dark"), pages=[])
     async with app.run_test() as pilot:

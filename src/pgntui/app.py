@@ -153,6 +153,7 @@ _MENUS: tuple[tuple[str, tuple[tuple[str, str, str], ...]], ...] = (
         (
             ("Debug", "show_debug", "D"),
             ("Debug: trace / aggregate", "toggle_debug_view", "G"),
+            ("Clear log", "clear_debug", "L"),
             ("Settings…", "config", "S"),
         ),
     ),
@@ -731,6 +732,7 @@ class PgntuiApp(App[None]):
         ("f3,ctrl+3", "page_columns_three", "Pg3"),
         ("d", "show_debug", "Debug"),
         ("g", "toggle_debug_view", "Group"),
+        ("l", "clear_debug", "Clear log"),
         ("r", "toggle_record", "Record"),
         ("o", "open_recording", "Open"),
         # Instance switch: , / . work on every keyboard (the [ ] aliases need
@@ -1396,6 +1398,16 @@ class PgntuiApp(App[None]):
         self._set_status(
             "debug: aggregated (per-PGN)" if show_aggregate else "debug: stream (trace)"
         )
+
+    def action_clear_debug(self) -> None:
+        """Clear the Debug trace, the aggregated table, and the capped buffer that
+        backs them, so the log starts fresh from the next frame."""
+        self._debug_buffer.clear()
+        if self._debug_log is not None:
+            self._debug_log.clear()
+        if self._debug_aggregate is not None:
+            self._debug_aggregate.clear_frames()
+        self._set_status("debug cleared")
 
     def _all_views(self) -> list[PageView]:
         """Every PageView in the app (all source pages + the Auto view), across

@@ -24,6 +24,7 @@ CHANGELOG_MAX_WIDTH = 72
 # The top entry's version MUST equal ``__version__`` (enforced by a test) so the
 # About screen can never silently lag a release.
 RELEASE_NOTES: tuple[tuple[str, str], ...] = (
+    ("0.6.38", "Clear log (View menu / L) wipes the Debug trace and table."),
     ("0.6.37", "Sparkline time resolution (seconds/column) is configurable."),
     ("0.6.36", "Auto rows show canboat units; box cap is configurable."),
     ("0.6.35", "Auto/Debug show enum labels and hide reserved padding."),
